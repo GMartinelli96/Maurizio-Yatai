@@ -160,8 +160,11 @@ function scegliMossa({ serata, bancone: piano }) {
   // Un Piatto bruciato va nel cestino: poi la Postazione resta nel Fumo e non si tocca.
   const bruciata = serata.postazioni.find((p) => p.stato === 'bruciato');
   if (bruciata) return { tipo: 'tocca', id: bruciata.id };
-  // Un Piatto a tocchi già cominciato riceve l'Ingrediente che aspetta: la sequenza della ricetta
-  // (riso, alga) si legge in `prossimo`, che è l'id della Scorta da toccare.
+  // Un Piatto già cominciato che aspetta un Ingrediente lo riceve: la sequenza della Ricetta (riso, alga;
+  // pastella, polpo, salsa) si legge in `prossimo`, che è l'id della Scorta da toccare. Mentre un Piatto
+  // cuoce ('cuoce') le Scorte non fanno niente, quindi il bot lo lascia stare e passa oltre: la cottura a metà
+  // della Ricetta (il takoyaki dopo il polpo) non ha bisogno di una mossa a parte. Finita la cottura la
+  // Postazione torna 'inPreparazione' e aspetta la salsa.
   const cominciata = serata.postazioni.find((p) => p.stato === 'inPreparazione');
   if (cominciata) return { tipo: 'tocca', id: cominciata.prossimo };
   // Si comincia solo quel che manca: i Piatti ordinati meno quelli sul Bancone e quelli già in preparazione,
@@ -171,8 +174,8 @@ function scegliMossa({ serata, bancone: piano }) {
   for (const piatto of bancone) togli(piatto);
   for (const p of serata.postazioni) if (!['libera', 'bruciato', 'fumo'].includes(p.stato)) togli(p.piatto);
   const libera = serata.postazioni.find((p) => p.stato === 'libera' && mancanti.includes(p.piatto));
-  // Un Piatto a tocchi comincia dalla sua prima Scorta; uno che cuoce da solo, toccando la Postazione.
-  return libera ? { tipo: 'tocca', id: libera.prossimo ?? libera.id } : null;
+  // Ogni Piatto comincia dalla sua prima Scorta (`prossimo` di una Postazione libera).
+  return libera ? { tipo: 'tocca', id: libera.prossimo } : null;
 }
 
 // Aspetta che gli hook rispondano e che l'avvio (texture e font) sia finito.

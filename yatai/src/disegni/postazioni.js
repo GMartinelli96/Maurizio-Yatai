@@ -154,7 +154,73 @@ function drawScortaAlga(ctx, rng) {
   });
 }
 
-export const SCORTE = { riso: drawScortaRiso, alga: drawScortaAlga };
+// La pastella del takoyaki: una brocca verde menta alta e stretta, colma di pastella chiara che cola dal
+// beccuccio. La forma alta la distingue dalle ciotole (riso) e dai fogli (alga) anche in bianco e nero.
+function drawScortaPastella(ctx, rng) {
+  restingShadow(ctx, 66, 138, 46, 9);
+  // Il manico a destra, dietro il corpo: due passate di matita, una scura larga e una chiara sopra.
+  const manico = smoothCurve([{ x: 92, y: 80 }, { x: 116, y: 84 }, { x: 118, y: 108 }, { x: 94, y: 114 }], { closed: false });
+  pencilLine(ctx, manico, rng, { closed: false, width: 8, color: C.menta.ombra, amount: 0.5 });
+  pencilLine(ctx, manico, rng, { closed: false, width: 3.6, color: C.menta.colore, amount: 0.4 });
+  // Il corpo, con il beccuccio a sinistra.
+  part(ctx, rng, roundedPolygon([{ x: 30, y: 62 }, { x: 24, y: 54 }, { x: 40, y: 54 }, { x: 94, y: 54 }, { x: 98, y: 122 }, { x: 90, y: 138 }, { x: 40, y: 138 }, { x: 32, y: 122 }], 12), C.menta);
+  // La pastella: il bordo pieno in cima e un colata lungo il corpo.
+  part(ctx, rng, ellipse(62, 54, 34, 11), C.pastella, { fill: FLAT });
+  part(ctx, rng, roundedPolygon([{ x: 40, y: 56 }, { x: 56, y: 56 }, { x: 54, y: 92 }, { x: 47, y: 100 }, { x: 40, y: 92 }], 6), C.pastella, { fill: FLAT, line: { width: 2.2 } });
+  for (const [x, y, r] of [[70, 52, 3.4], [82, 56, 2.6], [58, 50, 2.4]]) {
+    pencilLine(ctx, ellipse(x, y, r, r * 0.8), rng, { width: 1.2, color: C.pastella.ombra, amount: 0.3 });
+  }
+  // La fascia a righe del corpo.
+  grainLine(ctx, rng, 38, 112, 52, C.menta.ombra);
+  grainLine(ctx, rng, 40, 122, 46, C.menta.ombra);
+}
+
+// Il polpo bollito, tagliato a pezzi (tako): tre bocconi rosa scuro con la parte tagliata chiara e le ventose
+// bianche, su un piattino. Niente occhi né faccia: sono pezzi, non un animale.
+function drawScortaPolpo(ctx, rng) {
+  restingShadow(ctx, 66, 138, 56, 10);
+  // Il piattino: una ciotola bassa e larga.
+  part(ctx, rng, ellipse(66, 124, 58, 15), C.nuvola);
+  part(ctx, rng, ellipse(66, 120, 44, 9), { colore: C.nuvola.ombra, ombra: C.nuvola.ombra, luce: C.nuvola.colore }, { fill: FLAT, line: { width: 1.6 } });
+  // Un boccone: il corpo, la parte tagliata a un'estremità e tre ventose sul fianco.
+  const boccone = (x, y, angolo) => {
+    part(ctx, rng, ellipse(x, y, 26, 14, angolo), C.polpo);
+    const cos = Math.cos(angolo);
+    const sin = Math.sin(angolo);
+    part(ctx, rng, ellipse(x + cos * 22, y + sin * 22, 6, 11, angolo), { colore: '#fbe3dc', ombra: '#e6b5ad', luce: '#ffffff' }, { fill: FLAT, line: { width: 1.8 } });
+    for (const k of [-14, -3, 8]) {
+      pencilLine(ctx, ellipse(x + cos * k, y + sin * k + 2, 3.2, 2.4, angolo), rng, { width: 1.5, color: C.bianco, amount: 0.2 });
+    }
+  };
+  boccone(44, 112, -0.35);
+  boccone(88, 112, 0.35);
+  boccone(66, 90, 0.08);
+}
+
+// La salsa del takoyaki: un flacone a spruzzo scuro con l'etichetta chiara e il beccuccio giallo, e una goccia.
+function drawScortaSalsa(ctx, rng) {
+  restingShadow(ctx, 66, 138, 40, 9);
+  // Il flacone: largo in basso, stretto verso il collo.
+  part(ctx, rng, roundedPolygon([{ x: 38, y: 138 }, { x: 94, y: 138 }, { x: 100, y: 96 }, { x: 86, y: 70 }, { x: 46, y: 70 }, { x: 32, y: 96 }], 12), C.salsa);
+  // L'etichetta, con un'onda di maionese.
+  part(ctx, rng, roundedRect(42, 96, 48, 30, 10), C.nuvola, { fill: FLAT, line: { width: 2.2 } });
+  pencilLine(ctx, smoothCurve([{ x: 48, y: 112 }, { x: 56, y: 104 }, { x: 64, y: 118 }, { x: 72, y: 106 }, { x: 82, y: 114 }], { closed: false }), rng, {
+    closed: false, width: 3, color: C.salsa.colore, amount: 0.4,
+  });
+  // Il collo e il beccuccio.
+  part(ctx, rng, roundedRect(56, 52, 20, 22, 5), C.giallo, { fill: FLAT });
+  part(ctx, rng, roundedPolygon([{ x: 58, y: 54 }, { x: 74, y: 54 }, { x: 69, y: 30 }, { x: 63, y: 30 }], 3), C.giallo, { fill: FLAT, line: { width: 2.2 } });
+  // La goccia che sta per cadere.
+  part(ctx, rng, roundedPolygon([{ x: 66, y: 6 }, { x: 72, y: 17 }, { x: 66, y: 24 }, { x: 60, y: 17 }], 5), C.salsa, { fill: FLAT, line: { width: 2 } });
+}
+
+export const SCORTE = {
+  riso: drawScortaRiso,
+  alga: drawScortaAlga,
+  pastella: drawScortaPastella,
+  polpo: drawScortaPolpo,
+  salsa: drawScortaSalsa,
+};
 export const scortaKey = (ingrediente) => `scorta-${ingrediente}`;
 
 // In ordine di sblocco, con la chiave del Piatto di config.js (PIATTI).

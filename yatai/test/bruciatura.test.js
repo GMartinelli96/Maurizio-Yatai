@@ -4,12 +4,13 @@ import { readFileSync } from 'node:fs';
 import { BRUCIATURA, FRAME_MS, FUMO_SEC, PIATTI, POSTAZIONI, SERATA_PRIMA, SERATA_TANABATA, SERATE } from '../src/config.js';
 import { DISEGNI } from '../src/disegni/catalogo.js';
 import { TESTI } from '../src/i18n.js';
-import { Serata } from '../src/serata/Serata.js';
+import { Serata, costoPiatto, ingredientiDi, tocchiPerPiatto } from '../src/serata/Serata.js';
 
-// Cottura, bruciatura, Fumo e Ordini da 2 Piatti (passo 4 di PIANO.md, ticket 06). Tutto senza browser.
+// Il takoyaki a tocchi, la cottura a metà della Ricetta, la bruciatura, il Fumo e gli Ordini da 2 Piatti
+// (passo 4 di PIANO.md, ticket 06 e 37). Tutto senza browser.
 
 const SEC = 1000;
-const COTTURA = PIATTI.takoyaki.cookSec * SEC;
+const COTTURA = PIATTI.takoyaki.ricetta.find((passo) => passo.cotturaSec !== undefined).cotturaSec * SEC;
 const BRUCIA = PIATTI.takoyaki.burnAfterSec * SEC;
 
 // Avanza il tempo come fa la scena, a passi da un sessantesimo di secondo. Restituisce gli eventi.
@@ -40,11 +41,19 @@ function tanabata(opzioni = {}) {
   return serata;
 }
 
-// Un takoyaki cotto, pronto sulla piastra da pochissimo.
+// Un takoyaki a tocchi come dice la Ricetta: pastella, polpo, la cottura (che parte da sola), la salsa.
+// Poi è pronto da prendere.
+function faiTakoyaki(serata) {
+  serata.tocca('pastella');
+  serata.tocca('polpo');
+  avanza(serata, COTTURA + 20);
+  serata.tocca('salsa');
+}
+
+// Un takoyaki finito, pronto sulla piastra da pochissimo (la bruciatura parte da qui).
 function conTakoyakiPronto() {
   const serata = tanabata();
-  serata.tocca('piastra');
-  avanza(serata, COTTURA + 20);
+  faiTakoyaki(serata);
   assert.equal(postazione(serata, 'piastra').stato, 'pronto');
   return serata;
 }
@@ -69,16 +78,227 @@ test('il Tanabata ha la sua Serata: onigiri e takoyaki, Ordini da 1 o 2 Piatti; 
   assert.equal(POSTAZIONI.piastra.piatto, 'takoyaki');
 });
 
-test('il takoyaki cuoce 5 secondi: prima non è pronto, poi sì', () => {
+test('la fila del Tanabata ha 7 voci: le cinque Scorte nell’ordine delle Ricette, poi tagliere e piastra', () => {
+  const { fila } = new Serata(SERATA_TANABATA).stato();
+  assert.deepEqual(
+    fila.map((voce) => `${voce.voce}:${voce.id}`),
+    ['scorta:riso', 'scorta:alga', 'scorta:pastella', 'scorta:polpo', 'scorta:salsa', 'postazione:tagliere', 'postazione:piastra'],
+  );
+});
+
+// --- La Ricetta del takoyaki (ticket 37) ---
+
+test('la Ricetta del takoyaki: pastella 30, polpo 50, [5 s], salsa 20, prendi: 4 tocchi, 100 Yen su 300', () => {
+  assert.deepEqual(PIATTI.takoyaki.ricetta, [
+    { ingrediente: 'pastella', costo: 30 },
+    { ingrediente: 'polpo', costo: 50 },
+    { cotturaSec: 5 },
+    { ingrediente: 'salsa', costo: 20 },
+  ]);
+  assert.deepEqual(ingredientiDi('takoyaki').map((p) => p.ingrediente), ['pastella', 'polpo', 'salsa']);
+  assert.equal(costoPiatto('takoyaki'), 100);
+  assert.ok(costoPiatto('takoyaki') <= PIATTI.takoyaki.price / 3 + 1e-9, 'il costo è circa un terzo del prezzo');
+  // Un tocco per Ingrediente più uno per prenderlo: la cottura non è un tocco.
+  assert.equal(tocchiPerPiatto('takoyaki'), 4);
+});
+
+test('nessun Piatto con una ricetta supera il tetto di 4 tocchi (GAME_SPEC.md)', () => {
+  for (const [piatto, { ricetta }] of Object.entries(PIATTI)) {
+    if (!ricetta) continue;
+    assert.ok(tocchiPerPiatto(piatto) <= 4, `${piatto}: ${tocchiPerPiatto(piatto)} tocchi`);
+    assert.notEqual(ricetta[0].ingrediente, undefined, `${piatto}: la ricetta comincia da un Ingrediente, non dalla cottura`);
+  }
+});
+
+test('il takoyaki si fa a tocchi: pastella, polpo, la cottura parte da sola, salsa, poi si prende', () => {
   const serata = tanabata();
-  assert.deepEqual(tipi(serata.tocca('piastra')), ['cotturaIniziata']);
-  avanza(serata, COTTURA - 100);
-  assert.equal(postazione(serata, 'piastra').stato, 'cuoce');
-  assert.ok(postazione(serata, 'piastra').restaMs > 0);
-  assert.deepEqual(tipi(serata.tocca('piastra')), ['postazioneOccupata']);
-  const eventi = avanza(serata, 150);
-  assert.ok(tipi(eventi).includes('piattoPronto'));
+  assert.equal(postazione(serata, 'piastra').prossimo, 'pastella');
+
+  const pastella = serata.tocca('pastella');
+  assert.deepEqual(tipi(pastella), ['ingrediente']);
+  assert.deepEqual([pastella[0].postazione, pastella[0].costo, pastella[0].fatti, pastella[0].di], ['piastra', 30, 1, 3]);
+  assert.equal(postazione(serata, 'piastra').stato, 'inPreparazione');
+  assert.equal(postazione(serata, 'piastra').prossimo, 'polpo');
+
+  // Il polpo è l'ultimo Ingrediente prima della cottura: il Piatto cuoce da solo, senza un altro tocco.
+  const polpo = serata.tocca('polpo');
+  assert.deepEqual(tipi(polpo), ['ingrediente', 'cotturaIniziata']);
+  assert.equal(polpo[1].durataMs, COTTURA);
+  const cuoce = postazione(serata, 'piastra');
+  assert.equal(cuoce.stato, 'cuoce');
+  assert.equal(cuoce.cotturaMs, COTTURA);
+  assert.equal(cuoce.restaMs, COTTURA);
+  assert.equal(cuoce.fatti, 2);
+  assert.equal(cuoce.prossimo, 'salsa', 'la salsa è già evidenziata durante la cottura: è la prossima');
+  assert.equal(serata.stato().spesa, 80);
+
+  // Passa la cottura: a metà strada non è ancora finita, poi sì, e il Piatto aspetta la salsa.
+  let eventi = avanza(serata, COTTURA - 100);
+  assert.ok(!tipi(eventi).includes('cotturaFinita'));
+  assert.ok(postazione(serata, 'piastra').restaMs > 0 && postazione(serata, 'piastra').restaMs <= 100);
+  eventi = avanza(serata, 150);
+  assert.equal(tipi(eventi).filter((t) => t === 'cotturaFinita').length, 1);
+  assert.ok(!tipi(eventi).includes('piattoPronto'), 'senza la salsa il Piatto non è pronto');
+  assert.equal(postazione(serata, 'piastra').stato, 'inPreparazione');
+  assert.equal(postazione(serata, 'piastra').restaMs, 0);
+  assert.deepEqual(tipi(serata.tocca('piastra')), ['nienteDaPrendere']);
+
+  // La salsa chiude la Ricetta: il Piatto è pronto, e poi si prende.
+  const salsa = serata.tocca('salsa');
+  assert.deepEqual(tipi(salsa), ['ingrediente', 'piattoPronto']);
+  assert.deepEqual([salsa[0].costo, salsa[0].fatti, salsa[0].di], [20, 3, 3]);
   assert.equal(postazione(serata, 'piastra').stato, 'pronto');
+  assert.equal(postazione(serata, 'piastra').prossimo, null);
+  assert.equal(serata.stato().spesa, 100);
+  assert.equal(serata.stato().incasso, -100);
+  assert.deepEqual(tipi(serata.tocca('piastra')), ['sulBancone']);
+  assert.deepEqual(serata.stato().bancone, ['takoyaki']);
+  assert.equal(postazione(serata, 'piastra').stato, 'libera');
+  assert.equal(postazione(serata, 'piastra').fatti, 0, 'la ricetta ricomincia da capo');
+  assert.equal(postazione(serata, 'piastra').prossimo, 'pastella');
+});
+
+test('durante la cottura le Scorte non fanno niente, e nemmeno la piastra: non si paga e non cambia niente', () => {
+  const serata = tanabata();
+  serata.tocca('pastella');
+  serata.tocca('polpo');
+  const spesa = serata.stato().spesa;
+  avanza(serata, 1000);
+  for (const scorta of ['pastella', 'polpo', 'salsa']) {
+    const rifiuto = serata.tocca(scorta);
+    assert.deepEqual(tipi(rifiuto), ['ingredienteRifiutato'], scorta);
+  }
+  // Le Scorte dell'onigiri servono un'altra Postazione: mentre la piastra cuoce il tagliere lavora.
+  assert.deepEqual(tipi(serata.tocca('riso')), ['ingrediente']);
+  serata.tocca('alga');
+  assert.equal(postazione(serata, 'piastra').stato, 'cuoce', 'cuocere non ferma il resto dello Yatai');
+  const spesa2 = serata.stato().spesa;
+  assert.equal(spesa2, spesa + 30);
+  assert.equal(serata.tocca('salsa')[0].motivo, 'cuoce', 'la salsa durante la cottura: rifiutata perché sta cuocendo');
+  assert.deepEqual(tipi(serata.tocca('piastra')), ['nienteDaPrendere']);
+  assert.equal(serata.stato().spesa, spesa2, 'i tocchi rifiutati non si sono pagati');
+  assert.equal(postazione(serata, 'piastra').stato, 'cuoce', 'la cottura va avanti');
+  assert.ok(postazione(serata, 'piastra').restaMs < COTTURA);
+  // E la salsa toccata troppo presto non si ricorda: dopo la cottura si tocca di nuovo.
+  avanza(serata, COTTURA);
+  assert.equal(postazione(serata, 'piastra').stato, 'inPreparazione');
+  assert.equal(serata.stato().spesa, spesa2);
+  assert.deepEqual(tipi(serata.tocca('salsa')), ['ingrediente', 'piattoPronto']);
+});
+
+test('un tocco fuori ordine sul takoyaki non fa niente e non costa: la Scorta trema, nessuno Spreco', () => {
+  const serata = tanabata();
+  // Il polpo e la salsa prima della pastella.
+  for (const scorta of ['polpo', 'salsa']) {
+    const rifiuto = serata.tocca(scorta);
+    assert.deepEqual([tipi(rifiuto)[0], rifiuto[0].motivo], ['ingredienteRifiutato', 'ordine'], scorta);
+  }
+  assert.equal(serata.stato().spesa, 0);
+  assert.equal(serata.stato().spreco, 0);
+  assert.equal(postazione(serata, 'piastra').stato, 'libera');
+
+  // La pastella due volte, e la salsa prima del polpo: solo la prima pastella si paga.
+  serata.tocca('pastella');
+  assert.equal(serata.tocca('pastella')[0].motivo, 'ordine');
+  assert.equal(serata.tocca('salsa')[0].motivo, 'ordine');
+  assert.equal(serata.stato().spesa, 30);
+  assert.equal(postazione(serata, 'piastra').fatti, 1);
+  assert.equal(serata.stato().fase, 'in corso', 'nessun game over');
+
+  // La Ricetta si può comunque finire: il tocco sbagliato ha fatto perdere solo un tocco.
+  serata.tocca('polpo');
+  avanza(serata, COTTURA + 20);
+  assert.deepEqual(tipi(serata.tocca('salsa')), ['ingrediente', 'piattoPronto']);
+  assert.equal(serata.stato().spesa, 100);
+});
+
+test('la bruciatura parte da quando il Piatto è pronto, dopo la salsa: un takoyaki cotto senza salsa aspetta', () => {
+  const serata = tanabata();
+  serata.tocca('pastella');
+  serata.tocca('polpo');
+  avanza(serata, COTTURA + 20);
+  // Cotto da un pezzo, ma manca la salsa: non è "pronto", quindi non c'è niente da bruciare.
+  const eventi = avanza(serata, 3 * BRUCIA);
+  assert.ok(!tipi(eventi).some((t) => ['staPerBruciarsi', 'piattoBruciato', 'piattoPronto'].includes(t)));
+  assert.equal(postazione(serata, 'piastra').stato, 'inPreparazione');
+  assert.equal(postazione(serata, 'piastra').bruciaTraMs, null);
+  // Con la salsa comincia il conto alla rovescia, e parte tutto da capo.
+  serata.tocca('salsa');
+  assert.equal(postazione(serata, 'piastra').bruciaTraMs, BRUCIA);
+  const dopo = avanza(serata, BRUCIA + 20);
+  assert.ok(tipi(dopo).includes('piattoBruciato'));
+});
+
+test('un takoyaki bruciato è Spreco: i suoi 100 Yen di Ingredienti sono pagati e non tornano', () => {
+  const serata = conTakoyakiBruciato();
+  const bruciato = serata.stato();
+  assert.equal(bruciato.spesa, 100);
+  assert.equal(bruciato.spreco, 100, 'bruciato sulla piastra è già Spreco');
+  assert.equal(bruciato.vendite, 0);
+  assert.equal(bruciato.incasso, -100);
+
+  // Buttarlo nel cestino non rimborsa niente e non aggiunge altra Spesa.
+  serata.tocca('piastra');
+  const cestino = serata.stato();
+  assert.deepEqual([cestino.spesa, cestino.spreco, cestino.incasso], [100, 100, -100]);
+  assert.equal(postazione(serata, 'piastra').fatti, 0);
+
+  // Dopo il Fumo la piastra si rifà da capo, e un takoyaki servito non è Spreco: la Spesa totale è 200,
+  // lo Spreco resta 100.
+  avanza(serata, FUMO_SEC * SEC + 100);
+  faiTakoyaki(serata);
+  serata.tocca('piastra');
+  const posto = serata.stato().posti.findIndex((p) => p.cliente);
+  serata.posti[posto].cliente.ordine = ['takoyaki'];
+  const [servito] = serata.servi(posto);
+  const finale = serata.stato();
+  assert.equal(finale.spesa, 200);
+  assert.equal(finale.spreco, 100);
+  assert.equal(finale.vendite, servito.totale);
+  assert.equal(finale.incasso, servito.totale - 200);
+});
+
+test('il recap di fine Serata conta lo Spreco del takoyaki bruciato (e di quello rimasto a metà)', () => {
+  const serata = conTakoyakiBruciato();
+  serata.tocca('piastra');
+  avanza(serata, FUMO_SEC * SEC + 100);
+  // Un secondo takoyaki lasciato a metà: pastella e polpo pagati, mai finito.
+  serata.tocca('pastella');
+  serata.tocca('polpo');
+  const fine = avanza(serata, 130 * SEC).find((e) => e.tipo === 'serataFinita');
+  assert.ok(fine, 'la Serata è finita');
+  assert.deepEqual([fine.vendite, fine.spesa, fine.spreco, fine.incasso], [0, 180, 180, -180]);
+});
+
+test('la cottura è un passo della Ricetta nei dati: il kakigōri (ghiaccio, [2 s], sciroppo) funziona senza toccare la logica', () => {
+  // Un Piatto e una Postazione inventati in questo test, con la forma che avrà il kakigōri del ticket 07.
+  PIATTI.provaGhiaccio = {
+    ricetta: [{ ingrediente: 'ghiaccio', costo: 20 }, { cotturaSec: 2 }, { ingrediente: 'sciroppo', costo: 60 }],
+    price: 250,
+    varianti: [],
+  };
+  POSTAZIONI.provaMacchina = { piatto: 'provaGhiaccio' };
+  try {
+    assert.equal(tocchiPerPiatto('provaGhiaccio'), 3);
+    assert.equal(costoPiatto('provaGhiaccio'), 80);
+    const serata = new Serata({ seed: 'prova', piatti: ['provaGhiaccio'] });
+    assert.deepEqual(serata.stato().fila.map((v) => v.id), ['ghiaccio', 'sciroppo', 'provaMacchina']);
+
+    assert.deepEqual(tipi(serata.tocca('ghiaccio')), ['ingrediente', 'cotturaIniziata']);
+    assert.equal(postazione(serata, 'provaMacchina').restaMs, 2 * SEC);
+    assert.equal(serata.tocca('sciroppo')[0].motivo, 'cuoce');
+    const eventi = avanza(serata, 2 * SEC + 20);
+    assert.deepEqual(tipi(eventi).filter((t) => t.startsWith('cottura') || t === 'piattoPronto'), ['cotturaFinita']);
+    assert.deepEqual(tipi(serata.tocca('sciroppo')), ['ingrediente', 'piattoPronto']);
+    // Senza burnAfterSec non si brucia mai.
+    assert.ok(!tipi(avanza(serata, 60 * SEC)).includes('piattoBruciato'));
+    assert.equal(postazione(serata, 'provaMacchina').stato, 'pronto');
+    assert.deepEqual(tipi(serata.tocca('provaMacchina')), ['sulBancone']);
+    assert.equal(serata.stato().spesa, 80);
+  } finally {
+    delete PIATTI.provaGhiaccio;
+    delete POSTAZIONI.provaMacchina;
+  }
 });
 
 test('un takoyaki preso in tempo passa sul Bancone e sul Bancone non si brucia', () => {
@@ -185,9 +405,12 @@ test('il Fumo dura FUMO_SEC secondi, poi la Postazione è libera e si può cuoce
   assert.equal(tipi(eventi).filter((t) => t === 'fumoPassato').length, 1);
   assert.equal(postazione(serata, 'piastra').stato, 'libera');
   assert.equal(postazione(serata, 'piastra').fumoRestaMs, 0);
-  assert.deepEqual(tipi(serata.tocca('piastra')), ['cotturaIniziata']);
+  assert.deepEqual(tipi(serata.tocca('pastella')), ['ingrediente']);
+  assert.equal(postazione(serata, 'piastra').fatti, 1, 'la ricetta riparte da zero, senza gli Ingredienti del Piatto bruciato');
+  serata.tocca('polpo');
   // Il Piatto nuovo riparte da zero: l'allarme e la bruciatura contano da quando è pronto.
   avanza(serata, COTTURA + 20);
+  serata.tocca('salsa');
   assert.equal(postazione(serata, 'piastra').stato, 'pronto');
   assert.ok(postazione(serata, 'piastra').bruciaTraMs > BRUCIA - 100);
   const dopo = avanza(serata, BRUCIA);
@@ -210,8 +433,7 @@ test('un Ordine da 2 Piatti si serve solo se sul Bancone ci sono entrambi', () =
   serata.posti[posto].cliente.ordine = ['takoyaki', 'onigiri'];
 
   // Solo il takoyaki: il Cliente scuote la testa e dice cosa manca; il Bancone resta com'è.
-  serata.tocca('piastra');
-  avanza(serata, COTTURA + 20);
+  faiTakoyaki(serata);
   serata.tocca('piastra');
   assert.deepEqual(serata.stato().bancone, ['takoyaki']);
   let eventi = serata.servi(posto);
@@ -234,12 +456,10 @@ test('due takoyaki per un Ordine: ne servono due sul Bancone, uno solo non basta
   const serata = tanabata();
   const posto = serata.stato().posti.findIndex((p) => p.cliente);
   serata.posti[posto].cliente.ordine = ['takoyaki', 'takoyaki'];
-  serata.tocca('piastra');
-  avanza(serata, COTTURA + 20);
+  faiTakoyaki(serata);
   serata.tocca('piastra');
   assert.deepEqual(tipi(serata.servi(posto)), ['scuoteTesta']);
-  serata.tocca('piastra');
-  avanza(serata, COTTURA + 20);
+  faiTakoyaki(serata);
   serata.tocca('piastra');
   const eventi = serata.servi(posto);
   assert.equal(eventi[0].tipo, 'servito');
@@ -269,10 +489,12 @@ test('con lo stesso seme e le stesse mosse, anche con le bruciature, la Serata �
   const gioca = () => {
     const serata = new Serata({ seed: 'fumo', ...SERATA_TANABATA });
     const eventi = [];
-    // Un giocatore distratto: cuoce sulla piastra e poi dimentica.
+    // Un giocatore distratto: prepara il takoyaki sulla piastra (un Ingrediente ogni 7 secondi) e poi dimentica.
     for (let i = 0; i < 12000; i++) {
       eventi.push(...serata.update(10));
-      if (i % 700 === 0) eventi.push(...serata.tocca('piastra'));
+      if (i % 700 !== 0) continue;
+      const piastra = serata.stato().postazioni.find((p) => p.id === 'piastra');
+      if (['libera', 'inPreparazione'].includes(piastra.stato)) eventi.push(...serata.tocca(piastra.prossimo));
     }
     return { eventi, stato: serata.stato() };
   };
@@ -293,7 +515,7 @@ test('l’Hanami non cambia: nessuna piastra, nessun Fumo', () => {
 
 // Un giocatore che fa una mossa ogni `reazioneMs`. Serve chi può; poi prende prima il Piatto che sta
 // per bruciarsi, butta quello bruciato, porta avanti l'onigiri a tocchi e comincia solo ciò che serve.
-// Con `distratto` non prende mai niente dalla piastra (come chi guarda altrove): cuoce e dimentica.
+// Con `distratto` non prende mai niente dalla piastra (come chi guarda altrove): prepara il takoyaki e dimentica.
 function giocaTanabata(reazioneMs, seed, { distratto = false } = {}) {
   const serata = new Serata({ seed, ...SERATA_TANABATA });
   for (let t = 10; !serata.finita; t += 10) {
@@ -314,8 +536,8 @@ function giocaTanabata(reazioneMs, seed, { distratto = false } = {}) {
       continue;
     }
     if (distratto) {
-      const libera = stato.postazioni.find((p) => p.stato === 'libera' && p.piatto === 'takoyaki');
-      if (libera) serata.tocca(libera.id);
+      const daFare = stato.postazioni.find((p) => ['libera', 'inPreparazione'].includes(p.stato) && p.piatto === 'takoyaki');
+      if (daFare) serata.tocca(daFare.prossimo);
       continue;
     }
     const pronta = stato.postazioni
@@ -351,19 +573,38 @@ function giocaTanabata(reazioneMs, seed, { distratto = false } = {}) {
 const SEMI = ['a', 'b', 'c', 'd', 'e', 'f'];
 const media = (campo, reazioneMs, opzioni) => SEMI.reduce((somma, seme) => somma + giocaTanabata(reazioneMs, seme, opzioni)[campo], 0) / SEMI.length;
 
+// La bravura è il tempo tra un tocco e l'altro: gli stessi livelli della prima Serata (test/serata.test.js).
+const BRAVURA = { rapido: 600, attento: 1000, lento: 1400 };
+
 test('nel Tanabata chi è più rapido incassa di più, e chi dimentica i takoyaki ne brucia e incassa meno', () => {
-  const rapido = media('incasso', 300);
-  const attento = media('incasso', 800);
-  const lento = media('incasso', 1400);
+  const rapido = media('incasso', BRAVURA.rapido);
+  const attento = media('incasso', BRAVURA.attento);
+  const lento = media('incasso', BRAVURA.lento);
   assert.ok(rapido >= attento && attento > lento * 1.15, `rapido ${rapido}, attento ${attento}, lento ${lento}`);
-  assert.ok(media('bruciati', 800, { distratto: true }) >= 1, 'il giocatore distratto dovrebbe bruciare');
-  assert.equal(media('bruciati', 800), 0, 'chi prende i Piatti in tempo non brucia niente');
+  assert.ok(media('bruciati', BRAVURA.attento, { distratto: true }) >= 1, 'il giocatore distratto dovrebbe bruciare');
+  assert.equal(media('bruciati', BRAVURA.attento), 0, 'chi prende i Piatti in tempo non brucia niente');
+  assert.ok(media('incasso', BRAVURA.attento, { distratto: true }) < attento, 'chi brucia incassa meno');
 });
 
-test('il Tanabata: un giocatore lento prende ★ e uno attento almeno ★★ (valori provvisori, ticket 29)', () => {
-  const stelle = (reazioneMs) => giocaTanabata(reazioneMs, 'prova').stelle;
-  assert.ok(stelle(1400) >= 1, 'un giocatore lento prende almeno ★');
-  assert.ok(stelle(800) >= 2, 'un giocatore attento prende almeno ★★');
+test('il Tanabata sul netto: un giocatore lento prende ★, uno attento ★★, ★★★ è per i rapidi (valori provvisori, ticket 29)', () => {
+  const [uno, due, tre] = new Serata({ seed: 'a', ...SERATA_TANABATA }).stato().sogliaStelle;
+  const lento = media('incasso', BRAVURA.lento);
+  const attento = media('incasso', BRAVURA.attento);
+  const rapido = media('incasso', BRAVURA.rapido);
+  assert.ok(lento >= uno, `lento ${lento}: sotto ★ (${uno})`);
+  assert.ok(attento >= due && attento < tre, `attento ${attento}: non è ★★ (${due}-${tre})`);
+  assert.ok(rapido >= tre, `rapido ${rapido}: non arriva a ★★★ (${tre})`);
+  assert.equal(giocaTanabata(BRAVURA.lento, 'prova').incasso >= uno, true, 'anche sul seme di prova il lento ha ★');
+});
+
+test('nel Tanabata la Spesa torna: Incasso = Vendite − Spesa, e lo Spreco di chi non brucia è piccolo', () => {
+  for (const seme of SEMI) {
+    const stato = giocaTanabata(BRAVURA.attento, seme);
+    assert.equal(stato.incasso, stato.vendite - stato.spesa);
+    assert.equal(stato.bruciati, 0);
+    // Un attento lascia al più qualche Piatto fatto e non servito: sempre meno di due takoyaki di Ingredienti.
+    assert.ok(stato.spreco >= 0 && stato.spreco <= 2 * costoPiatto('takoyaki') + 2 * costoPiatto('onigiri'), `Spreco ${stato.spreco}`);
+  }
 });
 
 test('il takoyaki ha il nome nelle tre lingue', () => {

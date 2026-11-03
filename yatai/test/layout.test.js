@@ -241,6 +241,24 @@ test('meno Postazioni (le prime Serate) restano centrate e della stessa misura',
   near(center(una.postazioni[0]).x, una.area.x + una.area.w / 2);
 });
 
+test('la fila del Tanabata (7 voci: 5 Scorte e 2 Postazioni) sta nella fascia senza sovrapporsi, e l’Hanami non cambia misura', () => {
+  const tanabata = YATAI.postazioni.massimo;
+  assert.ok(tanabata >= 7, 'nel Tanabata la fila ha almeno riso, alga, pastella, polpo, salsa, tagliere e piastra');
+  for (const schermo of SCHERMI) {
+    const { layout, canvas } = layoutFor(schermo, { stations: 7 });
+    assert.equal(layout.postazioni.length, 7);
+    layout.postazioni.forEach((slot, i) => {
+      inside(slot, layout.area, `${schermo.nome}: voce ${i}`);
+      if (i > 0) assert.ok(!overlap(slot, layout.postazioni[i - 1]), `${schermo.nome}: la voce ${i} tocca la precedente`);
+      if (schermo.dito !== false) assert.ok(slot.w * canvas.scale >= 44, `${schermo.nome}: la voce ${i} è larga ${(slot.w * canvas.scale).toFixed(1)} px`);
+    });
+  }
+  // Con 3 voci (Hanami) o 5 la larghezza è quella di quando la fila ne poteva avere 5: non si restringe mai.
+  const { layout: tre } = layoutFor(SCHERMI[0], { stations: 3 });
+  const { layout: cinque } = layoutFor(SCHERMI[0], { stations: YATAI.postazioni.capacitaBase });
+  near(tre.postazioni[0].w, cinque.postazioni[0].w, 'stessa misura con 3 e con 5');
+});
+
 test('ogni zona da toccare è grande abbastanza per un dito (44 px CSS) a ogni schermo', () => {
   for (const schermo of SCHERMI.filter((s) => s.dito !== false)) {
     const { layout, canvas } = layoutFor(schermo, { seats: 4 });
@@ -301,7 +319,7 @@ test('un numero di Posti o Postazioni impossibile è un errore', () => {
   const frame = { width: 720, height: 1280 };
   assert.throws(() => layoutYatai({ frame, safe: NO_INSETS, seats: 0 }), RangeError);
   assert.throws(() => layoutYatai({ frame, safe: NO_INSETS, seats: YATAI.posti.massimo + 1 }), RangeError);
-  assert.throws(() => layoutYatai({ frame, safe: NO_INSETS, stations: 6 }), RangeError);
+  assert.throws(() => layoutYatai({ frame, safe: NO_INSETS, stations: YATAI.postazioni.massimo + 1 }), RangeError);
   assert.throws(() => layoutYatai({ frame, safe: NO_INSETS, seats: 2.5 }), RangeError);
 });
 

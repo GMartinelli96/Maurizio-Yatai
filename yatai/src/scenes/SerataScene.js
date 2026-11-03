@@ -1,4 +1,4 @@
-import { BRUCIATURA, COMANDI, FUMO_SEC, MATSURI_PREDEFINITO, PALETTE, PIATTI, RISCONTRI, SERATE, SERATA_PRIMA, TEMI, YATAI } from '../config.js';
+import { BRUCIATURA, FUMO_SEC, MATSURI_PREDEFINITO, PALETTE, PIATTI, RISCONTRI, SERATE, SERATA_PRIMA, TEMI, YATAI } from '../config.js';
 import { PANEL_MARGIN } from '../disegni/catalogo.js';
 import { POSTAZIONE_SIZE, postazioneKey, scortaKey } from '../disegni/postazioni.js';
 import { CESTINO_SIZE } from '../disegni/takoyaki.js';
@@ -8,7 +8,7 @@ import { panelTexture } from '../kit/texture.js';
 import { addButton } from '../kit/ui.js';
 import { center, fitIn, layoutHud } from '../layout/yatai.js';
 import { azioneDaTasto } from '../serata/comandi.js';
-import { Serata } from '../serata/Serata.js';
+import { Serata, ingredientiDi } from '../serata/Serata.js';
 import ClienteView from '../yatai/ClienteView.js';
 import FumoView from '../yatai/FumoView.js';
 import YataiScene from './YataiScene.js';
@@ -33,8 +33,9 @@ const mescola = (a, b, t) => {
 // src/serata/Serata.js dentro. La scena non decide niente: passa i tocchi alla Serata, fa
 // avanzare il suo tempo e trasforma gli eventi che tornano indietro in disegni e movimenti.
 //
-//   fila       in basso, da sinistra a destra: le Scorte (riso, alga) e la Postazione (il tagliere).
-//              L'onigiri si fa a tocchi: riso, alga, poi si prende (ticket 33)
+//   fila       in basso, da sinistra a destra: le Scorte (nel Tanabata riso, alga, pastella, polpo, salsa) e le
+//              Postazioni (tagliere e piastra). I Piatti si fanno a tocchi nell'ordine della Ricetta: l'onigiri
+//              riso, alga, prendi (ticket 33); il takoyaki pastella, polpo, [cottura], salsa, prendi (ticket 37)
 //   input      tocco e tasti → tocca(Scorta o Postazione) e servi(Posto); trascinare un Piatto dal
 //              Bancone su un Cliente fa la stessa cosa di toccare il Cliente
 //   riscontri  Maurizio, monete, cuoricini, Cliente che scuote la testa o se ne va
@@ -66,7 +67,6 @@ export default class SerataScene extends YataiScene {
     this.incassoMostrato = 0;
     this.inVolo = 0;
     this.visibili = 0;
-    this.anticipati = new Set();
     this.trascina = null;
     this.origineVolo = null;
     this.tempoMostrato = null;
@@ -103,8 +103,8 @@ export default class SerataScene extends YataiScene {
       view.pronto = this.add.image(0, 0, `${piatto}-icona`).setOrigin(0.5, 1).setVisible(false).setDepth(PROFONDITA.hud);
       view.statoVisto = 'libera';
       view.ondeggia = null;
-      // La ricetta sul tagliere: un'icona per Ingrediente, spenta finché non è nel Piatto.
-      view.passi = (PIATTI[piatto].ricetta ?? []).map(({ ingrediente }) => {
+      // La Ricetta sopra la Postazione: un'icona per Ingrediente, spenta finché non è nel Piatto.
+      view.passi = ingredientiDi(piatto).map(({ ingrediente }) => {
         const icona = this.add.image(0, 0, scortaKey(ingrediente)).setOrigin(0.5, 1).setAlpha(RISCONTRI.passoSpento).setDepth(PROFONDITA.hud);
         icona.acceso = false;
         return icona;
@@ -174,10 +174,16 @@ export default class SerataScene extends YataiScene {
       view.pulsa?.remove();
       view.pulsa = null;
       view.statoVisto = 'libera';
-      // Le icone della ricetta stanno in fila sopra il tagliere, dove poi compare il Piatto pronto.
-      const { scala, spazio, altezza } = RISCONTRI.passo;
+      // Le icone della Ricetta stanno in fila sopra la Postazione, dove poi compare il Piatto pronto. Se sono
+      // tante e non stanno nella larghezza della Postazione (il takoyaki ne ha 3 in una fila da 7 voci) si
+      // avvicinano, e restano sempre dentro il loro posto.
+      const { scala, spazio, altezza, larghezzaFila } = RISCONTRI.passo;
+      const larghezzaIcona = POSTAZIONE_SIZE.w * scala * disegno.scale;
+      const passoX = view.passi.length > 1
+        ? Math.min(spazio * disegno.scale, (view.larghezza * larghezzaFila - larghezzaIcona) / (view.passi.length - 1))
+        : 0;
       view.passi.forEach((icona, k) => {
-        icona.setPosition(view.cima.x + (k - (view.passi.length - 1) / 2) * spazio * disegno.scale, view.cima.y + altezza * disegno.scale);
+        icona.setPosition(view.cima.x + (k - (view.passi.length - 1) / 2) * passoX, view.cima.y + altezza * disegno.scale);
         icona.setScale(scala * disegno.scale);
       });
       // Il Fumo copre il disegno della Postazione; i fili salgono dal Piatto che brucia.
@@ -319,10 +325,12 @@ export default class SerataScene extends YataiScene {
     this.aggiornaTempo();
   }
 
-  // Le icone della ricetta: si accendono (con un saltino) una a una e spariscono quando l'onigiri è finito.
+  // Le icone della Ricetta: si accendono (con un saltino) una a una, restano mentre il Piatto cuoce e mentre
+  // manca un Ingrediente, e spariscono quando il Piatto è pronto o bruciato (al loro posto c'è lui).
   aggiornaPassi(view, postazione) {
+    const conPiatto = postazione.stato === 'pronto' || postazione.stato === 'bruciato';
     view.passi.forEach((icona, k) => {
-      icona.setVisible(postazione.stato !== 'pronto');
+      icona.setVisible(!conPiatto);
       const acceso = k < postazione.fatti;
       if (acceso === icona.acceso) return;
       icona.acceso = acceso;
@@ -403,7 +411,7 @@ export default class SerataScene extends YataiScene {
   disegnaBarraPostazione(view, postazione, modo) {
     const { barra } = view;
     if (postazione.stato === 'cuoce') {
-      const frazione = 1 - postazione.restaMs / (PIATTI[postazione.piatto].cookSec * 1000);
+      const frazione = 1 - postazione.restaMs / postazione.cotturaMs;
       this.riempiBarra(view, frazione, RISCONTRI.brucia.colori.pieno, view.barraY, view.larghezza * 0.62);
       barra.setAlpha(1);
     } else if (postazione.stato === 'pronto' && postazione.bruciaTraMs !== null) {
@@ -577,12 +585,16 @@ export default class SerataScene extends YataiScene {
         this.clienti[evento.posto].scuoti();
         break;
       case 'cotturaIniziata': {
-        this.maurizio.azione('cuoci');
+        // Il tocco sull'Ingrediente prima ha già fatto lavorare Maurizio: qui la Postazione prende il via.
         const { image } = this.vistaDellaPostazione(evento.postazione);
         const { scaleX, scaleY } = image;
         this.tweens.add({ targets: image, scaleX: scaleX * 1.08, scaleY: scaleY * 0.93, duration: 90, yoyo: true, onComplete: () => image.setScale(scaleX, scaleY) });
         break;
       }
+      case 'cotturaFinita':
+        // La cottura è finita: la Postazione fa un saltino per dire "ora tocca all'Ingrediente dopo".
+        this.saltino(evento.postazione);
+        break;
       case 'ingrediente':
         this.perIngrediente(evento);
         break;
@@ -592,14 +604,8 @@ export default class SerataScene extends YataiScene {
       case 'nienteDaPrendere':
         this.scuotiPostazione(evento.postazione);
         break;
-      case 'postazioneOccupata': {
-        // Un tocco un attimo prima che il Piatto sia pronto non va perso (input buffering).
-        const postazione = this.serata.stato().postazioni.find((p) => p.id === evento.postazione);
-        if (postazione && postazione.restaMs <= COMANDI.anticipoMs) this.anticipati.add(evento.postazione);
-        break;
-      }
       case 'piattoPronto':
-        if (this.anticipati.delete(evento.postazione)) this.esegui(this.serata.tocca(evento.postazione));
+        // Il Piatto pronto lo mostra aggiornaPostazione (modo 'pronto'): non c'è altro da fare qui.
         break;
       case 'staPerBruciarsi':
         this.perAllarme(evento);
@@ -678,8 +684,8 @@ export default class SerataScene extends YataiScene {
     this.spendi(evento.costo);
   }
 
-  // Un tocco che non serve a niente (Ingrediente fuori ordine, onigiri non ancora finito): la
-  // Postazione o la Scorta scuote la testa, senza costo.
+  // Un tocco che non serve a niente (Ingrediente fuori ordine o durante la cottura, Piatto non ancora
+  // finito): la Postazione o la Scorta scuote la testa, senza costo.
   scuotiPostazione(id) {
     const { image } = this.vistaDellaPostazione(id);
     image.setAngle(0);
@@ -744,7 +750,12 @@ export default class SerataScene extends YataiScene {
 
   // Il Fumo è passato: la Postazione è di nuovo libera e fa un saltino.
   perFumoPassato(evento) {
-    const { image } = this.vistaDellaPostazione(evento.postazione);
+    this.saltino(evento.postazione);
+  }
+
+  // La Postazione si schiaccia un attimo e torna su: ha finito di cuocere, o è di nuovo libera.
+  saltino(id) {
+    const { image } = this.vistaDellaPostazione(id);
     const { scaleX, scaleY } = image;
     image.setScale(scaleX * 1.1, scaleY * 0.9);
     this.tweens.add({ targets: image, scaleX, scaleY, duration: 200, ease: 'Back.easeOut' });
@@ -939,6 +950,9 @@ export default class SerataScene extends YataiScene {
           stato: logica?.stato ?? null,
           fatti: logica?.fatti ?? null,
           prossimo: logica?.prossimo ?? null,
+          // Mentre cuoce: quanto manca alla fine di questa cottura e quanto dura (zero altrimenti).
+          restaMs: logica?.restaMs ?? null,
+          cotturaMs: logica?.cotturaMs ?? null,
           // Come si vede adesso (libera, cuoce, pronto, allarme, bruciato, fumo) e quanto manca a bruciarsi o a
           // finire il Fumo; il Fumo dice se le nuvole e i fili si vedono.
           modo: view.statoVisto ?? null,

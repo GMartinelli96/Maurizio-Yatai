@@ -78,11 +78,14 @@ export default class YataiScene extends Phaser.Scene {
 
     this.maurizio = new MaurizioActor(this);
 
+    // Una Postazione per Piatto. Nella Serata la fila ha anche le Scorte e può avere più voci dei Piatti: le
+    // voci in più partono come il primo Piatto e SerataScene dà a ognuna il suo disegno e il suo nome.
     const dishes = Object.keys(PIATTI);
     this.stationViews = Array.from({ length: this.stations }, (_, i) => {
-      const view = this.touchable('postazione', i, postazioneKey(dishes[i]));
-      view.piatto = dishes[i];
-      view.label = this.add.text(0, 0, t(`piatto_${dishes[i]}`), textStyle(26, { bold: true, outline: 5, color: ETICHETTA.testo, outlineColor: ETICHETTA.contorno })).setOrigin(0.5, 1);
+      const piatto = dishes[i] ?? dishes[0];
+      const view = this.touchable('postazione', i, postazioneKey(piatto));
+      view.piatto = piatto;
+      view.label = this.add.text(0, 0, t(`piatto_${piatto}`), textStyle(26, { bold: true, outline: 5, color: ETICHETTA.testo, outlineColor: ETICHETTA.contorno })).setOrigin(0.5, 1);
       return view;
     });
 

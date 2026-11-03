@@ -131,7 +131,8 @@ export function contentArea(frame, safe) {
 }
 
 // L'impaginazione completa. seats: i Posti (da 1 a YATAI.posti.massimo); stations: le Postazioni
-// (da 1 a YATAI.postazioni.massimo). Quando i Posti passano da 3 a 4 cambiano solo i Posti.
+// (da 1 a YATAI.postazioni.massimo: nella Serata sono tutta la fila, Scorte comprese). Quando i Posti
+// passano da 3 a 4 cambiano solo i Posti.
 export function layoutYatai({ frame, safe, seats = YATAI.posti.iniziali, stations = YATAI.postazioni.massimo }) {
   if (!Number.isInteger(seats) || seats < 1 || seats > YATAI.posti.massimo) throw new RangeError(`Posti: ${seats}`);
   if (!Number.isInteger(stations) || stations < 1 || stations > YATAI.postazioni.massimo) throw new RangeError(`Postazioni: ${stations}`);
@@ -149,11 +150,12 @@ export function layoutYatai({ frame, safe, seats = YATAI.posti.iniziali, station
   const superficie = { ...zone.bancone, h: zone.bancone.h * YATAI.bancone.superficie };
   const piatti = row(superficie, YATAI.bancone.capacita, { maxSlot: YATAI.bancone.larghezzaMax });
 
-  // Le Postazioni: la fila con sotto lo spazio per il nome.
+  // Le Postazioni: la fila con sotto lo spazio per il nome. Larghe come se fossero almeno `capacitaBase`,
+  // così con poche voci non cambiano misura; con più voci si stringono per starci tutte.
   const postazioni = row(zone.postazioni, stations, {
     maxSlot: YATAI.postazioni.larghezzaMax,
     gap: YATAI.postazioni.spazio,
-    capacity: YATAI.postazioni.massimo,
+    capacity: Math.max(YATAI.postazioni.capacitaBase, stations),
   });
 
   return { frame, safe, area, zone, posti, bancone: { rect: zone.bancone, superficie, piatti }, postazioni, maurizio: zone.cucina };
