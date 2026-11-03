@@ -117,8 +117,15 @@ export const CHE_STILE_BONUS = 0.2;
 
 // I Piatti stanno nell'ordine in cui si sbloccano (GAME_SPEC.md): le Postazioni sullo schermo li seguono.
 // cookSec: tempo di cottura. burnAfterSec: secondi in più prima che si bruci (null = mai).
+// ricetta: la cucina a tocchi (ticket 33). Al posto della cottura, gli Ingredienti si toccano nell'ordine
+// della ricetta e ognuno si paga quando lo si usa (GAME_SPEC.md, "Ingredienti e Spreco"): la sequenza
+// di questa lista è la ricetta del Ricettario. Il costo del Piatto è la somma, circa un terzo del prezzo.
 export const PIATTI = {
-  onigiri: { cookSec: 1, burnAfterSec: null, price: 100, varianti: [] },
+  onigiri: {
+    ricetta: [{ ingrediente: 'riso', costo: 20 }, { ingrediente: 'alga', costo: 10 }],
+    price: 100,
+    varianti: [],
+  },
   takoyaki: { cookSec: 5, burnAfterSec: 4, price: 300, varianti: [] },
   kakigori: { cookSec: 2, burnAfterSec: null, price: 250, varianti: ['fragola', 'melone', 'matcha'] },
   taiyaki: { cookSec: 8, burnAfterSec: 4, price: 200, varianti: ['fagioli', 'crema'] },
@@ -192,12 +199,13 @@ export const SERATA_MOTORE = {
   passoMs: 10,
 };
 
-// Quanto vale la prima Serata (onigiri). L'obiettivo di Incasso è in Yen; con le soglie di SERATA
-// diventa 3100 per ★, 4030 per ★★, 4960 per ★★★. Dal passo 8 ogni Serata avrà il suo obiettivo.
-// Con l'arrivo dei Clienti ogni 2,5-4,5 s un giocatore lento (un tocco ogni 1,4 s) fa circa 3750 Yen,
-// uno attento (0,8 s) circa 4900, uno velocissimo (0,3 s) circa 5050: provvisorio fino al ticket 29.
+// Quanto vale la prima Serata (onigiri). L'obiettivo è l'Incasso netto (Vendite meno Spesa) in Yen; con
+// le soglie di SERATA diventa 1920 per ★, 2496 per ★★, 3072 per ★★★. Dal passo 8 ogni Serata avrà il suo.
+// Ogni onigiri sono 3 tocchi e 30 Yen di Spesa. Con l'arrivo dei Clienti ogni 2,5-4,5 s, un tocco ogni
+// 1,4 s (lento) fa circa 1965 Yen netti, ogni 1,0 s (attento) circa 3020, ogni 0,6 s (rapido) circa 4050
+// (media di 12 Serate, ticket 33): provvisorio fino al ticket 29.
 export const SERATA_PRIMA = {
-  obiettivo: 3100,
+  obiettivo: 1920,
   piatti: ['onigiri'],
   // Quanti Piatti ha un Ordine (da uno a tre; nell'Hanami è sempre uno).
   piattiPerOrdine: { min: 1, max: 1 },
@@ -241,6 +249,18 @@ export const RISCONTRI = {
   pronto: { durata: 420, ampiezza: 8 },
   // L'ultimo cuoricino lampeggia: manca poco.
   ultimoCuore: { durata: 260 },
+  // Il "−20" piccolo che scende sotto l'Incasso a ogni Ingrediente (la Spesa).
+  spesa: { durata: 750, discesa: 34 },
+  // La ricetta sul tagliere: un'icona per Ingrediente, piccola (frazione del disegno della Postazione),
+  // `spazio` pixel dell'una dall'altra e `altezza` pixel dalla cima del disegno alla base dell'icona
+  // (misure del disegno, non dello schermo). Spenta (`passoSpento`) finché l'Ingrediente non è nel Piatto.
+  passo: { scala: 0.42, spazio: 62, altezza: 66 },
+  passoSpento: 0.28,
+  // L'alone giallo dietro la Scorta che aspetta il Piatto (il prossimo Ingrediente): `durata` del
+  // respiro, misure come frazione della larghezza della Scorta, `dallaCima` in pixel del disegno.
+  evidenzia: { durata: 520, larghezza: 1.05, altezza: 0.85, dallaCima: 100 },
+  // L'Ingrediente che vola dalla Scorta al tagliere.
+  ingrediente: { vola: 200 },
   // I secondi finali, in cui il tempo diventa rosso.
   tempoRosso: 10,
   // La schermata di fine Serata arriva dopo che le monete sono arrivate; poi le stelle una a una.
@@ -276,6 +296,10 @@ export const BANCONE = {
 export const POSTAZIONI = {
   tagliere: { piatto: 'onigiri' },
 };
+
+// Le Scorte (GLOSSARY.md) non hanno numeri propri: sono una per Ingrediente di ogni ricetta (PIATTI),
+// nell'ordine della ricetta, a sinistra delle Postazioni, così riso, alga, tagliere si leggono come la
+// sequenza. L'id di una Scorta è il nome dell'Ingrediente.
 
 // --- I temi dei Matsuri (src/disegni/sfondi/, src/layout/sfondo.js) ---
 

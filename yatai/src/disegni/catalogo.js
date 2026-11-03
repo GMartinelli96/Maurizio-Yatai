@@ -8,7 +8,7 @@ import { createRng } from '../kit/rng.js';
 import { MAURIZIO_SIZE, POSE, drawMaurizio, maurizioKey } from './maurizio.js';
 import { DISEGNI_CLIENTI } from './clienti.js';
 import { drawOnigiri, onigiriSize } from './onigiri.js';
-import { POSTAZIONE_SIZE, POSTAZIONI, postazioneKey } from './postazioni.js';
+import { POSTAZIONE_SIZE, POSTAZIONI, SCORTE, postazioneKey, scortaKey } from './postazioni.js';
 import {
   CUORE_SIZE, MONETA_SIZE, NUVOLETTA, STELLA_SIZE, drawCuore, drawCuoreVuoto, drawMoneta, drawNuvoletta, drawStella, drawStellaVuota,
 } from './serata.js';
@@ -27,6 +27,8 @@ export const DISEGNI = {
   // Lo Yatai: una Postazione per Piatto. Il pavimento, il Bancone, il Posto e lo sfondo cambiano con
   // il Matsuri e si generano solo per quello in uso: sono in sfondi/index.js (disegniTema).
   ...Object.fromEntries(Object.entries(POSTAZIONI).map(([piatto, draw]) => [postazioneKey(piatto), { ...POSTAZIONE_SIZE, draw }])),
+  // Le Scorte degli Ingredienti (la ciotola del riso, i fogli di alga): stessa misura delle Postazioni.
+  ...Object.fromEntries(Object.entries(SCORTE).map(([ingrediente, draw]) => [scortaKey(ingrediente), { ...POSTAZIONE_SIZE, draw }])),
   // I Clienti di passaggio: tre per tre espressioni.
   ...DISEGNI_CLIENTI,
   // La Serata: la nuvoletta dell'Ordine, i cuoricini della Pazienza, lo Yen e le stelle del voto.

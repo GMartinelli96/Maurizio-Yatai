@@ -7,11 +7,16 @@ export default {
   piatto_kakigori: 'Kakigori',
   piatto_taiyaki: 'Taiyaki',
   piatto_ramen: 'Ramen',
+  ingrediente_riso: 'Rice',
+  ingrediente_alga: 'Nori',
 
 
   // Fine Serata
   endTitle: 'Evening over!',
   endIncasso: 'Takings',
+  endVendite: 'Sales',
+  endSpesa: 'Ingredients',
+  endSpreco: 'Wasted',
   endObiettivo: 'Goal',
   endRigioca: 'Play again',
   endServiti: 'Customers served',
@@ -20,4 +25,5 @@ export default {
   endVoto1: 'Nice evening!',
   endVoto2: 'What an evening!',
   endVoto3: 'A legendary evening!',
+  endRosso: 'Too much went to waste tonight, let’s try again!',
 };

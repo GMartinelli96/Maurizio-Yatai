@@ -9,11 +9,17 @@ export default {
   piatto_kakigori: 'Kakigōri',
   piatto_taiyaki: 'Taiyaki',
   piatto_ramen: 'Ramen',
+  // Le Scorte: la chiave è ingrediente_ più l'id dell'Ingrediente in config.js (PIATTI, ricetta).
+  ingrediente_riso: 'Riso',
+  ingrediente_alga: 'Alga',
 
 
   // Fine Serata
   endTitle: 'Serata finita!',
   endIncasso: 'Incasso',
+  endVendite: 'Vendite',
+  endSpesa: 'Spesa',
+  endSpreco: 'Spreco',
   endObiettivo: 'Obiettivo',
   endRigioca: 'Rigioca',
   endServiti: 'Clienti serviti',
@@ -23,4 +29,6 @@ export default {
   endVoto1: 'Bella serata!',
   endVoto2: 'Che serata!',
   endVoto3: 'Una serata da leggenda!',
+  // Se l'Incasso è in rosso al posto del commento: gentile, senza colpe.
+  endRosso: 'Stasera abbiamo sprecato troppo, riproviamo!',
 };

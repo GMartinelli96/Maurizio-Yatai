@@ -1,0 +1,18 @@
+[
+  { "goto": "?sviluppo=serata&seme=prova" },
+  { "advance": 2500 },
+  { "tapPath": "postazioni.0" },
+  { "advance": 300 },
+  { "expect": "serata.incasso", "equals": -20 },
+  { "expect": "hud.incasso", "equals": -20 },
+  { "shot": "rosso-1-incasso-in-rosso" },
+  { "gioca": { "sbadato": true } },
+  { "advance": 2500 },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "expect": "serata.incasso", "equals": -20 },
+  { "expect": "serata.spreco", "equals": 20 },
+  { "expect": "serata.stelle", "equals": 0 },
+  { "expect": "fine.stelle", "equals": 0 },
+  { "expect": "fine.incasso", "equals": -20 },
+  { "shot": "rosso-2-fine-gentile" }
+]

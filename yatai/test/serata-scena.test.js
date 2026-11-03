@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { CLIENTI, MAURIZIO, YATAI } from '../src/config.js';
+import { CLIENTI, MAURIZIO, PIATTI, YATAI } from '../src/config.js';
 import { DISEGNI } from '../src/disegni/catalogo.js';
+import { POSTAZIONE_SIZE, SCORTE, scortaKey } from '../src/disegni/postazioni.js';
 import { CLIENTI as TIPI_DISEGNATI, ESPRESSIONI, clienteKey } from '../src/disegni/clienti.js';
 import { TESTI } from '../src/i18n.js';
 import { BANCONE } from '../src/config.js';
@@ -34,6 +35,18 @@ test('i Clienti della logica hanno tutti i disegni, nelle tre espressioni', () =
 test('i disegni della Serata sono nel catalogo: nuvoletta, cuoricini, Yen, stelle e le icone dei Piatti in gioco', () => {
   for (const key of ['nuvoletta', 'cuore', 'cuore-vuoto', 'moneta', 'stella', 'stella-vuota', 'onigiri', 'onigiri-icona', 'ombra']) {
     assert.ok(DISEGNI[key], `manca la texture ${key}`);
+  }
+});
+
+test('ogni Ingrediente di una ricetta ha la sua Scorta disegnata, nella misura delle Postazioni, e il suo nome nelle tre lingue', () => {
+  const ingredienti = Object.values(PIATTI).flatMap((piatto) => (piatto.ricetta ?? []).map((passo) => passo.ingrediente));
+  assert.ok(ingredienti.length >= 2, 'l’onigiri ha almeno riso e alga');
+  assert.deepEqual(Object.keys(SCORTE).sort(), [...new Set(ingredienti)].sort(), 'le Scorte disegnate e gli Ingredienti delle ricette discordano');
+  for (const ingrediente of ingredienti) {
+    const entry = DISEGNI[scortaKey(ingrediente)];
+    assert.ok(entry, `manca la Scorta ${ingrediente}`);
+    assert.deepEqual([entry.w, entry.h], [POSTAZIONE_SIZE.w, POSTAZIONE_SIZE.h]);
+    for (const lingua of Object.keys(TESTI)) assert.ok(TESTI[lingua][`ingrediente_${ingrediente}`]?.trim(), `${lingua}: manca il nome di ${ingrediente}`);
   }
 });
 

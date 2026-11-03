@@ -1,6 +1,6 @@
 import { COMANDI, PALETTE, PIATTI, RISCONTRI, YATAI } from '../config.js';
 import { PANEL_MARGIN } from '../disegni/catalogo.js';
-import { POSTAZIONE_SIZE, postazioneKey } from '../disegni/postazioni.js';
+import { POSTAZIONE_SIZE, postazioneKey, scortaKey } from '../disegni/postazioni.js';
 import { t } from '../i18n.js';
 import { textStyle } from '../kit/font.js';
 import { panelTexture } from '../kit/texture.js';
@@ -25,8 +25,10 @@ const PROFONDITA = { hud: 10, volo: 120, trascinato: 150, fine: 200 };
 // src/serata/Serata.js dentro. La scena non decide niente: passa i tocchi alla Serata, fa
 // avanzare il suo tempo e trasforma gli eventi che tornano indietro in disegni e movimenti.
 //
-//   input      tocco e tasti → tocca(Postazione) e servi(Posto); trascinare un Piatto dal Bancone
-//              su un Cliente fa la stessa cosa di toccare il Cliente
+//   fila       in basso, da sinistra a destra: le Scorte (riso, alga) e la Postazione (il tagliere).
+//              L'onigiri si fa a tocchi: riso, alga, poi si prende (ticket 33)
+//   input      tocco e tasti → tocca(Scorta o Postazione) e servi(Posto); trascinare un Piatto dal
+//              Bancone su un Cliente fa la stessa cosa di toccare il Cliente
 //   riscontri  Maurizio, monete, cuoricini, Cliente che scuote la testa o se ne va
 //   fine       a 120 secondi compare la schermata con Incasso e stelle
 //
@@ -43,7 +45,7 @@ export default class SerataScene extends YataiScene {
     super.init({
       matsuri: data?.matsuri,
       posti: this.serata.posti.length,
-      postazioni: this.serata.postazioni.length,
+      postazioni: this.serata.fila().length,
       demo: false,
     });
     this.pronta = false;
@@ -67,16 +69,32 @@ export default class SerataScene extends YataiScene {
     this.back?.destroy();
     this.back = null;
 
-    this.stationViews.forEach((view, i) => {
-      const { id, piatto } = this.serata.postazioni[i];
+    this.serata.fila().forEach(({ id, voce, piatto }, i) => {
+      const view = this.stationViews[i];
       view.id = id;
+      view.voce = voce;
       view.piatto = piatto;
+      if (voce === 'scorta') {
+        // Una Scorta è solo da toccare: il disegno dell'Ingrediente e il suo nome.
+        view.image.setTexture(scortaKey(id)).setDepth(1);
+        view.label.setText(t(`ingrediente_${id}`));
+        // L'alone dietro la Scorta che aspetta il Piatto, sempre visibile in ogni Serata: respira piano.
+        view.glow = this.add.graphics().setDepth(0.5).setVisible(false);
+        this.tweens.add({ targets: view.glow, alpha: { from: 0.4, to: 1 }, duration: RISCONTRI.evidenzia.durata, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        return;
+      }
       view.image.setTexture(postazioneKey(piatto));
       view.label.setText(t(`piatto_${piatto}`));
       view.barra = this.add.graphics().setDepth(PROFONDITA.hud);
       view.pronto = this.add.image(0, 0, `${piatto}-icona`).setOrigin(0.5, 1).setVisible(false).setDepth(PROFONDITA.hud);
       view.statoVisto = 'libera';
       view.ondeggia = null;
+      // La ricetta sul tagliere: un'icona per Ingrediente, spenta finché non è nel Piatto.
+      view.passi = (PIATTI[piatto].ricetta ?? []).map(({ ingrediente }) => {
+        const icona = this.add.image(0, 0, scortaKey(ingrediente)).setOrigin(0.5, 1).setAlpha(RISCONTRI.passoSpento).setDepth(PROFONDITA.hud);
+        icona.acceso = false;
+        return icona;
+      });
     });
     this.dishViews.forEach((view, i) => view.zone.on('pointerdown', (pointer) => this.iniziaTrascinamento(i, pointer)));
 
@@ -117,13 +135,28 @@ export default class SerataScene extends YataiScene {
       const disegno = fitIn({ ...rect, h: rect.h - etichetta }, POSTAZIONE_SIZE.w, POSTAZIONE_SIZE.h);
       view.cima = { x: disegno.x, y: disegno.y - POSTAZIONE_SIZE.h * disegno.scale };
       view.larghezza = POSTAZIONE_SIZE.w * disegno.scale;
+      view.scala = disegno.scale;
       // Dove poggiano la barra della cottura e il Piatto pronto: appena sopra il piano del tagliere.
       view.barraY = view.cima.y + YATAI.postazioni.barraDallaCima * disegno.scale;
       view.iconaY = view.cima.y + YATAI.postazioni.piattoDallaCima * disegno.scale;
+      if (view.voce === 'scorta') {
+        const { larghezza, altezza, dallaCima } = RISCONTRI.evidenzia;
+        const giallo = (colore) => Number.parseInt(colore.slice(1), 16);
+        view.glow.setPosition(view.cima.x, view.cima.y + dallaCima * disegno.scale).clear();
+        view.glow.fillStyle(giallo(PALETTE.giallo.luce), 1).fillEllipse(0, 0, view.larghezza * larghezza, view.larghezza * altezza);
+        view.glow.lineStyle(4, giallo(PALETTE.giallo.colore), 1).strokeEllipse(0, 0, view.larghezza * larghezza, view.larghezza * altezza);
+        return;
+      }
       view.pronto.setPosition(view.cima.x, view.iconaY);
       view.ondeggia?.remove();
       view.ondeggia = null;
       view.statoVisto = 'libera';
+      // Le icone della ricetta stanno in fila sopra il tagliere, dove poi compare il Piatto pronto.
+      const { scala, spazio, altezza } = RISCONTRI.passo;
+      view.passi.forEach((icona, k) => {
+        icona.setPosition(view.cima.x + (k - (view.passi.length - 1) / 2) * spazio * disegno.scale, view.cima.y + altezza * disegno.scale);
+        icona.setScale(scala * disegno.scale);
+      });
     });
   }
 
@@ -195,14 +228,33 @@ export default class SerataScene extends YataiScene {
     this.incassoMostrato += yen;
     this.hud.incasso.setText(String(this.incassoMostrato));
     this.disegnaBarra();
-    this.hud.moneta.setScale((this.hudLayout.moneta.lato / 60) * 1.35);
-    this.tweens.add({ targets: this.hud.moneta, scale: this.hudLayout.moneta.lato / 60, duration: 200, ease: 'Back.easeOut' });
+    // La moneta fa un saltino solo quando entrano Yen: la Spesa scende senza festa.
+    if (yen > 0) {
+      this.hud.moneta.setScale((this.hudLayout.moneta.lato / 60) * 1.35);
+      this.tweens.add({ targets: this.hud.moneta, scale: this.hudLayout.moneta.lato / 60, duration: 200, ease: 'Back.easeOut' });
+    }
+    // L'Incasso è il netto e può anche scendere: una stella si accende arrivando alla soglia e si
+    // spegne se la Spesa riporta sotto.
     this.soglie.forEach((soglia, i) => {
-      if (this.incassoMostrato < soglia || this.hud.stelle[i].texture.key === 'stella') return;
       const stella = this.hud.stelle[i];
+      const accesa = stella.texture.key === 'stella';
+      if (this.incassoMostrato < soglia) {
+        if (accesa) stella.setTexture('stella-vuota');
+        return;
+      }
+      if (accesa) return;
       stella.setTexture('stella').setScale((this.hudLayout.stelle[i].lato / 66) * 1.6);
       this.tweens.add({ targets: stella, scale: this.hudLayout.stelle[i].lato / 66, duration: 380, ease: 'Back.easeOut' });
     });
+  }
+
+  // La Spesa: un "−20" piccolo che scende sotto l'Incasso, e l'Incasso scende subito.
+  spendi(yen) {
+    const { incasso } = this.hudLayout;
+    const { durata, discesa } = RISCONTRI.spesa;
+    const testo = this.add.text(incasso.x + 8, incasso.y + 30, `−${yen}`, textStyle(28, { bold: true, color: '#d9534f', outline: 6 })).setOrigin(0, 0.5).setDepth(PROFONDITA.volo);
+    this.tweens.add({ targets: testo, y: testo.y + discesa, alpha: 0, duration: durata, ease: 'Quad.easeIn', onComplete: () => testo.destroy() });
+    this.accredita(-yen);
   }
 
   // --- Il ciclo ---
@@ -223,12 +275,33 @@ export default class SerataScene extends YataiScene {
       view.image.setVisible(visibile);
       view.shadow.setVisible(visibile);
     });
-    this.stationViews.forEach((view, i) => this.aggiornaPostazione(view, stato.postazioni[i]));
+    // Le Scorte che qualche Postazione aspetta (il prossimo Ingrediente) hanno l'alone.
+    const attese = new Set(stato.postazioni.map((p) => p.prossimo).filter(Boolean));
+    this.stationViews.forEach((view) => {
+      if (view.voce === 'postazione') this.aggiornaPostazione(view, stato.postazioni.find((p) => p.id === view.id));
+      else view.glow.setVisible(attese.has(view.id));
+    });
     this.aggiornaTempo();
+  }
+
+  // Le icone della ricetta: si accendono (con un saltino) una a una e spariscono quando l'onigiri è finito.
+  aggiornaPassi(view, postazione) {
+    view.passi.forEach((icona, k) => {
+      icona.setVisible(postazione.stato !== 'pronto');
+      const acceso = k < postazione.fatti;
+      if (acceso === icona.acceso) return;
+      icona.acceso = acceso;
+      icona.setAlpha(acceso ? 1 : RISCONTRI.passoSpento);
+      if (!acceso) return;
+      const scala = RISCONTRI.passo.scala * view.scala;
+      icona.setScale(scala * 1.7);
+      this.tweens.add({ targets: icona, scale: scala, duration: 220, ease: 'Back.easeOut' });
+    });
   }
 
   aggiornaPostazione(view, postazione) {
     const { barra, pronto } = view;
+    this.aggiornaPassi(view, postazione);
     if (postazione.stato === 'cuoce') {
       const frazione = 1 - postazione.restaMs / (PIATTI[postazione.piatto].cookSec * 1000);
       const w = view.larghezza * 0.62;
@@ -403,6 +476,15 @@ export default class SerataScene extends YataiScene {
         this.tweens.add({ targets: image, scaleX: scaleX * 1.08, scaleY: scaleY * 0.93, duration: 90, yoyo: true, onComplete: () => image.setScale(scaleX, scaleY) });
         break;
       }
+      case 'ingrediente':
+        this.perIngrediente(evento);
+        break;
+      case 'ingredienteRifiutato':
+        this.scuotiPostazione(evento.scorta);
+        break;
+      case 'nienteDaPrendere':
+        this.scuotiPostazione(evento.postazione);
+        break;
       case 'postazioneOccupata': {
         // Un tocco un attimo prima che il Piatto sia pronto non va perso (input buffering).
         const postazione = this.serata.stato().postazioni.find((p) => p.id === evento.postazione);
@@ -453,6 +535,32 @@ export default class SerataScene extends YataiScene {
         fine?.();
       },
     });
+  }
+
+  // Un Ingrediente nel Piatto: la Scorta salta, l'Ingrediente vola sul tagliere, Maurizio lavora e
+  // la Spesa scende sotto l'Incasso.
+  perIngrediente(evento) {
+    this.maurizio.azione('cuoci');
+    const scorta = this.vistaDellaPostazione(evento.scorta);
+    const tagliere = this.vistaDellaPostazione(evento.postazione);
+    const { scaleX, scaleY } = scorta.image;
+    this.tweens.add({ targets: scorta.image, scaleX: scaleX * 1.08, scaleY: scaleY * 0.93, duration: 90, yoyo: true, onComplete: () => scorta.image.setScale(scaleX, scaleY) });
+    const icona = tagliere.passi[evento.fatti - 1];
+    this.vola(scortaKey(evento.scorta), { x: scorta.cima.x, y: scorta.cima.y + POSTAZIONE_SIZE.h * scorta.scala * 0.7 }, { x: icona.x, y: icona.y }, {
+      durata: RISCONTRI.ingrediente.vola,
+      scalaDa: scorta.scala * 0.5,
+      scalaA: RISCONTRI.passo.scala * tagliere.scala,
+      alphaA: 0.4,
+    });
+    this.spendi(evento.costo);
+  }
+
+  // Un tocco che non serve a niente (Ingrediente fuori ordine, onigiri non ancora finito): la
+  // Postazione o la Scorta scuote la testa, senza costo.
+  scuotiPostazione(id) {
+    const { image } = this.vistaDellaPostazione(id);
+    image.setAngle(0);
+    this.tweens.add({ targets: image, angle: { from: -8, to: 8 }, duration: 70, yoyo: true, repeat: 2, ease: 'Sine.easeInOut', onComplete: () => image.setAngle(0) });
   }
 
   // Il Bancone è pieno: il Piatto pronto ondeggia di lato, come a dire "non so dove metterlo".
@@ -560,18 +668,20 @@ export default class SerataScene extends YataiScene {
     const r = this.risultato;
     const { width: W, height: H } = this.scale;
     const cx = W / 2;
-    const cima = Math.max(40, (H - 900) / 2);
+    const cima = Math.max(40, (H - 980) / 2);
     const contenitore = this.add.container(0, 0).setDepth(PROFONDITA.fine);
     const oggetti = [];
 
     const velo = this.add.rectangle(0, 0, W, H, 0x3a2f2b, 0.5).setOrigin(0).setInteractive();
     oggetti.push(velo);
-    oggetti.push(this.pannello(cx, cima + 450, 600, 900, 'nuvola'));
+    oggetti.push(this.pannello(cx, cima + 490, 600, 980, 'nuvola'));
     oggetti.push(this.add.text(cx, cima + 84, t('endTitle'), textStyle(58, { bold: true, outline: 10 })).setOrigin(0.5));
 
     const stelle = [0, 1, 2].map((i) => this.add.image(cx + (i - 1) * 170, cima + 245, 'stella-vuota').setScale(2.1));
     oggetti.push(...stelle);
-    oggetti.push(this.add.text(cx, cima + 372, t(`endVoto${r.stelle}`), textStyle(34, { bold: true, outline: 6 })).setOrigin(0.5));
+    // Con l'Incasso in rosso il commento è gentile e spiega cosa è successo (GAME_SPEC.md, "Ingredienti e Spreco").
+    const commento = r.incasso < 0 ? t('endRosso') : t(`endVoto${r.stelle}`);
+    oggetti.push(this.add.text(cx, cima + 372, commento, { ...textStyle(34, { bold: true, outline: 6 }), align: 'center', wordWrap: { width: 540 } }).setOrigin(0.5));
 
     oggetti.push(this.add.text(cx, cima + 445, t('endIncasso'), textStyle(36, { bold: true, outline: 6 })).setOrigin(0.5));
     const moneta = this.add.image(cx - 100, cima + 520, 'moneta').setScale(1.3);
@@ -583,15 +693,23 @@ export default class SerataScene extends YataiScene {
     incasso.setX(cx - larghezza / 2 + 100);
     oggetti.push(moneta, incasso);
 
-    oggetti.push(this.add.text(cx, cima + 600, `${t('endObiettivo')}: ${r.obiettivo}`, textStyle(30, { outline: 5 })).setOrigin(0.5));
-    oggetti.push(this.add.text(cx, cima + 648, `${t('endServiti')}: ${r.serviti}`, textStyle(30, { outline: 5 })).setOrigin(0.5));
-    oggetti.push(this.add.text(cx, cima + 690, `${t('endPersi')}: ${r.persi}`, textStyle(30, { outline: 5 })).setOrigin(0.5));
+    // Il netto in grande, poi da dove viene: Vendite, Spesa (gli Ingredienti pagati) e quanta di questa è Spreco.
+    [
+      ['endVendite', r.vendite],
+      ['endSpesa', r.spesa],
+      ['endSpreco', r.spreco],
+      ['endObiettivo', r.obiettivo],
+      ['endServiti', r.serviti],
+      ['endPersi', r.persi],
+    ].forEach(([chiave, valore], i) => {
+      oggetti.push(this.add.text(cx, cima + 590 + i * 40,`${t(chiave)}: ${valore}`, textStyle(30, { outline: 5 })).setOrigin(0.5));
+    });
 
-    const pulsante = addButton(this, cx, cima + 800, 420, 110, t('endRigioca'), 'menta', () => this.rigioca());
+    const pulsante = addButton(this, cx, cima + 890, 420, 110, t('endRigioca'), 'menta', () => this.rigioca());
     oggetti.push(pulsante.image, pulsante.text);
     contenitore.add(oggetti);
 
-    this.fineUI = { container: contenitore, stelle, pulsante, rigioca: { x: cx, y: cima + 800, w: 420, h: 110 }, stelleAccese: 0 };
+    this.fineUI = { container: contenitore, stelle, pulsante, rigioca: { x: cx, y: cima + 890, w: 420, h: 110 }, stelleAccese: 0 };
     const accendi = (i) => {
       stelle[i].setTexture('stella').setScale(2.9);
       this.tweens.add({ targets: stelle[i], scale: 2.1, duration: RISCONTRI.fine.stella, ease: 'Back.easeOut' });
@@ -629,12 +747,24 @@ export default class SerataScene extends YataiScene {
       seme: this.seme,
       // La partita com'è nella logica: Clienti, Ordini, cuoricini, Bancone, Postazioni, Incasso, tempo.
       serata: stato,
-      postazioni: base.postazioni.map((p, i) => ({
-        ...p,
-        id: this.stationViews[i].id,
-        stato: stato.postazioni[i].stato,
-        pronto: { visibile: this.stationViews[i].pronto.visible, scala: Math.round(this.stationViews[i].pronto.scaleX * 1000) / 1000 },
-      })),
+      // La fila vicino al pollice, da sinistra a destra: `tipo` dice se è una Scorta o una Postazione.
+      // Una Postazione dice anche in che stato è e quale Scorta aspetta (`prossimo`).
+      postazioni: base.postazioni.map((p, i) => {
+        const view = this.stationViews[i];
+        const logica = view.voce === 'postazione' ? stato.postazioni.find((q) => q.id === view.id) : null;
+        return {
+          ...p,
+          id: view.id,
+          tipo: view.voce,
+          stato: logica?.stato ?? null,
+          fatti: logica?.fatti ?? null,
+          prossimo: logica?.prossimo ?? null,
+          // Per una Scorta: ha l'alone, cioè è il prossimo Ingrediente che un Piatto aspetta.
+          evidenziata: view.glow ? view.glow.visible : null,
+          pronto: view.pronto ? { visibile: view.pronto.visible, scala: Math.round(view.pronto.scaleX * 1000) / 1000 } : null,
+          passi: view.passi ? view.passi.map((icona) => ({ visibile: icona.visible, acceso: icona.acceso })) : null,
+        };
+      }),
       bancone: {
         ...base.bancone,
         piatti: base.bancone.piatti.map((p, i) => ({ ...p, piatto: stato.bancone[i] ?? null })),

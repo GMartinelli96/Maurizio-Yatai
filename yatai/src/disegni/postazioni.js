@@ -123,6 +123,40 @@ function drawPentola(ctx, rng) {
   }
 }
 
+// --- Le Scorte (GLOSSARY.md): da dove si prende un Ingrediente con un tocco ---
+// Stanno nello stesso riquadro delle Postazioni. Chiave: l'id dell'Ingrediente (config.js, PIATTI.ricetta).
+
+// La ciotola del riso: celeste, con il riso a monticello che sporge dal bordo.
+function drawScortaRiso(ctx, rng) {
+  restingShadow(ctx, 66, 138, 54, 10);
+  part(ctx, rng, roundedRect(14, 92, 104, 44, 22), C.celeste);
+  const mound = smoothCurve([
+    { x: 24, y: 100 }, { x: 28, y: 82 }, { x: 44, y: 64 }, { x: 66, y: 58 }, { x: 88, y: 64 },
+    { x: 104, y: 82 }, { x: 108, y: 100 }, { x: 66, y: 108 },
+  ]);
+  part(ctx, rng, mound, C.riso);
+  for (const [x, y, a] of [[50, 84, 0.4], [70, 76, -0.5], [86, 92, 0.9], [60, 98, -0.2], [42, 96, 1.1], [78, 62, 0.2]]) {
+    pencilLine(ctx, ellipse(x, y, 3.4, 1.7, a), rng, { width: 1.1, color: C.riso.ombra, amount: 0.3 });
+  }
+  // Il bordo davanti, che copre il piede del monticello.
+  part(ctx, rng, roundedRect(12, 98, 108, 20, 10), C.celeste, { fill: FLAT });
+  grainLine(ctx, rng, 30, 126, 40, C.celeste.ombra);
+}
+
+// L'alga nori: una pila di tre fogli scuri, un po' sfalsati.
+function drawScortaAlga(ctx, rng) {
+  restingShadow(ctx, 66, 138, 52, 10);
+  [[22, 104, 0], [16, 88, 1], [26, 72, 2]].forEach(([x, y, i]) => {
+    part(ctx, rng, roundedRect(x, y, 92, 30, 6), C.nori, { fill: { volume: true } });
+    // Le righe chiare della carta di alga.
+    pencilLine(ctx, [{ x: x + 10, y: y + 9 + i }, { x: x + 54, y: y + 8 + i }], rng, { closed: false, width: 1.4, color: C.nori.luce, alpha: 0.6, amount: 0.5 });
+    pencilLine(ctx, [{ x: x + 24, y: y + 20 }, { x: x + 78, y: y + 21 }], rng, { closed: false, width: 1.2, color: C.nori.luce, alpha: 0.45, amount: 0.5 });
+  });
+}
+
+export const SCORTE = { riso: drawScortaRiso, alga: drawScortaAlga };
+export const scortaKey = (ingrediente) => `scorta-${ingrediente}`;
+
 // In ordine di sblocco, con la chiave del Piatto di config.js (PIATTI).
 export const POSTAZIONI = {
   onigiri: drawTagliere,

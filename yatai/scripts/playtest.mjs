@@ -127,18 +127,19 @@ async function gioca({ finoA = Infinity, servi = 'tocco', passoMs = 120, sbadato
           if (servi === 'tasti') await page.keyboard.press(['KeyQ', 'KeyW', 'KeyE', 'KeyR'][mossa.posto]);
           else if (servi === 'trascinamento') await dragGame(state.bancone.piatti[0], posto);
           else await tapGame(posto.x, posto.y);
-        } else if (servi === 'tasti') {
-          await page.keyboard.press(`Digit${mossa.postazione + 1}`);
         } else {
-          const postazione = state.postazioni[mossa.postazione];
-          await tapGame(postazione.x, postazione.y);
+          // Un elemento della fila vicino al pollice (una Scorta o una Postazione): lo stato dice dove sta.
+          const indice = state.postazioni.findIndex((p) => p.id === mossa.id);
+          if (indice === -1) throw new Error(`gioca: nella fila non c'è "${mossa.id}"`);
+          if (servi === 'tasti') await page.keyboard.press(`Digit${indice + 1}`);
+          else await tapGame(state.postazioni[indice].x, state.postazioni[indice].y);
         }
       }
     }
     await advance(passoMs);
   }
   state = await readState();
-  console.log(`gioca: ${mosse} mosse, tempo ${state.serata.tempoMs} ms, Incasso ${state.serata.incasso}, serviti ${state.serata.serviti}, persi ${state.serata.persi}, stelle ${state.serata.stelle}`);
+  console.log(`gioca: ${mosse} mosse, tempo ${state.serata.tempoMs} ms, Incasso ${state.serata.incasso} (Vendite ${state.serata.vendite}, Spesa ${state.serata.spesa}, Spreco ${state.serata.spreco}), serviti ${state.serata.serviti}, persi ${state.serata.persi}, stelle ${state.serata.stelle}`);
 }
 
 // La prossima mossa, o null. Si guarda solo lo stato.
@@ -152,15 +153,20 @@ function scegliMossa({ serata, bancone: piano }) {
     }
   }
   // Un Piatto pronto passa sul Bancone (se c'è posto).
-  const pronta = serata.postazioni.findIndex((p) => p.stato === 'pronto');
-  if (pronta !== -1 && bancone.length < piano.piatti.length) return { tipo: 'cuoci', postazione: pronta };
-  // Si cucina solo quel che manca: i Piatti ordinati meno quelli sul Bancone e quelli già in cottura.
+  const pronta = serata.postazioni.find((p) => p.stato === 'pronto');
+  if (pronta && bancone.length < piano.piatti.length) return { tipo: 'tocca', id: pronta.id };
+  // Un Piatto a tocchi già cominciato riceve l'Ingrediente che aspetta: la sequenza della ricetta
+  // (riso, alga) si legge in `prossimo`, che è l'id della Scorta da toccare.
+  const cominciata = serata.postazioni.find((p) => p.stato === 'inPreparazione');
+  if (cominciata) return { tipo: 'tocca', id: cominciata.prossimo };
+  // Si comincia solo quel che manca: i Piatti ordinati meno quelli sul Bancone e quelli già in preparazione.
   const mancanti = clienti.flatMap(({ cliente }) => cliente.ordine);
   const togli = (piatto) => { const i = mancanti.indexOf(piatto); if (i !== -1) mancanti.splice(i, 1); };
   for (const piatto of bancone) togli(piatto);
   for (const p of serata.postazioni) if (p.stato !== 'libera') togli(p.piatto);
-  const libera = serata.postazioni.findIndex((p) => p.stato === 'libera' && mancanti.includes(p.piatto));
-  return libera === -1 ? null : { tipo: 'cuoci', postazione: libera };
+  const libera = serata.postazioni.find((p) => p.stato === 'libera' && mancanti.includes(p.piatto));
+  // Un Piatto a tocchi comincia dalla sua prima Scorta; uno che cuoce da solo, toccando la Postazione.
+  return libera ? { tipo: 'tocca', id: libera.prossimo ?? libera.id } : null;
 }
 
 // Aspetta che gli hook rispondano e che l'avvio (texture e font) sia finito.

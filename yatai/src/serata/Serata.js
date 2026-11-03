@@ -11,18 +11,25 @@ import {
 } from '../config.js';
 import { createRng } from '../kit/rng.js';
 
-// La logica di una Serata: Posti, Clienti, Ordini, Pazienza, Bancone, Postazioni, Mancia,
-// Incasso e stelle. Niente Phaser e niente tempo reale: la scena chiama update(dtMs) a ogni
+// La logica di una Serata: Posti, Clienti, Ordini, Pazienza, Bancone, Scorte, Postazioni, Mancia,
+// Spesa, Incasso e stelle. Niente Phaser e niente tempo reale: la scena chiama update(dtMs) a ogni
 // frame e le azioni del giocatore (tocca, servi), e legge gli eventi che tornano indietro per
 // i riscontri (monete, cuoricini, Maurizio che si anima). Con lo stesso seme e le stesse azioni
 // la Serata è sempre la stessa, quindi si prova senza browser.
 //
+// I Piatti con una `ricetta` (config.js, PIATTI) si fanno a tocchi: si tocca una Scorta per ogni
+// Ingrediente, nell'ordine della ricetta, e ognuno si paga quando lo si usa. Gli altri cuociono da
+// soli sulla Postazione. L'Incasso è il netto: Vendite meno Spesa (GAME_SPEC.md, "Ingredienti e Spreco").
+//
 // Gli eventi sono oggetti semplici con un campo `tipo`:
 //   clienteArrivato   { posto, cliente: { id, tipo, ordine } }
 //   cotturaIniziata   { postazione, piatto }
+//   ingrediente       { postazione, scorta, costo, fatti, di }   un Ingrediente è finito nel Piatto (e si è pagato)
+//   ingredienteRifiutato { scorta, motivo }   fuori ordine ('ordine') o con tutte le Postazioni piene ('occupato'): non costa niente
 //   piattoPronto      { postazione, piatto }
 //   sulBancone        { postazione, piatto }
 //   postazioneOccupata { postazione }      il Piatto sta ancora cuocendo
+//   nienteDaPrendere  { postazione }       il Piatto a tocchi non è ancora finito
 //   postazioneSconosciuta { postazione }
 //   banconePieno      { postazione }       il Piatto pronto resta sulla Postazione
 //   scuoteTesta       { posto, mancano }   sul Bancone manca qualcosa dell'Ordine
@@ -32,7 +39,7 @@ import { createRng } from '../kit/rng.js';
 //   moneta            { posto, yen }          il totale pagato, da far volare nell'Incasso
 //   cuoreSpento       { posto, cuori }
 //   clienteVaVia      { posto, clienteId, motivo: 'pazienza' }   imbronciato, senza pagare
-//   serataFinita      { incasso, obiettivo, stelle, serviti, persi }
+//   serataFinita      { incasso, vendite, spesa, spreco, obiettivo, stelle, serviti, persi }
 
 const SEC = 1000;
 
@@ -57,6 +64,11 @@ export function sogliePerStelle(obiettivo) {
 
 export function calcolaStelle(incasso, obiettivo) {
   return sogliePerStelle(obiettivo).filter((soglia) => incasso >= soglia).length;
+}
+
+// Gli Yen di Ingredienti di un Piatto: la somma della sua ricetta (zero se non ne ha una).
+export function costoPiatto(piatto) {
+  return (PIATTI[piatto].ricetta ?? []).reduce((somma, { costo }) => somma + costo, 0);
 }
 
 export class Serata {
@@ -85,16 +97,24 @@ export class Serata {
     this.resto = 0;
     this.finita = false;
 
+    // L'Incasso è il netto: Vendite meno Spesa. `spesaServita` è la parte della Spesa finita in un
+    // Piatto servito: il resto è Spreco (non si rimborsa mai).
     this.incasso = 0;
+    this.vendite = 0;
+    this.spesa = 0;
+    this.spesaServita = 0;
     this.serviti = 0;
     this.persi = 0;
     this.prossimoId = 1;
 
     this.posti = Array.from({ length: POSTI.quanti }, () => ({ cliente: null, liberoDaMs: 0 }));
     this.bancone = [];
+    // `fatti`: quanti Ingredienti ha già un Piatto a tocchi. Stati: libera | inPreparazione | cuoce | pronto.
     this.postazioni = Object.entries(POSTAZIONI)
       .filter(([, { piatto }]) => piatti.includes(piatto))
-      .map(([id, { piatto }]) => ({ id, piatto, stato: 'libera', cottoMs: 0 }));
+      .map(([id, { piatto }]) => ({ id, piatto, stato: 'libera', cottoMs: 0, fatti: 0 }));
+    // Una Scorta per Ingrediente di ogni ricetta, nell'ordine della ricetta.
+    this.scorte = piatti.flatMap((piatto) => (PIATTI[piatto].ricetta ?? []).map(({ ingrediente }) => ({ id: ingrediente, piatto })));
     this.prossimoArrivoMs = Math.round(CLIENTI.primoArrivoSec * SEC);
   }
 
@@ -124,6 +144,9 @@ export class Serata {
       eventi.push({
         tipo: 'serataFinita',
         incasso: this.incasso,
+        vendite: this.vendite,
+        spesa: this.spesa,
+        spreco: this.spreco(),
         obiettivo: this.obiettivo,
         stelle: calcolaStelle(this.incasso, this.obiettivo),
         serviti: this.serviti,
@@ -144,24 +167,60 @@ export class Serata {
     }
   }
 
-  // Il tocco su una Postazione: se è libera il Piatto comincia a cuocere, se è pronto passa
-  // sul Bancone, se sta cuocendo non succede niente.
+  // Gli Yen di Ingredienti usati che non sono finiti in un Piatto servito (GLOSSARY.md, Spreco).
+  spreco() {
+    return this.spesa - this.spesaServita;
+  }
+
+  // Il tocco su una Scorta o su una Postazione (`id` è quello dell'una o dell'altra).
+  //   Scorta                  l'Ingrediente va nel Piatto che lo aspetta (e si paga), o viene rifiutato
+  //   Postazione a tocchi     il Piatto finito passa sul Bancone, altrimenti non c'è niente da prendere
+  //   Postazione che cuoce    se è libera il Piatto comincia a cuocere, se è pronto passa sul Bancone
   tocca(id) {
     if (this.finita) return [];
+    const scorta = this.scorte.find((s) => s.id === id);
+    if (scorta) return this.usaScorta(scorta);
     const postazione = this.postazioni.find((p) => p.id === id);
     if (!postazione) return [{ tipo: 'postazioneSconosciuta', postazione: id }];
-    const { piatto } = postazione;
+    if (postazione.stato === 'pronto') return this.alBancone(postazione);
+    if (PIATTI[postazione.piatto].ricetta) return [{ tipo: 'nienteDaPrendere', postazione: id }];
     if (postazione.stato === 'cuoce') return [{ tipo: 'postazioneOccupata', postazione: id }];
-    if (postazione.stato === 'libera') {
-      postazione.stato = 'cuoce';
-      postazione.cottoMs = 0;
-      return [{ tipo: 'cotturaIniziata', postazione: id, piatto }];
-    }
-    if (this.bancone.length >= this.banconeCapienza) return [{ tipo: 'banconePieno', postazione: id }];
-    this.bancone.push(piatto);
+    postazione.stato = 'cuoce';
+    postazione.cottoMs = 0;
+    return [{ tipo: 'cotturaIniziata', postazione: id, piatto: postazione.piatto }];
+  }
+
+  alBancone(postazione) {
+    if (this.bancone.length >= this.banconeCapienza) return [{ tipo: 'banconePieno', postazione: postazione.id }];
+    this.bancone.push(postazione.piatto);
     postazione.stato = 'libera';
     postazione.cottoMs = 0;
-    return [{ tipo: 'sulBancone', postazione: id, piatto }];
+    postazione.fatti = 0;
+    return [{ tipo: 'sulBancone', postazione: postazione.id, piatto: postazione.piatto }];
+  }
+
+  // Un Ingrediente va nella Postazione che lo aspetta: prima in quella già cominciata, poi in una
+  // libera (se è il primo della ricetta). Se nessuna lo aspetta (fuori ordine, o tutte con un Piatto
+  // pronto da prendere) il tocco non fa niente e non costa: sbagliare l'ordine non è mai un danno,
+  // al massimo si perde un tocco.
+  usaScorta(scorta) {
+    const { ricetta } = PIATTI[scorta.piatto];
+    const delPiatto = this.postazioni.filter((p) => p.piatto === scorta.piatto);
+    const aspetta = (p) => p.stato !== 'pronto' && ricetta[p.fatti].ingrediente === scorta.id;
+    const scelta = delPiatto.filter(aspetta).sort((a, b) => b.fatti - a.fatti)[0];
+    if (!scelta) {
+      const motivo = delPiatto.some((p) => p.stato !== 'pronto') ? 'ordine' : 'occupato';
+      return [{ tipo: 'ingredienteRifiutato', scorta: scorta.id, motivo }];
+    }
+    const { costo } = ricetta[scelta.fatti];
+    this.spesa += costo;
+    this.incasso -= costo;
+    scelta.fatti += 1;
+    const finito = scelta.fatti === ricetta.length;
+    scelta.stato = finito ? 'pronto' : 'inPreparazione';
+    const eventi = [{ tipo: 'ingrediente', postazione: scelta.id, scorta: scorta.id, costo, fatti: scelta.fatti, di: ricetta.length }];
+    if (finito) eventi.push({ tipo: 'piattoPronto', postazione: scelta.id, piatto: scelta.piatto });
+    return eventi;
   }
 
   // --- Clienti ---
@@ -244,6 +303,8 @@ export class Serata {
     const mancia = calcolaMancia(prezzo, cuori);
     const totale = prezzo + mancia;
     this.incasso += totale;
+    this.vendite += totale;
+    this.spesaServita += cliente.ordine.reduce((somma, piatto) => somma + costoPiatto(piatto), 0);
     this.serviti++;
     this.liberaPosto(posto);
 
@@ -273,6 +334,9 @@ export class Serata {
       tempoMs: this.tempoMs,
       restaMs: this.durataMs - this.tempoMs,
       incasso: this.incasso,
+      vendite: this.vendite,
+      spesa: this.spesa,
+      spreco: this.spreco(),
       obiettivo: this.obiettivo,
       sogliaStelle: sogliePerStelle(this.obiettivo),
       stelle: calcolaStelle(this.incasso, this.obiettivo),
@@ -289,12 +353,25 @@ export class Serata {
         },
       })),
       bancone: [...this.bancone],
-      postazioni: this.postazioni.map(({ id, piatto, stato, cottoMs }) => ({
+      // Il Piatto a tocchi aspetta `prossimo` (l'id della Scorta da toccare); null se è già finito.
+      postazioni: this.postazioni.map(({ id, piatto, stato, cottoMs, fatti }) => ({
         id,
         piatto,
         stato,
+        fatti,
+        prossimo: PIATTI[piatto].ricetta && stato !== 'pronto' ? PIATTI[piatto].ricetta[fatti].ingrediente : null,
         restaMs: stato === 'cuoce' ? PIATTI[piatto].cookSec * SEC - cottoMs : 0,
       })),
+      scorte: this.scorte.map(({ id, piatto }) => ({ id, piatto, costo: PIATTI[piatto].ricetta.find((r) => r.ingrediente === id).costo })),
+      // La fila vicino al pollice, da sinistra a destra: prima le Scorte, poi le Postazioni.
+      fila: this.fila(),
     };
+  }
+
+  fila() {
+    return [
+      ...this.scorte.map(({ id, piatto }) => ({ id, voce: 'scorta', piatto })),
+      ...this.postazioni.map(({ id, piatto }) => ({ id, voce: 'postazione', piatto })),
+    ];
   }
 }

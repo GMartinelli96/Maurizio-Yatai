@@ -8,11 +8,16 @@ export default {
   piatto_kakigori: 'かき氷',
   piatto_taiyaki: 'たい焼き',
   piatto_ramen: 'ラーメン',
+  ingrediente_riso: 'ごはん',
+  ingrediente_alga: 'のり',
 
 
   // Fine Serata
   endTitle: '今夜はおしまい！',
-  endIncasso: 'うりあげ',
+  endIncasso: 'もうけ',
+  endVendite: 'うりあげ',
+  endSpesa: 'ざいりょうだい',
+  endSpreco: 'むだになったぶん',
   endObiettivo: 'もくひょう',
   endRigioca: 'もういちど',
   endServiti: 'ごちそうしたおきゃくさん',
@@ -21,4 +26,5 @@ export default {
   endVoto1: 'いいよるだったね！',
   endVoto2: 'すてきなよるだったね！',
   endVoto3: 'でんせつのよるだ！',
+  endRosso: 'こんやはむだがおおかったね、もういちど！',
 };
