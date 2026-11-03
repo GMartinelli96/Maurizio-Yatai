@@ -629,6 +629,10 @@ export default class SerataScene extends YataiScene {
       case 'ondataInArrivo':
         this.segnalaOndata(evento);
         break;
+      case 'serieSpezzata':
+        // Il "pof" morbido e il numero della Serie che sparisce sono del passo dei riscontri (ticket 34, passo 4);
+        // il suono si aggancia qui (ticket 23).
+        break;
       case 'scuoteTesta':
         this.clienti[evento.posto].scuoti();
         break;

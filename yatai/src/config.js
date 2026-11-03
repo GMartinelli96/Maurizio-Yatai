@@ -126,6 +126,15 @@ export const PAZIENZA = {
   maxManciaRatio: 0.5,
 };
 
+// La Serie (GAME_SPEC.md, "Serie"; ticket 34): quanti Ordini di fila Maurizio ha servito senza perdere un Cliente e
+// senza servire a vuoto. Dà Mancia in più, mai sul prezzo né sulla Spesa: +`manciaPerCliente` (10%) di Mancia per ogni
+// Cliente di fila oltre il primo, fino a `moltiplicatoreMax` (×1,5, che si raggiunge a 6 di fila). Si moltiplica con gli
+// altri moltiplicatori della Mancia (Che stile!, Yen d'oro, desideri) senza un tetto unico in più. Valori di partenza.
+export const SERIE = {
+  manciaPerCliente: 0.1,
+  moltiplicatoreMax: 1.5,
+};
+
 // Il Lamento (GAME_SPEC.md, "Clienti"): la faccia del Cliente segue i cuoricini rimasti, non il tempo.
 // Da `perplessaA` cuoricini in giù è perplesso (con la goccia), da `imbronciataA` in giù imbronciato
 // (con lo sbuffo); sopra, neutro. Sono valori di partenza.
