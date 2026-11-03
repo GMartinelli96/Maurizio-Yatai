@@ -21,3 +21,5 @@ Il disegno (bus, livelli, brani per Matsuri, elenco degli effetti) è in [docs/d
 ### Dalla mappa yatai-economia-e-cucina (2026-11-03)
 
 Ricaduta del ticket 03 della mappa (Lamento). Cambiato: un criterio nuovo sul "mmh" e la riga corrispondente in [docs/design/audio.md](../../../docs/design/audio.md), tabella degli effetti. Lacuna notata, non nelle ricadute: con la cucina a tocchi servono anche i suoni del tocco su una Scorta (Ingrediente pagato) e della Scorta che trema (ordine sbagliato); l'elenco di `audio.md` ha solo "Tocco su una Postazione". Da aggiungere quando si inizia il ticket.
+
+Dal ticket 34 (2026-11-03): servono il tintinnio della Serie che sale di tono a ogni scalino (sulla scala del Matsuri), il "pof" morbido quando si spezza e il suono dell'ondata (il segnale 2 s prima è visivo; qui si aggiunge il suono). Nessuna informazione solo dal suono.

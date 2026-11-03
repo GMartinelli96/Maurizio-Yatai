@@ -13,3 +13,9 @@
 - [ ] La schermata iniziale dice "sviluppato da Maurizio Influencer Official" e i crediti "un regalo di Giuseppe".
 - [ ] I numeri nuovi sono nel file di configurazione e i testi nuovi sono in tutte e tre le lingue.
 - [ ] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero, lo stato nuovo compare in `window.render_game_to_text()` e la console non ha errori.
+
+## Comments
+
+### Dal ticket 34 (2026-11-03)
+
+La curva degli arrivi (quattro fasi: calma, ondata, respiro, ondata finale) è nei dati e per ora è una sola, comune. Qui ogni Serata e ogni Matsuri può avere la sua, comprese le curve più morbide delle prime Serate. Vedi GAME_SPEC.md ("La Serata", voce Ondate).

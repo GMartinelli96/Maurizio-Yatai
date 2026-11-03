@@ -20,3 +20,5 @@
 ### Dalla mappa yatai-economia-e-cucina (2026-11-03)
 
 Ricadute dei ticket 01, 02, 03 e 04 della mappa. Cambiato: cinque criteri nuovi (obiettivi sul netto con la cucina a tocchi, il giocatore lento del Tanabata come caso critico, costi degli Ingredienti e Serate mai in rosso per il "medio", soglie del Lamento, stelle dei Vestiti e peso di Che stile!). I numeri di partenza sono in GAME_SPEC.md ("Ingredienti e Spreco", "Progressione") e nelle risposte dei quattro ticket.
+
+Dal ticket 34 (2026-11-03): ritoccare dopo la prova del 33 sul telefono le durate e gli intervalli delle quattro fasi delle ondate e il bonus della Serie (+10% di Mancia per Cliente, tetto ×1,5 a 6). Controllare che la Mancia totale (Serie × Che stile! × Yen d'oro × desideri) non renda troppo generosa nessuna Serata: il "+9% al massimo" di Che stile! vale senza la Serie. Le curve per Serata e Matsuri sono del ticket 12.

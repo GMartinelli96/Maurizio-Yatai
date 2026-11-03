@@ -21,3 +21,5 @@
 Ricaduta del ticket 01 della mappa (costi e sprechi). Cambiato: "What to build" e tre criteri (recap con Vendite, Spesa, Spreco, Incasso e tabella per Piatto; Serata in rosso; Titoli che leggono Spesa e Spreco) più l'Incasso netto nella frase di Condividi. La tabella per Piatto la costruisce il ticket 06; qui si completa e si controlla con tutti e 5 i Piatti.
 
 **Deciso con Giuseppe il 2026-11-03:** in una Serata in rosso Condividi non c'è (il recap gentile basta). Scritto in GAME_SPEC.md ("Fine Serata") e nel criterio sopra.
+
+Dal ticket 34 (2026-11-03): il recap mostra anche la "Serie più lunga" (GLOSSARY.md, **Serie**) e i Titoli possono leggerla (per esempio una Serie da 8). La Serie non si salva.

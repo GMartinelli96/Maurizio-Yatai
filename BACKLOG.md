@@ -14,4 +14,5 @@ Cose decise come "non adesso". Non fanno parte della prima versione, ma restano 
 ## Meccaniche
 - [ ] **Gesti per Piatto**: scorrere per girare i takoyaki, tenere premuto per versare il brodo, e così via.
 - [ ] **Aiutanti del cast**: un peluche che lavora a una Postazione al posto di Maurizio.
+- [ ] **Cliente che chiede in fretta**: un Cliente occasionale con Pazienza corta e pagamento più alto. Scartato per ora (ticket 34) perché ripete Carlotta e si sovrappone al Lamento; da riconsiderare se le ondate non bastano.
 - [ ] **Sfide giornaliere**, come in Nella Bug Saga (idea da valutare).

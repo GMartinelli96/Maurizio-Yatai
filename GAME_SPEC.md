@@ -40,6 +40,24 @@ I termini in grassetto sono definiti in [GLOSSARY.md](./GLOSSARY.md). Le idee ri
   - **Lamento** (decisione della mappa `yatai-economia-e-cucina`, ticket 03): mentre la Pazienza scende, la faccia del Cliente cambia con i cuoricini rimasti. Con 5, 4 e 3 è neutra; con 2 è perplessa e compare una goccia di sudore; con 1 è imbronciata e compare uno sbuffo d'aria; da servito è contenta. A ogni scalino c'è un "mmh" breve e morbido, una volta per Cliente. Niente fumetti con parole, quindi niente testi da tradurre.
   - Il Lamento è scocciato ma buffo: guance un po' gonfie, sopracciglia inclinate, bocca a onda, mai occhi rabbiosi, denti o venuzze; l'unica eccezione è il piccolo segno rosso già approvato sull'imbronciata, che resta com'è (decisione del 2026-11-03). Il suono è un borbottio, mai un grido. Lo hanno tutti i Clienti con lo stesso schema, cast compreso; le soglie sono un valore di partenza. Con "riduci movimento" la faccia cambia comunque, mentre goccia e sbuffo restano fermi.
   - Un Piatto sbagliato non si può servire: il Cliente scuote la testa.
+- **Ondate** (decisione del ticket 34, 2026-11-03): la Serata ha un andamento invece di un solo intervallo fisso. Gli arrivi seguono una curva nei dati, in quattro fasi (valori di partenza, da ritoccare dopo la prova del ticket 33 e nel 29):
+
+| Fase | Quando | Intervallo tra gli arrivi |
+|---|---|---|
+| calma | 0–30 s | 3,5–5 s |
+| **ondata** | 30–55 s | 1,2–2,2 s |
+| respiro | 55–80 s | 4–6 s |
+| **ondata finale** | 80–120 s | 1,0–2,0 s |
+
+  - Cambia solo la frequenza degli arrivi: la Pazienza resta di 25 secondi e i Clienti sono gli stessi. Il peso dell'ondata viene dai Posti che si riempiono e dal Lamento.
+  - Il seme sposta i confini delle fasi di circa ±5 s: due Serate non sono uguali, ma con lo stesso seme sono sempre uguali (test ripetibili). Nessuna ondata deve essere impossibile per un giocatore lento, e non c'è mai game over a metà.
+  - **Segnale**: circa 2 secondi prima di ogni ondata, compresa la finale, un segnale solo visivo e senza testo (Maurizio alza la testa, la campanella dello Yatai oscilla). Il suono arriva con il ticket 23.
+  - Per ora c'è **una sola curva**, comune a tutti i Matsuri. Le curve per Serata e Matsuri (comprese quelle morbide delle prime Serate) sono del ticket 12 e del 29. Le Gran Serate mantengono il loro Evento (per esempio i Posti che si riempiono all'Hanabi), che è un'altra cosa.
+- **Serie** (stessa decisione): servire più Clienti di fila fa salire la Serie.
+  - Sale di 1 a ogni Ordine servito, quindi il Bis di Marcella vale due. Si spezza (torna a 0) solo se un Cliente se ne va a Pazienza finita, anche a metà Bis, oppure se si tocca un Cliente il cui Ordine non è completo sul Bancone. Un tocco fuori ordine su una Scorta e un Piatto bruciato non la spezzano: li "punisce" già il tempo perso o lo Spreco.
+  - Vale per la **Mancia**, mai per il prezzo né per la Spesa: +10% di Mancia per ogni Cliente di fila oltre il primo, con tetto ×1,5 a 6 di fila. Si moltiplica con gli altri moltiplicatori della Mancia (Che stile!, Yen d'oro, desideri), senza un tetto unico in più; il ticket 29 controlla che nessuna Serata risulti troppo generosa.
+  - Si vede con un piccolo numero vicino a Maurizio (×2, ×3, …), monete più generose e un tintinnio che sale di tono a ogni scalino, sulla scala del Matsuri. Quando si spezza, un "pof" morbido e il numero sparisce: nessuna punizione.
+  - Si azzera a ogni Serata e non si salva. Il recap mostra la **Serie più lunga** e i Titoli possono leggerla.
 - **Piatto bruciato**: toccandolo va nel cestino, e la Postazione resta nel **Fumo** per 3 secondi.
 - **Ingredienti e Spreco** (decisione della mappa `yatai-economia-e-cucina`, ticket 01):
   - Ogni Piatto è fatto di **Ingredienti** e ognuno costa Yen; il costo del Piatto è la somma, circa un terzo del suo prezzo. Gli Ingredienti sono gli stessi per le varianti, tranne quello che le distingue (sciroppo, ripieno, uovo o naruto).
@@ -99,7 +117,7 @@ Sono 5 Matsuri da 6 Serate ciascuno, disposti su una mappa. La sesta Serata è l
 - **Le stelle** sbloccano i **Vestiti** (decisione della mappa `yatai-economia-e-cucina`, ticket 04). Gli Yen non li comprano: gli Yen comprano lo Yatai, le stelle vestono Maurizio.
   - Ogni Matsuri ha 2 Vestiti (tabella "I Matsuri"). Si sbloccano con le stelle di quel Matsuri, cioè le migliori di ognuna delle sue 6 Serate (al massimo 18★), che non si spendono: il primo con 4★, il secondo con 10★ (valori di partenza, li regola il ticket 29).
   - Il Vestito si sceglie nella **Bottega**, nella sezione Vestiti. Quelli ancora bloccati si vedono, con "★ 4/18"; quelli del Matsuri in corso hanno il segno **Che stile!**. Quando se ne sblocca uno, il recap di fine Serata chiede "Nuovo Vestito! Lo indossi?". Il Vestito non cambia mai da solo.
-  - Se Maurizio indossa un Vestito del Matsuri in corso scatta **Che stile!**: la Mancia vale ×1,2 (non "+20% del prezzo"). Con la Pazienza sempre piena vale al più circa +9% sull'Incasso, quindi resta un premio piccolo anche con la Spesa. In Serata si vede quando è attivo.
+  - Se Maurizio indossa un Vestito del Matsuri in corso scatta **Che stile!**: la Mancia vale ×1,2 (non "+20% del prezzo"). Con la Pazienza sempre piena (e senza la Serie, che moltiplica la Mancia a sua volta) vale al più circa +9% sull'Incasso, quindi resta un premio piccolo anche con la Spesa. In Serata si vede quando è attivo.
   - Le stelle non bloccano mai l'avanzamento, nemmeno per i Vestiti: nessuna Serata ne richiede uno.
 - **Gli Yen** servono per (nella **Bottega**, insieme alla sezione Vestiti):
   - i **Potenziamenti**: Postazione più veloce (3 livelli per ognuna delle 4 Postazioni con cottura: il tagliere dell'onigiri non cuoce, quindi non ne ha), Posto in più, ventaglio di Maurizio (+Pazienza, 3 livelli);

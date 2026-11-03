@@ -104,6 +104,14 @@ _Avoid_: timer, attesa, umore
 La faccia e il segno senza parole (goccia, sbuffo) che un Cliente mostra quando la Pazienza scende sotto i 3 cuoricini: scocciato ma buffo, mai arrabbiato.
 _Avoid_: rabbia, protesta, rimprovero
 
+**Ondata**:
+Il momento della Serata in cui i Clienti arrivano più in fretta; la Serata alterna calma, ondata, respiro e ondata finale. Due secondi prima un segnale la annuncia.
+_Avoid_: picco, orda, ondata di Clienti
+
+**Serie**:
+Quanti Ordini di fila Maurizio ha servito senza perdere un Cliente e senza servire a vuoto; più è lunga, più cresce la Mancia. Si spezza senza punizioni.
+_Avoid_: combo, streak, catena
+
 **Yen**:
 La moneta del gioco, disegnata come la monetina da 5 yen con il buco.
 _Avoid_: monete, soldi, punti
