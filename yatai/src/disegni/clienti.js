@@ -10,12 +10,17 @@
 //
 // Tutti e tre stanno nello stesso riquadro (CLIENTE_SIZE) e appoggiano i piedi nello stesso
 // punto (CLIENTE_FEET): la scena li mette ai Posti tutti allo stesso modo, con la stessa ombra.
-// Ognuno ha tre espressioni, una texture per espressione:
-//   neutra       in attesa, con la Pazienza che scende;
-//   imbronciata  la Pazienza è finita e se ne va senza pagare;
+// Ognuno ha quattro espressioni, una texture per espressione (il Lamento, GAME_SPEC.md: la faccia
+// segue i cuoricini di Pazienza rimasti):
+//   neutra       in attesa, con 5, 4 o 3 cuoricini;
+//   perplessa    2 cuoricini: occhi tondi, sopracciglia storte, guance gonfie, bocca a onda;
+//   imbronciata  1 cuoricino, e resta tale quando la Pazienza è finita e se ne va senza pagare;
 //   contenta     servito.
-// Il corpo ha il tremolio dello stesso seme in tutte e tre: cambia solo la faccia, così
+// Il corpo ha il tremolio dello stesso seme in tutte e quattro: cambia solo la faccia, così
 // scambiando l'espressione il peluche non "salta".
+// Il Lamento è scocciato ma buffo, mai arrabbiato: niente occhi rabbiosi, denti o venuzze. L'unica
+// eccezione è la venetta rossa dell'imbronciata approvata (ticket 04), che non si tocca; la perplessa
+// non ce l'ha. La goccia e lo sbuffo che accompagnano le facce non sono qui: li disegna la vista.
 
 import { PALETTE as C, STILE } from '../config.js';
 import {
@@ -29,7 +34,7 @@ export const CLIENTE_SIZE = { w: 260, h: 320 };
 export const CLIENTE_FEET = { x: 130, y: 304 };
 
 export const CLIENTI = ['tanuki', 'kitsune', 'maneki-neko'];
-export const ESPRESSIONI = ['neutra', 'imbronciata', 'contenta'];
+export const ESPRESSIONI = ['neutra', 'perplessa', 'imbronciata', 'contenta'];
 
 export const clienteKey = (cliente, espressione) => `cliente-${cliente}-${espressione}`;
 
@@ -83,12 +88,24 @@ function rotate(points, cx, cy, angle) {
 // distanza tra gli occhi, y della bocca sotto il naso. Il naso lo disegna ogni animale.
 function faccia(ctx, rng, espressione, { x = 130, occhiY, occhiDx, boccaY, tilt = 0, guanceY = occhiY + 28, guanceDx = occhiDx + 24 }) {
   const ink = { color: C.inchiostro };
+  const perplessa = espressione === 'perplessa';
   for (const side of [-1, 1]) {
     const ex = x + side * occhiDx;
     if (espressione === 'contenta') {
       // Occhi chiusi, due archetti: ^ ^
       const arc = smoothCurve([{ x: ex - 10, y: occhiY + 4 }, { x: ex, y: occhiY - 7 }, { x: ex + 10, y: occhiY + 4 }], { closed: false });
       pencilLine(ctx, arc, rng, { closed: false, width: 3.6, amount: 0.5, ...ink });
+    } else if (perplessa) {
+      // Occhi tondi e un po' in su, come chi si chiede "boh?"; le sopracciglia storte: la destra più alta,
+      // con l'estremo vicino al naso in su (un dubbio, non un'arrabbiatura).
+      const eye = ellipse(ex, occhiY, 8.5, 10.5, side * tilt);
+      pastelFill(ctx, eye, rng, dark, { volume: false, hatching: 0.5 });
+      pencilLine(ctx, eye, rng, { width: 2 });
+      pastelFill(ctx, ellipse(ex + 3.5, occhiY - 4, 3, 3), rng, white, { volume: false, hatching: 0 });
+      const su = side > 0 ? 5 : 0;
+      pencilLine(ctx, smoothCurve([
+        { x: ex + side * 13, y: occhiY - 15 - su }, { x: ex, y: occhiY - 22 - su }, { x: ex - side * 9, y: occhiY - 23 - su },
+      ], { closed: false }), rng, { closed: false, width: 3.6, amount: 0.5, ...ink });
     } else {
       const imbronciata = espressione === 'imbronciata';
       const eye = ellipse(ex, occhiY + (imbronciata ? 2 : 0), imbronciata ? 8 : 9, imbronciata ? 8.5 : 11.5, side * tilt);
@@ -106,8 +123,9 @@ function faccia(ctx, rng, espressione, { x = 130, occhiY, occhiDx, boccaY, tilt 
   // Le guance: più accese quando è contento.
   const blush = { colore: C.guance, ombra: C.guance, luce: C.bianco };
   for (const side of [-1, 1]) {
-    pastelFill(ctx, ellipse(x + side * guanceDx, guanceY, 19, 11.5), rng, blush, {
-      volume: false, alpha: espressione === 'contenta' ? 0.75 : espressione === 'imbronciata' ? 0.6 : 0.45,
+    // Nella perplessa le guance sono un po' più gonfie.
+    pastelFill(ctx, ellipse(x + side * guanceDx, guanceY, perplessa ? 22 : 19, perplessa ? 13.5 : 11.5), rng, blush, {
+      volume: false, alpha: espressione === 'contenta' ? 0.75 : espressione === 'imbronciata' ? 0.6 : perplessa ? 0.55 : 0.45,
     });
   }
   // La bocca: due archetti sotto il naso, un arco all'ingiù, un sorriso aperto.
@@ -122,6 +140,11 @@ function faccia(ctx, rng, espressione, { x = 130, occhiY, occhiDx, boccaY, tilt 
     pencilLine(ctx, open, rng, { width: 2.4 });
   } else if (espressione === 'imbronciata') {
     pencilLine(ctx, smoothCurve([{ x: x - 11, y: boccaY + 6 }, { x, y: boccaY - 3 }, { x: x + 11, y: boccaY + 6 }], { closed: false }), rng, mouth);
+  } else if (perplessa) {
+    // Una bocca a onda: ~
+    pencilLine(ctx, smoothCurve([
+      { x: x - 14, y: boccaY + 3 }, { x: x - 7, y: boccaY - 2 }, { x, y: boccaY + 3 }, { x: x + 7, y: boccaY + 8 }, { x: x + 14, y: boccaY + 3 },
+    ], { closed: false }), rng, mouth);
   } else {
     pencilLine(ctx, smoothCurve([
       { x: x - 9, y: boccaY - 2 }, { x: x - 4.5, y: boccaY + 4 }, { x, y: boccaY - 1 }, { x: x + 4.5, y: boccaY + 4 }, { x: x + 9, y: boccaY - 2 },

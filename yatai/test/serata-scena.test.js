@@ -25,7 +25,7 @@ test('ogni evento della Serata ha un riscontro nella scena, o è ignorato di pro
   for (const tipo of gestiti) assert.ok(emessi.has(tipo), `SerataScene gestisce "${tipo}" che la logica non emette più`);
 });
 
-test('i Clienti della logica hanno tutti i disegni, nelle tre espressioni', () => {
+test('i Clienti della logica hanno tutti i disegni, nelle quattro espressioni', () => {
   assert.deepEqual([...CLIENTI.passaggio].sort(), [...TIPI_DISEGNATI].sort(), 'i tipi della logica e quelli disegnati discordano');
   for (const tipo of CLIENTI.passaggio) {
     for (const espressione of ESPRESSIONI) assert.ok(DISEGNI[clienteKey(tipo, espressione)], `manca ${clienteKey(tipo, espressione)}`);

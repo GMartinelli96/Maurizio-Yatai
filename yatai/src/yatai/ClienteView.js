@@ -11,7 +11,7 @@ const ICONA = onigiriSize(ONIGIRI_ICONA);
 
 const round = (n) => Math.round(n * 10) / 10;
 
-// Un Cliente al suo Posto sulla scena: il peluche (con le sue tre espressioni), la sua ombra, la
+// Un Cliente al suo Posto sulla scena: il peluche (con le sue quattro espressioni), la sua ombra, la
 // nuvoletta con l'Ordine fatto di icone e i cuoricini della Pazienza. È solo la vista: la logica
 // (chi è arrivato, quanti cuoricini restano, se è servito) è in src/serata/Serata.js e la scena
 // glielo dice con arriva(), cuori(), scuoti(), servito() e vaVia().

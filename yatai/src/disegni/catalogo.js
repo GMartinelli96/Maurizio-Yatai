@@ -37,7 +37,7 @@ export const DISEGNI = {
   ...Object.fromEntries(Object.entries(POSTAZIONI).map(([piatto, draw]) => [postazioneKey(piatto), { ...POSTAZIONE_SIZE, draw }])),
   // Le Scorte degli Ingredienti (la ciotola del riso, i fogli di alga): stessa misura delle Postazioni.
   ...Object.fromEntries(Object.entries(SCORTE).map(([ingrediente, draw]) => [scortaKey(ingrediente), { ...POSTAZIONE_SIZE, draw }])),
-  // I Clienti di passaggio: tre per tre espressioni.
+  // I Clienti di passaggio: tre per quattro espressioni.
   ...DISEGNI_CLIENTI,
   // La Serata: la nuvoletta dell'Ordine, i cuoricini della Pazienza, lo Yen e le stelle del voto.
   nuvoletta: { w: NUVOLETTA.w, h: NUVOLETTA.h, draw: drawNuvoletta },

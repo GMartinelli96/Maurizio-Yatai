@@ -6,16 +6,16 @@ import {
 import { textStyle } from '../kit/font.js';
 import { ensureTexture, textureFingerprint } from '../kit/texture.js';
 
-// La tavola di prova dei Clienti di passaggio (ticket 04): i tre peluche nelle tre espressioni,
+// La tavola di prova dei Clienti di passaggio (ticket 04): i tre peluche nelle quattro espressioni,
 // tutti alla stessa misura e con la stessa ombra, come li metterà la scena dello Yatai ai Posti.
 // Si apre con ?sviluppo=clienti (solo con `npm run dev`). I testi non si traducono.
 
 // Quanto si ingrandisce il riquadro di un Cliente su un Posto (720 di larghezza fanno tre Posti).
-const SCALA = 0.9;
-const RIGA = 330;
-const TOP = 190;
+const SCALA = 0.62;
+const RIGA = 250;
+const TOP = 180;
 
-const ESPRESSIONE_TESTO = { neutra: 'in attesa', imbronciata: 'imbronciato', contenta: 'servito' };
+const ESPRESSIONE_TESTO = { neutra: 'in attesa', perplessa: 'perplesso', imbronciata: 'imbronciato', contenta: 'servito' };
 
 export default class ClientiScene extends Phaser.Scene {
   constructor() {

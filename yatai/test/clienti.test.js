@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { drawEntry } from '../src/disegni/catalogo.js';
 import {
   CLIENTE_SIZE, CLIENTI, DISEGNI_CLIENTI, ESPRESSIONI, clienteKey,
@@ -27,9 +28,9 @@ function record(key, entry) {
   return JSON.stringify(log);
 }
 
-test('ci sono i tre Clienti di passaggio, ognuno con tre espressioni, tutti della stessa misura', () => {
+test('ci sono i tre Clienti di passaggio, ognuno con quattro espressioni, tutti della stessa misura', () => {
   assert.deepEqual(CLIENTI, ['tanuki', 'kitsune', 'maneki-neko']);
-  assert.deepEqual(ESPRESSIONI, ['neutra', 'imbronciata', 'contenta']);
+  assert.deepEqual(ESPRESSIONI, ['neutra', 'perplessa', 'imbronciata', 'contenta']);
   assert.equal(Object.keys(DISEGNI_CLIENTI).length, CLIENTI.length * ESPRESSIONI.length);
   for (const cliente of CLIENTI) {
     for (const espressione of ESPRESSIONI) {
@@ -51,6 +52,29 @@ test('ogni Cliente esce identico a ogni avvio e le espressioni sono diverse', ()
       return first;
     });
     assert.equal(new Set(drawings).size, ESPRESSIONI.length, `${cliente}: due espressioni uguali`);
+  }
+});
+
+// Le impronte (SHA-1 di ciò che il disegno chiede al canvas) delle tre espressioni approvate nel
+// ticket 04, calcolate prima del ticket 36. Se una cambia, un'espressione approvata è stata toccata:
+// la venetta dell'imbronciata compresa. Si aggiornano solo se Giuseppe approva un nuovo disegno.
+const IMPRONTE_APPROVATE = {
+  'cliente-tanuki-neutra': 'b7a84d400a5d9ee48a46e20a5e93e960073295f5',
+  'cliente-tanuki-imbronciata': '17ff55569f17326da113deff6af49c2f39671b51',
+  'cliente-tanuki-contenta': 'e865218bbd71a2a76665aa04608523ae2a0185e2',
+  'cliente-kitsune-neutra': '02400efdaf4d56b301f1dddec6d4b4abf6a9ca52',
+  'cliente-kitsune-imbronciata': '971b9c4c17f167cf178d8024d1e2ab004c3a3e0e',
+  'cliente-kitsune-contenta': '7f05e1cbd1bd51b9764b85cd45d60d1b685291fb',
+  'cliente-maneki-neko-neutra': 'bf0c0c07331bef60eae560c56c3022eca8db990c',
+  'cliente-maneki-neko-imbronciata': '8f14b996b8fa7ced9595074bf0e6a06f946ff234',
+  'cliente-maneki-neko-contenta': '2ad84acb2c2e90eea5093431ded5311eed284006',
+};
+
+test('le tre espressioni approvate dei tre Clienti non sono cambiate (venetta compresa)', () => {
+  assert.equal(Object.keys(IMPRONTE_APPROVATE).length, 9);
+  for (const [key, attesa] of Object.entries(IMPRONTE_APPROVATE)) {
+    const impronta = createHash('sha1').update(record(key, DISEGNI_CLIENTI[key])).digest('hex');
+    assert.equal(impronta, attesa, `${key} è cambiato rispetto a quello approvato`);
   }
 });
 
