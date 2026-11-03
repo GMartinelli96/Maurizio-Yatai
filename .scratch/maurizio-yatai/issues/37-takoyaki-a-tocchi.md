@@ -6,7 +6,7 @@ Fa da ponte tra il 06 (bruciatura, Fumo, cestino, già in main) e il 07. È il p
 
 **Blocked by:** 06 (Il takoyaki: cottura, bruciatura e Fumo), 33 (La cucina a tocchi)
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Il takoyaki si prepara a tocchi nell'ordine della Ricetta: pastella, polpo, (cottura di 5 s che parte da sola), salsa, prendi. Sono 4 tocchi, il tetto (con test sul conteggio).
 - [x] La cottura è un passo della Ricetta nei dati (`config.js`), non una regola scritta nel codice del takoyaki: un test dimostra che una Ricetta inventata con la cottura dopo il primo Ingrediente (come il kakigōri) funziona senza toccare la logica.
@@ -53,3 +53,7 @@ Il takoyaki è a tocchi: **pastella, polpo, [5 s], salsa, prendi** (4 tocchi, 10
 **Verifica:** `npm test` 167 verdi (nuovi: Ricetta e tetto di 4 tocchi, la sequenza, le Scorte ferme durante la cottura, ordine sbagliato, bruciatura da pronto, Spreco, recap, Ricetta con la cottura in un'altra posizione, la fila da 7 voci nel layout). `npm run build` ok. Scenario `serata-takoyaki.json` riscritto (18 immagini) a 360×640, 390×844, 1280×720 e in giapponese, senza errori in console; tutti gli altri scenari a 360×640 senza errori; Hanami invariato (3 voci, stessa misura). Impronte `a43b5bed`, `459d9564`, `44f495c1`, `e5d7a664` invariate.
 
 **Non fatto, da sapere:** il criterio del ticket 06 sul recap con la tabella per Piatto (fatti, serviti, sprecati, costo, vendite) non è nel codice (il recap mostra Vendite, Spesa, Spreco e Incasso totali): resta al 07 o a un ticket a parte. PIANO.md non ha una riga "4-bis": la sigla c'è solo nel testo di questo ticket.
+
+### Chiuso (2026-11-03)
+
+Unito in `main` con `35f62e7` (merge del ramo `ticket-37`, worktree `../maurizio-t37` già rimosso). La prova di Giuseppe sul telefono vero (`npm run telefono`) è andata bene. Riverificato alla ripresa della mappa: `npm test` 183 verdi, scenario `serata-takoyaki.json` a 360×640 senza errori in console (allarme, Fumo, cestino, recap in rosso con Spesa 200 e Spreco 200 guardati).

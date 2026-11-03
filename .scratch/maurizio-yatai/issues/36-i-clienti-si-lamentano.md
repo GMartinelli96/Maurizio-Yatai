@@ -14,17 +14,17 @@ Cosa c'è da costruire:
 
 **Blocked by:** 05 ([con te] La prima prova: è divertente?)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Giuseppe ha deciso che fare della "venetta" (2026-11-03, vedi `## Comments`): l'`imbronciata` approvata non si tocca.
-- [ ] La `perplessa` di tanuki, kitsune e maneki-neko è disegnata col kit, con lo stesso seme del corpo, senza venetta; le impronte delle tre espressioni approvate dei tre Clienti restano invariate, con test.
-- [ ] La logica della Serata sceglie l'espressione dai cuoricini rimasti (5-3 `neutra`, 2 `perplessa`, 1 `imbronciata`, servito `contenta`); le soglie (2 e 1) sono in `config.js`; test senza browser, anche con una Pazienza che scende a velocità diversa (l'espressione segue i cuoricini, non il tempo).
-- [ ] Un evento di Lamento parte una volta per scalino e per Cliente (con test), pronto per il "mmh" del ticket 23.
-- [ ] La vista del Cliente cambia faccia a ogni scalino e mostra la goccia (2 cuoricini) e lo sbuffo (1 cuoricino); i cuoricini restano come oggi e la Mancia resta leggibile.
-- [ ] A 360×640, con tre Posti pieni a scalini diversi, faccia e segni si leggono e non coprono la nuvoletta dell'Ordine né i cuoricini (screenshot guardati).
-- [ ] `render_game_to_text()` mostra per ogni Cliente l'espressione e il segno attivo (goccia, sbuffo, nessuno).
-- [ ] Nessun testo nuovo (niente fumetti con parole); i numeri nuovi sono in `config.js`.
-- [ ] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero, lo stato nuovo compare in `window.render_game_to_text()` e la console non ha errori.
+- [x] La `perplessa` di tanuki, kitsune e maneki-neko è disegnata col kit, con lo stesso seme del corpo, senza venetta; le impronte delle tre espressioni approvate dei tre Clienti restano invariate, con test.
+- [x] La logica della Serata sceglie l'espressione dai cuoricini rimasti (5-3 `neutra`, 2 `perplessa`, 1 `imbronciata`, servito `contenta`); le soglie (2 e 1) sono in `config.js`; test senza browser, anche con una Pazienza che scende a velocità diversa (l'espressione segue i cuoricini, non il tempo).
+- [x] Un evento di Lamento parte una volta per scalino e per Cliente (con test), pronto per il "mmh" del ticket 23.
+- [x] La vista del Cliente cambia faccia a ogni scalino e mostra la goccia (2 cuoricini) e lo sbuffo (1 cuoricino); i cuoricini restano come oggi e la Mancia resta leggibile.
+- [x] A 360×640, con tre Posti pieni a scalini diversi, faccia e segni si leggono e non coprono la nuvoletta dell'Ordine né i cuoricini (screenshot guardati).
+- [x] `render_game_to_text()` mostra per ogni Cliente l'espressione e il segno attivo (goccia, sbuffo, nessuno).
+- [x] Nessun testo nuovo (niente fumetti con parole); i numeri nuovi sono in `config.js`.
+- [x] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero, lo stato nuovo compare in `window.render_game_to_text()` e la console non ha errori.
 
 ## Comments
 
@@ -39,3 +39,10 @@ Ticket creato applicando le ricadute della mappa ([ticket 03](../../yatai-econom
 Da fare in questo ticket: aggiornare il commento in cima a `clienti.js` (da tre a quattro espressioni).
 
 Il ticket 33 sta modificando `Serata.js`, `config.js`, `SerataScene.js` e i test: questo ticket tocca gli stessi file, meglio iniziarlo quando il 33 è unito.
+
+### Chiuso (2026-11-03)
+
+Verifica fatta alla ripresa della mappa, sui commit `b51a5ea`, `1526302`, `9725870`, `ed5aa68` e `9257bb5`: `npm test` 183 verdi (Lamento: soglie in `config.js`, un evento per scalino e per Cliente, scalini uguali con Pazienza a velocità diversa; impronte delle 9 espressioni approvate invariate, venetta compresa; `ESPRESSIONI` a quattro). Scenario `serata-lamento.json` a 360×640, senza errori in console: faccia `perplessa` con la goccia a 2 cuoricini, `imbronciata` con lo sbuffo a 1, tre Posti a scalini diversi, nessun segno sul Cliente servito, nessun segno sul Cliente nuovo nello stesso Posto. Screenshot guardati: faccia e segni non coprono nuvoletta né cuoricini, la Mancia (+120) si legge. I commit del ticket non toccano `src/testi/`: nessun testo nuovo. Il commento in cima a `clienti.js` dice già quattro espressioni.
+
+Non verificabile da qui: che nelle sessioni di lavoro si sia partiti dalla skill `router`. Il resto dell'ultimo criterio (Playwright, `advanceTime`, screenshot guardati, stato in `render_game_to_text()`, console pulita) è stato rifatto.
+Resta per altri ticket, come scritto sopra: il "mmh" (23), la modalità fissa di goccia e sbuffo con "riduci movimento" (26), la `perplessa` dei sette del cast (09).
