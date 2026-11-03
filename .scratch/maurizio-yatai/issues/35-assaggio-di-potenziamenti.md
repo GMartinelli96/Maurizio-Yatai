@@ -8,7 +8,7 @@ I ticket 16 e 17 non si buttano: questo ne è la prima fetta. Quando arrivano, e
 
 **Status:** ready-for-agent
 
-- [ ] Dopo una Serata gli Yen guadagnati restano sul dispositivo, anche ricaricando la pagina (playtest con ricaricamento). Se lo storage è bloccato il gioco funziona lo stesso, senza salvare. Il salvataggio ha un numero di versione.
+- [x] Dopo una Serata gli Yen guadagnati restano sul dispositivo, anche ricaricando la pagina (playtest con ricaricamento). Se lo storage è bloccato il gioco funziona lo stesso, senza salvare. Il salvataggio ha un numero di versione.
 - [ ] La Bottega mostra gli Yen, i due Potenziamenti (Posto in più, ventaglio) con livello e prezzo, e si usa col pollice a 360×640; comprare costa Yen e non si scende mai sotto zero.
 - [x] Il Potenziamento "tagliere più veloce" è escluso da questo ticket (deciso con Giuseppe il 2026-11-03) e la scelta è scritta in GAME_SPEC.md (Progressione): "Postazione più veloce" vale per le 4 Postazioni con cottura.
 - [ ] Ogni Potenziamento cambia la Serata come dice GAME_SPEC.md e ha il suo test senza browser; con il quarto Posto lo Yatai resta leggibile.
@@ -32,3 +32,9 @@ I tocchi in più per Cliente cambiano anche il ritmo su cui si calibrano i prezz
 Le ondate devono reggere con 3 e con 4 Posti e col ventaglio (decisione della destinazione, misure del ticket 02 e 05). Misurato con il bot (Hanami, 15 s di Pazienza in ondata, Serie come scritta, media di 6 semi): con 4 Posti rapido 5035, attento 3201, lento 2056, quindi ★★★ / ★★★ / ★ e il lento perde in media 5,7 Clienti in ondata. Con il ventaglio a **+20%** (ipotesi della misura: 30 s fuori ondata, 18 s in ondata) 5215 / 3390 / 2165, e il lento non perde nessuno.
 
 Da decidere qui: se il ventaglio allunga anche la Pazienza in ondata (e di quanto: i 15 s sono un valore di partenza) e i numeri dei 3 livelli. Attenzione: con le sole ondate di frequenza il quarto Posto da solo toglieva ★ al lento (la Mancia scende perché i Clienti aspettano di più); regge solo con la Pazienza corta in ondata e la Serie. Un test del bot per Posto in più e per ogni livello del ventaglio.
+
+### Passo 1: il salvataggio degli Yen (2026-11-03)
+
+Fatto in `src/salvataggio.js` (classe `Salvataggio`, storage iniettabile, `salvataggio()` per il gioco): un solo campo `yen` e il numero di versione 1. Alla fine di ogni Serata l'Incasso diventa Yen in tasca (`SerataScene.perFine`); una Serata in rosso non ne dà e non ne toglie. Storage bloccato, pieno, assente o con dati illeggibili: si gioca lo stesso, con gli Yen in memoria; un salvataggio di una versione più nuova non si sovrascrive. In `render_game_to_text()` c'è `salvataggio: { yen, salvato }`. Verificato con 10 test senza browser (`test/salvataggio.test.js`) e con due scenari a 360×640 (`serata-yen.json` con ricaricamento e Serata in rosso, `serata-yen-bloccato.json` con `--senza-storage`), senza errori in console. Non ancora provato sul telefono.
+
+Deciso con Giuseppe (2026-11-03): il ventaglio parte da **+20%** di Pazienza, vale **anche in ondata**, e i numeri dei 3 livelli si decidono misurando con il bot a 3 e 4 Posti (un test per Posto in più e per livello).

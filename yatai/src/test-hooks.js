@@ -1,5 +1,6 @@
 import { FRAME_MS } from './config.js';
 import { getLanguage } from './i18n.js';
+import { salvataggio } from './salvataggio.js';
 
 // Gli hook che usano i test Playwright (scripts/playtest.mjs).
 //
@@ -44,6 +45,8 @@ export function installTestHooks(game) {
     return JSON.stringify({
       scene: scene?.sys.settings.key ?? null,
       lang: getLanguage(),
+      // Gli Yen in tasca, e se sono sul dispositivo (falso se lo storage è bloccato).
+      salvataggio: { yen: salvataggio().yen, salvato: salvataggio().salvato },
       timeMs: Math.round(scene?.time.now ?? 0),
       manualTime: manual,
       gioco: { w: game.scale.width, h: game.scale.height },

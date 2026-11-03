@@ -1,0 +1,31 @@
+[
+  { "goto": "?sviluppo=serata&seme=completa" },
+  { "advance": 100 },
+  { "expect": "salvataggio.yen", "equals": 0 },
+  { "expect": "salvataggio.salvato", "equals": true },
+  { "shot": "yen-0-zero-in-tasca" },
+
+  { "gioca": { "servi": "tocco" } },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "expect": "serata.incasso", "atLeast": 800 },
+  { "advance": 3500 },
+  { "expect": "salvataggio.yen", "atLeast": 800 },
+  { "expect": "salvataggio.salvato", "equals": true },
+  { "shot": "yen-1-fine-serata" },
+
+  { "goto": "?sviluppo=serata&seme=prova" },
+  { "advance": 100 },
+  { "expect": "salvataggio.yen", "atLeast": 6000 },
+  { "shot": "yen-2-dopo-il-ricaricamento" },
+  { "same": ["yen-1-fine-serata", "yen-2-dopo-il-ricaricamento"], "field": "salvataggio" },
+
+  { "advance": 2500 },
+  { "tapPath": "postazioni.0" },
+  { "advance": 300 },
+  { "gioca": { "sbadato": true } },
+  { "advance": 2500 },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "expect": "serata.incasso", "equals": -20 },
+  { "shot": "yen-3-serata-in-rosso" },
+  { "same": ["yen-2-dopo-il-ricaricamento", "yen-3-serata-in-rosso"], "field": "salvataggio" }
+]

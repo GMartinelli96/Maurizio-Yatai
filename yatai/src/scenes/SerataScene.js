@@ -7,6 +7,7 @@ import { textStyle } from '../kit/font.js';
 import { panelTexture } from '../kit/texture.js';
 import { addButton } from '../kit/ui.js';
 import { center, fitIn, layoutHud } from '../layout/yatai.js';
+import { salvataggio } from '../salvataggio.js';
 import { azioneDaTasto } from '../serata/comandi.js';
 import { Serata, ingredientiDi } from '../serata/Serata.js';
 import ClienteView from '../yatai/ClienteView.js';
@@ -894,6 +895,8 @@ export default class SerataScene extends YataiScene {
 
   perFine(evento) {
     this.risultato = evento;
+    // L'Incasso diventa Yen in tasca (una Serata in rosso non ne dà e non ne toglie).
+    salvataggio().accreditaIncasso(evento.incasso);
     this.fineTrascinamento(null, true);
     this.time.delayedCall(RISCONTRI.fine.ritardo, () => this.costruisciFine(false));
   }

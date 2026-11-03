@@ -1,0 +1,20 @@
+[
+  { "goto": "?sviluppo=serata&seme=completa" },
+  { "advance": 100 },
+  { "expect": "salvataggio.yen", "equals": 0 },
+  { "expect": "salvataggio.salvato", "equals": false },
+
+  { "gioca": { "servi": "tocco" } },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "advance": 3500 },
+  { "expect": "fine.stelle", "equals": 3 },
+  { "expect": "salvataggio.yen", "atLeast": 6000 },
+  { "expect": "salvataggio.salvato", "equals": false },
+  { "shot": "bloccato-1-fine-serata-senza-storage" },
+
+  { "tapPath": "fine" },
+  { "advance": 400 },
+  { "expect": "serata.fase", "equals": "in corso" },
+  { "shot": "bloccato-2-rigioca" },
+  { "same": ["bloccato-1-fine-serata-senza-storage", "bloccato-2-rigioca"], "field": "salvataggio" }
+]

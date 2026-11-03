@@ -3,6 +3,7 @@
 //   npm run playtest                         scenario di base, in italiano, su un telefono 390×844
 //   npm run playtest -- scenari/x.json --locale ja-JP --size 1280x720 --out playtest-output/ja
 //   npm run playtest:offline                 costruisce dist/, lo carica, stacca la rete e ricarica
+//   npm run playtest -- x.json --senza-storage   localStorage lancia un errore, come in una finestra privata bloccata
 //
 // Lo scenario è un elenco JSON di passi, eseguiti in ordine:
 //   { "tap": [x, y] }      tocco in coordinate di gioco (la larghezza è VIEW.width, in src/config.js)
@@ -41,6 +42,7 @@ const { values: opt, positionals } = parseArgs({
     size: { type: 'string', default: '390x844' },
     out: { type: 'string', default: 'playtest-output' },
     offline: { type: 'boolean', default: false },
+    'senza-storage': { type: 'boolean', default: false },
   },
 });
 
@@ -60,6 +62,11 @@ const url = server.resolvedUrls.local[0];
 const browser = await chromium.launch({ channel: 'chrome' }).catch(() => chromium.launch());
 const context = await browser.newContext({ locale: opt.locale, viewport: { width, height } });
 const page = await context.newPage();
+if (opt['senza-storage']) {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('storage bloccato', 'SecurityError'); } });
+  });
+}
 
 const errors = [];
 page.on('console', (msg) => {
