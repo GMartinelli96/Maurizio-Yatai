@@ -52,6 +52,8 @@ import { createRng } from '../kit/rng.js';
 //   cuoreSpento       { posto, cuori }
 //   lamento           { posto, clienteId, cuori, espressione, segno }   il Cliente scende di scalino (a 2 e a 1 cuoricini), una volta per scalino e per Cliente: l'audio ci aggancia il "mmh"
 //   clienteVaVia      { posto, clienteId, motivo: 'pazienza' }   imbronciato, senza pagare
+//   ondataInArrivo    { fase, traMs }         ONDATE.avvisoSec prima di ogni ondata (anche la finale), una volta per ondata: da qui
+//                                              parte il segnale visivo (Maurizio alza la testa, la campanella oscilla); il suono è del ticket 23
 //   serataFinita      { incasso, vendite, spesa, spreco, obiettivo, stelle, serviti, persi }
 
 const SEC = 1000;
@@ -149,6 +151,8 @@ export class Serata {
   } = {}) {
     this.rng = createRng(seed);
     this.fasi = fasiDellaSerata(seed);
+    // Le ondate che hanno già dato il segnale (una volta ciascuna).
+    this.avvisate = new Set();
     this.obiettivo = obiettivo;
     this.piatti = piatti;
     this.piattiPerOrdine = piattiPerOrdine;
@@ -202,6 +206,7 @@ export class Serata {
 
   passo(passoMs, eventi) {
     this.tempoMs += passoMs;
+    this.avvisaOndate(eventi);
     for (const postazione of this.postazioni) this.cuoci(postazione, passoMs, eventi);
     this.posti.forEach((posto, indice) => this.aspetta(posto, indice, passoMs, eventi));
     this.faiArrivare(eventi);
@@ -412,6 +417,15 @@ export class Serata {
     return this.fasi.findLast(({ inizioMs }) => inizioMs <= tempoMs);
   }
 
+  // Il segnale di un'ondata: quando manca ONDATE.avvisoSec al suo inizio, una volta sola, la Serata lo dice.
+  avvisaOndate(eventi) {
+    for (const { nome, inizioMs, ondata } of this.fasi) {
+      if (!ondata || this.avvisate.has(nome) || inizioMs - this.tempoMs > ONDATE.avvisoSec * SEC) continue;
+      this.avvisate.add(nome);
+      eventi.push({ tipo: 'ondataInArrivo', fase: nome, traMs: inizioMs - this.tempoMs });
+    }
+  }
+
   // L'attesa fino al prossimo arrivo, tra min e max secondi della fase di adesso, in ms e multiplo del passo,
   // così gli arrivi cadono su un passo.
   attesaArrivoMs() {
@@ -552,8 +566,8 @@ export class Serata {
     };
   }
 
-  // Dove siamo nella curva: la fase di adesso, se è un'ondata, e quanto manca alla prossima ondata (null se non
-  // ce ne sono più). `fasi` dà gli inizi mossi dal seme, per chi vuole vedere l'intera curva.
+  // Dove siamo nella curva: la fase di adesso, se è un'ondata, quanto manca alla prossima ondata (null se non
+  // ce ne sono più) e se il segnale è acceso. `fasi` dà gli inizi mossi dal seme, per chi vuole vedere l'intera curva.
   andamento() {
     const fase = this.faseA(this.tempoMs);
     const prossima = this.fasi.find(({ inizioMs, ondata }) => ondata && inizioMs > this.tempoMs);
@@ -561,6 +575,8 @@ export class Serata {
       fase: fase.nome,
       inOndata: fase.ondata,
       prossimaOndataTraMs: prossima ? prossima.inizioMs - this.tempoMs : null,
+      // Il segnale è acceso: manca poco a un'ondata e il segnale è partito (vedi 'ondataInArrivo').
+      inAvviso: prossima ? this.avvisate.has(prossima.nome) : false,
       fasi: this.fasi.map(({ nome, inizioMs, ondata }) => ({ nome, inizioMs, ondata })),
     };
   }

@@ -353,6 +353,17 @@ export const RISCONTRI = {
     goccia: { discesa: 7, durata: 780 },
     sbuffo: { spinta: 5, gonfia: 0.14, durata: 560 },
   },
+  // Il segnale prima di un'ondata (ticket 34), che parte da 'ondataInArrivo' (ONDATE.avvisoSec prima). Senza testo.
+  // Maurizio alza la testa (posa `guarda`) finché manca all'ondata, più `codaMs` perché non scatti via appena
+  // arrivano i primi Clienti; se intanto lavora o serve la posa dell'azione ha la precedenza e poi torna `guarda`.
+  // La campanella dello Yatai pende dalla tendina del Bancone, a `dalBordo` pixel dal bordo sinistro del Bancone, larga
+  // `larghezza` pixel di gioco, e oscilla: `oscillazioni` andate e ritorno che si smorzano da `ampiezza` gradi a zero
+  // in `durata` ms. Con "riduci movimento" (ticket 26) l'oscillazione si spegne (SerataScene.oscillaCampanella è l'unico
+  // punto) e il segnale resta la posa di Maurizio.
+  segnaleOndata: {
+    codaMs: 600,
+    campanella: { larghezza: 56, dalBordo: 64, sottoTendina: 192, oscillazioni: 6, ampiezza: 24, durata: 1900 },
+  },
   // Il "−20" piccolo che scende sotto l'Incasso a ogni Ingrediente (la Spesa).
   spesa: { durata: 750, discesa: 34 },
   // La ricetta sulla Postazione: un'icona per Ingrediente (la cottura non ha icona: ha la sua barra), piccola

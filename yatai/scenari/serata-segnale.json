@@ -1,0 +1,58 @@
+[
+  { "resize": "360x640" },
+  { "goto": "?sviluppo=serata&seme=prova" },
+  { "advance": 100 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "maurizio.posa", "equals": "riposo" },
+  { "expect": "maurizio.allerta", "equals": false },
+  { "expect": "campanella.oscilla", "equals": false },
+  { "expect": "campanella.angolo", "equals": 0 },
+  { "shot": "segnale-0-calma" },
+
+  { "gioca": { "finoA": 29000, "passoMs": 1100 } },
+  { "gioca": { "finoA": 31300, "sbadato": true, "passoMs": 100 } },
+  { "expect": "serata.andamento.fase", "equals": "calma" },
+  { "expect": "serata.andamento.inAvviso", "equals": true },
+  { "expect": "maurizio.posa", "equals": "guarda" },
+  { "expect": "maurizio.allerta", "equals": true },
+  { "expect": "campanella.oscilla", "equals": true },
+  { "expect": "eventi.contati.ondataInArrivo", "equals": 1 },
+  { "shot": "segnale-1-maurizio-guarda" },
+
+  { "gioca": { "finoA": 31600, "sbadato": true, "passoMs": 100 } },
+  { "expect": "campanella.oscilla", "equals": true },
+  { "shot": "segnale-2-campanella-oscilla" },
+
+  { "tapPath": "postazioni.1" },
+  { "advance": 150 },
+  { "expect": "maurizio.azione", "equals": "cuoci" },
+  { "expect": "maurizio.posa", "equals": "lavora" },
+  { "advance": 600 },
+  { "expect": "maurizio.azione", "equals": null },
+  { "expect": "maurizio.posa", "equals": "guarda" },
+
+  { "gioca": { "finoA": 33300, "sbadato": true, "passoMs": 100 } },
+  { "expect": "serata.andamento.fase", "equals": "ondata" },
+  { "expect": "serata.andamento.inAvviso", "equals": false },
+  { "expect": "maurizio.posa", "equals": "guarda" },
+  { "shot": "segnale-3-ondata-comincia" },
+
+  { "gioca": { "finoA": 34500, "sbadato": true, "passoMs": 100 } },
+  { "expect": "maurizio.posa", "equals": "riposo" },
+  { "expect": "maurizio.allerta", "equals": false },
+  { "expect": "campanella.oscilla", "equals": false },
+  { "expect": "campanella.angolo", "equals": 0 },
+  { "shot": "segnale-4-di-nuovo-a-riposo" },
+
+  { "gioca": { "finoA": 74000, "passoMs": 1100 } },
+  { "gioca": { "finoA": 75600, "sbadato": true, "passoMs": 100 } },
+  { "expect": "serata.andamento.fase", "equals": "respiro" },
+  { "expect": "serata.andamento.inAvviso", "equals": true },
+  { "expect": "maurizio.posa", "equals": "guarda" },
+  { "expect": "campanella.oscilla", "equals": true },
+  { "expect": "eventi.contati.ondataInArrivo", "equals": 2 },
+  { "shot": "segnale-5-finale" },
+
+  { "gioca": { "passoMs": 1100 } },
+  { "expect": "serata.fase", "equals": "finita" }
+]

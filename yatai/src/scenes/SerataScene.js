@@ -1,5 +1,5 @@
 import { BRUCIATURA, FUMO_SEC, MATSURI_PREDEFINITO, PALETTE, PIATTI, RISCONTRI, SERATE, SERATA_PRIMA, TEMI, YATAI } from '../config.js';
-import { PANEL_MARGIN } from '../disegni/catalogo.js';
+import { DISEGNI, PANEL_MARGIN } from '../disegni/catalogo.js';
 import { POSTAZIONE_SIZE, postazioneKey, scortaKey } from '../disegni/postazioni.js';
 import { CESTINO_SIZE } from '../disegni/takoyaki.js';
 import { t } from '../i18n.js';
@@ -118,6 +118,10 @@ export default class SerataScene extends YataiScene {
     this.dishViews.forEach((view, i) => view.zone.on('pointerdown', (pointer) => this.iniziaTrascinamento(i, pointer)));
 
     this.clienti = this.serata.posti.map((_, i) => new ClienteView(this, i));
+    // La campanella dello Yatai, appesa sotto la tendina del Bancone: oscilla prima di un'ondata (ticket 34). Il perno
+    // è il cordino, in cima al disegno.
+    this.campanella = this.add.image(0, 0, 'campanella').setOrigin(0.5, 0).setDepth(1);
+    this.oscillazione = null;
     this.creaHud();
 
     this.input.keyboard.on('keydown', this.suTasto, this);
@@ -143,7 +147,42 @@ export default class SerataScene extends YataiScene {
     this.layout.posti.forEach((rect, i) => this.clienti[i].place(rect));
     this.disponiPostazioni();
     this.disponiHud();
+    this.disponiCampanella();
     if (this.fineUI) this.costruisciFine(true);
+  }
+
+  // La campanella pende dal bordo della tendina, a sinistra: libera il pavimento accanto a Maurizio.
+  disponiCampanella() {
+    const { larghezza, dalBordo, sottoTendina } = RISCONTRI.segnaleOndata.campanella;
+    const { rect } = this.layout.bancone;
+    this.campanella.setPosition(rect.x + dalBordo, rect.y + sottoTendina).setScale(larghezza / DISEGNI.campanella.w);
+  }
+
+  // Il segnale di un'ondata (senza testo): Maurizio alza la testa per il tempo che manca più la coda, e la
+  // campanella oscilla. Il suono è del ticket 23: qui 'ondataInArrivo' è il punto a cui agganciarlo.
+  segnalaOndata(evento) {
+    this.maurizio.allerta(evento.traMs + RISCONTRI.segnaleOndata.codaMs);
+    this.oscillaCampanella();
+  }
+
+  // La campanella dondola e si ferma: `oscillazioni` andate e ritorno che si smorzano. È l'unico punto da spegnere
+  // con "riduci movimento" (ticket 26): senza questo resta ferma e il segnale è la posa di Maurizio.
+  oscillaCampanella() {
+    const { oscillazioni, ampiezza, durata } = RISCONTRI.segnaleOndata.campanella;
+    this.oscillazione?.remove();
+    this.oscillazione = this.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: durata,
+      onUpdate: (tween) => {
+        const v = tween.getValue();
+        this.campanella.setAngle(Math.sin(v * oscillazioni * Math.PI * 2) * ampiezza * (1 - v));
+      },
+      onComplete: () => {
+        this.campanella.setAngle(0);
+        this.oscillazione = null;
+      },
+    });
   }
 
   // La cima di ogni Postazione: sopra ci stanno la barra della cottura e il Piatto pronto.
@@ -586,6 +625,9 @@ export default class SerataScene extends YataiScene {
       case 'clienteVaVia':
         this.clienti[evento.posto].vaVia();
         break;
+      case 'ondataInArrivo':
+        this.segnalaOndata(evento);
+        break;
       case 'scuoteTesta':
         this.clienti[evento.posto].scuoti();
         break;
@@ -976,6 +1018,9 @@ export default class SerataScene extends YataiScene {
       },
       // Come i Clienti si vedono: dove sono, che faccia hanno, quali icone ha la nuvoletta.
       clienti: this.clienti.map((cliente) => cliente.getTextState()),
+      // Il segnale prima di un'ondata: la campanella (dov'è e di quanti gradi è inclinata adesso, se sta oscillando).
+      // Maurizio con la testa alzata è in `maurizio` (posa 'guarda', allerta true).
+      campanella: { x: round(this.campanella.x), y: round(this.campanella.y), angolo: round(this.campanella.angle), oscilla: this.oscillazione !== null },
       cestino: this.cestino.visible ? rectState({ x: this.cestino.x - this.cestino.displayWidth / 2, y: this.cestino.y - this.cestino.displayHeight, w: this.cestino.displayWidth, h: this.cestino.displayHeight }) : null,
       hud: {
         ...base.hud,

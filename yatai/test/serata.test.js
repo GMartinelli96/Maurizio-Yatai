@@ -684,6 +684,49 @@ test('lo stato dice dove siamo nella curva e quanto manca alla prossima ondata',
   assert.doesNotThrow(() => JSON.stringify(serata.stato()));
 });
 
+test('il segnale: 2 s prima di ogni ondata, anche la finale, una volta sola', () => {
+  for (const seme of ['a', 'b', 'prova']) {
+    const serata = new Serata({ seed: seme });
+    const { fasi } = serata.stato().andamento;
+    const segnali = [];
+    const iniziate = [];
+    let fase = 'calma';
+    while (!serata.finita) {
+      for (const e of serata.update(10)) if (e.tipo === 'ondataInArrivo') segnali.push({ ...e, tempoMs: serata.stato().tempoMs });
+      const dopo = serata.stato().andamento;
+      if (dopo.fase !== fase) {
+        fase = dopo.fase;
+        iniziate.push({ nome: fase, tempoMs: serata.stato().tempoMs });
+      }
+    }
+    assert.deepEqual(segnali.map((s) => s.fase), ['ondata', 'finale'], `seme ${seme}: un segnale per ondata`);
+    for (const segnale of segnali) {
+      const { inizioMs } = fasi.find((f) => f.nome === segnale.fase);
+      assert.equal(inizioMs - segnale.tempoMs, segnale.traMs, 'traMs dice quanto manca davvero');
+      assert.ok(segnale.traMs <= ONDATE.avvisoSec * SEC && segnale.traMs > ONDATE.avvisoSec * SEC - 20, `seme ${seme}: il segnale arriva a ${segnale.traMs} ms dall’ondata`);
+      assert.ok(segnale.tempoMs < iniziate.find((i) => i.nome === segnale.fase).tempoMs, 'prima che l’ondata cominci');
+    }
+  }
+});
+
+test('lo stato sa se il segnale è acceso: dal segnale all’inizio dell’ondata, e non nella calma né in ondata', () => {
+  const serata = new Serata({ seed: 'a' });
+  const { fasi } = serata.stato().andamento;
+  const acceso = () => serata.stato().andamento.inAvviso;
+  avanza(serata, fasi[1].inizioMs - ONDATE.avvisoSec * SEC - 100);
+  assert.equal(acceso(), false, 'prima del segnale');
+  avanza(serata, 150);
+  assert.equal(acceso(), true, 'dopo il segnale');
+  avanza(serata, ONDATE.avvisoSec * SEC);
+  assert.equal(serata.stato().andamento.fase, 'ondata');
+  assert.equal(acceso(), false, 'a ondata cominciata il segnale è finito');
+  // Il segnale della finale: acceso nel respiro, spento nella finale (non ci sono altre ondate).
+  avanza(serata, fasi[3].inizioMs - ONDATE.avvisoSec * SEC + 100 - serata.stato().tempoMs);
+  assert.equal(acceso(), true, 'segnale della finale');
+  avanza(serata, ONDATE.avvisoSec * SEC);
+  assert.deepEqual([serata.stato().andamento.fase, acceso()], ['finale', false]);
+});
+
 test('con le ondate lo stesso seme dà la stessa Serata fino all’ultimo dato, e un altro seme sposta l’ondata', () => {
   const gioca = (seed) => {
     const serata = new Serata({ seed });
