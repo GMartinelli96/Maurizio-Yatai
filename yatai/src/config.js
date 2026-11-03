@@ -24,6 +24,15 @@ export const PALETTE = {
   rosa: { colore: '#f7a8c4', ombra: '#d9708f', luce: '#fde0ea' },
   menta: { colore: '#b5e6d3', ombra: '#76bba0', luce: '#e3f7ef' },
   giallo: { colore: '#f7d26a', ombra: '#d1a33a', luce: '#fdedb8' },
+  // Lo Yatai: legno chiaro per il pavimento e il piano del Bancone, legno scuro per il tagliere.
+  legno: { colore: '#ecc99a', ombra: '#c99a64', luce: '#f9e3c2' },
+  legnoChiaro: { colore: '#f2d5aa', ombra: '#cfa670', luce: '#fbead0' },
+  legnoScuro: { colore: '#d29a62', ombra: '#a56f3a', luce: '#ecc08f' },
+  // Le Postazioni: ferro delle piastre, ghiaccio, brodo.
+  ferro: { colore: '#7d7a86', ombra: '#524f5c', luce: '#aeabb8' },
+  ghiaccio: { colore: '#e4f4fb', ombra: '#a9d3e6', luce: '#ffffff' },
+  celeste: { colore: '#a9d6f0', ombra: '#6fa9cc', luce: '#d8eefa' },
+  brodo: { colore: '#f3cf86', ombra: '#d6a64c', luce: '#fbe6b4' },
 };
 
 export const VIEW = {
@@ -31,6 +40,15 @@ export const VIEW = {
   width: 720,
   height: 1280,
   background: PALETTE.carta,
+};
+
+// Come lo schermo diventa un'immagine di gioco (src/layout/schermo.js). La larghezza è sempre
+// quella di VIEW; l'altezza segue le proporzioni dello schermo, ma resta tra questi due limiti:
+// 1280 è il 9:16 (e la colonna centrata dei computer), 1560 è un telefono lungo come un 9:19,5.
+// Oltre i limiti Phaser lascia delle bande ai lati o sopra e sotto.
+export const SCHERMO = {
+  minHeight: 1280,
+  maxHeight: 1560,
 };
 
 // Il kit di disegno "a matita" (src/kit/). Le misure sono in pixel di gioco (VIEW).
@@ -97,11 +115,54 @@ export const PAZIENZA = {
 export const FUMO_SEC = 3;
 export const CHE_STILE_BONUS = 0.2;
 
+// I Piatti stanno nell'ordine in cui si sbloccano (GAME_SPEC.md): le Postazioni sullo schermo li seguono.
 // cookSec: tempo di cottura. burnAfterSec: secondi in più prima che si bruci (null = mai).
 export const PIATTI = {
   onigiri: { cookSec: 1, burnAfterSec: null, price: 100, varianti: [] },
   takoyaki: { cookSec: 5, burnAfterSec: 4, price: 300, varianti: [] },
   kakigori: { cookSec: 2, burnAfterSec: null, price: 250, varianti: ['fragola', 'melone', 'matcha'] },
-  ramen: { cookSec: 6, burnAfterSec: 5, price: 600, varianti: ['uovo', 'naruto'] },
   taiyaki: { cookSec: 8, burnAfterSec: 4, price: 200, varianti: ['fagioli', 'crema'] },
+  ramen: { cookSec: 6, burnAfterSec: 5, price: 600, varianti: ['uovo', 'naruto'] },
+};
+
+// Lo Yatai in verticale (src/layout/yatai.js). Le misure sono in pixel di gioco (VIEW): i valori
+// di partenza si regolano qui e il resto si ricalcola.
+export const YATAI = {
+  // Il margine ai lati e in fondo, oltre all'area sicura del telefono.
+  margine: 24,
+  // Le fasce dall'alto in basso. `min` è l'altezza minima; se lo schermo è più alto, l'avanzo si
+  // divide tra le fasce in proporzione a `flex` (0 = non cresce). La fascia `hud` per ora è vuota:
+  // ci andranno l'Incasso, il tempo e le stelle (passo 3).
+  fasce: [
+    { nome: 'hud', min: 96, flex: 0 },
+    { nome: 'clienti', min: 320, flex: 1.2 },
+    { nome: 'bancone', min: 200, flex: 0 },
+    { nome: 'cucina', min: 320, flex: 1 },
+    { nome: 'postazioni', min: 200, flex: 0.5 },
+  ],
+  // I Posti: 3 all'inizio, 4 con il Potenziamento. Lo spazio c'è già per tutti e 4.
+  posti: { iniziali: 3, massimo: 4, larghezzaMax: 190 },
+  // Le Postazioni: una per Piatto, in fila vicino al pollice. `altezzaEtichetta` è lo spazio per il nome.
+  postazioni: { massimo: 5, larghezzaMax: 140, spazio: 6, altezzaEtichetta: 40 },
+  // Quanti Piatti pronti stanno in fila sul Bancone (GAME_SPEC.md non lo dice: valore di partenza).
+  // `superficie` è la parte alta del Bancone, il piano su cui si appoggiano i Piatti: 0,66 di 200 px
+  // è l'altezza del piano nel disegno (BANCONE_PIANO), per questo la fascia del Bancone non cresce.
+  bancone: { capacita: 5, larghezzaMax: 150, superficie: 0.66 },
+  // Maurizio sta al centro della fascia `cucina`, senza ingrandirsi oltre il disegno.
+  maurizio: { scalaMax: 0.85, riempimento: 0.95 },
+};
+
+// Maurizio si anima a ogni azione (le azioni sono istantanee, questa è solo scena): un saltino
+// con schiacciamento e una posa che poi torna a riposo. I tempi sono in millisecondi.
+export const MAURIZIO = {
+  // Il respiro quando non fa niente.
+  respiro: { ampiezza: 0.014, durata: 2400 },
+  // posa: quale disegno di Maurizio durante l'azione; salto: di quanti pixel sale; schiaccia: di
+  // quanto si allunga e si schiaccia; durata: l'andata (il ritorno dura uguale); tienePosa: quanto
+  // resta nella posa prima di tornare a riposo.
+  azioni: {
+    cuoci: { posa: 'lavora', salto: 12, schiaccia: 0.05, durata: 120, tienePosa: 320 },
+    raccogli: { posa: 'lavora', salto: 16, schiaccia: 0.06, durata: 130, tienePosa: 360 },
+    servi: { posa: 'evviva', salto: 30, schiaccia: 0.09, durata: 170, tienePosa: 560 },
+  },
 };

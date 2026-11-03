@@ -4,7 +4,7 @@ Compilato dal modello della skill `create-game-assets`. Parametri numerici: `STI
 
 ## Game frame
 - Motore: Phaser 4.2.1, WebGL con ripiego Canvas. Tutta la grafica è disegnata dal codice all'avvio (ADR-0001), nessun PNG.
-- Vista: frontale, verticale 720×1280 (9:16), adattata con `Scale.FIT`. Su telefono 390×844 il fattore è ~0,54, su computer 1280×720 la colonna è ~0,56.
+- Vista: frontale, verticale. Larghezza fissa 720; altezza 1280 (9:16) fino a 1560 per i telefoni lunghi, adattata con `Scale.FIT` (vedi "Lo Yatai"). Su telefono 390×844 il fattore è ~0,54, su computer 1280×720 la colonna 9:16 è ~0,56.
 - Misure sullo schermo: Maurizio 320×450, onigiri sul Bancone ~150 px, icona dell'Ordine ~64 px.
 
 ## Sistema visivo (ricavato da FarmPlush, Nella Bug Saga, Picchiaduro)
@@ -22,4 +22,12 @@ Compilato dal modello della skill `create-game-assets`. Parametri numerici: `STI
 
 ## Bersaglio visivo
 - Seme approvato da giudicare: `yatai/src/scenes/TavolaScene.js` (scena `tavola`, aperta con `npm run dev` → `/?sviluppo`).
-- Cattura a dimensione reale: `confronto/`. Approvazione: in attesa di Giuseppe (ticket 02).
+- Cattura a dimensione reale: `confronto/`. Approvazione: **approvata da Giuseppe, nessuna correzione** (ticket 02).
+
+## Lo Yatai (passo 2)
+Disegni nuovi, tutti col kit e senza PNG: `pavimento`, `bancone`, `posto`, le cinque `postazione-*` e le pose `maurizio-lavora` e `maurizio-evviva` (`maurizio` è la posa a riposo, invariata pixel per pixel). Provenienza in `asset-manifest.json`.
+- Vista "dall'alto in basso = dal lontano al vicino": Posti, Bancone, Maurizio, Postazioni. Il pavimento è di legno a lunghe assi con giunture sottili e chiare (con contorni scuri come quelli degli oggetti sembrava un muro di mattoni).
+- Il davanti del Bancone è una tendina a strisce verticali rosa e panna con il bordo a onde, come i negozi del Picchiaduro e le tendine di FarmPlush. Niente raggi, niente bandiera del Sol Levante.
+- Le Postazioni sono ferme e vuote; sul tagliere c'è la paletta del riso e basta (niente bacchette). Cottura, Fumo e Piatto sopra arrivano coi passi 3-5.
+- Impaginazione: `yatai/src/layout/` (funzioni pure con test); numeri in `config.js` (`SCHERMO`, `YATAI`, `MAURIZIO`). Cattura: `confronto/yatai-scena-*.png`.
+- La fascia in alto (Posti e Clienti) è volutamente quasi vuota: è lo spazio dei Clienti con la loro nuvoletta (passo 3). Gli sfondi dei Matsuri (ticket 13) la coloreranno come i cieli e i prati della suite.

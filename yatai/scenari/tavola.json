@@ -2,11 +2,11 @@
   { "goto": "?sviluppo" },
   { "advance": 100 },
   { "shot": "sviluppo" },
-  { "tap": [360, 400] },
+  { "tapPath": "buttons.0" },
   { "advance": 200 },
   { "shot": "tavola" },
   { "goto": "?sviluppo" },
-  { "tap": [360, 400] },
+  { "tapPath": "buttons.0" },
   { "advance": 200 },
   { "shot": "tavola-ricaricata" },
   { "same": ["tavola", "tavola-ricaricata"], "field": "textures" }

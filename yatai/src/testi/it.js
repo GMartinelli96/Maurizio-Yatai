@@ -2,4 +2,10 @@
 export default {
   subtitle: 'La bancarella del Matsuri',
   developedBy: 'sviluppato da Maurizio Influencer Official',
+  // I nomi dei Piatti: la chiave è piatto_ più quella di PIATTI in config.js.
+  piatto_onigiri: 'Onigiri',
+  piatto_takoyaki: 'Takoyaki',
+  piatto_kakigori: 'Kakigōri',
+  piatto_taiyaki: 'Taiyaki',
+  piatto_ramen: 'Ramen',
 };

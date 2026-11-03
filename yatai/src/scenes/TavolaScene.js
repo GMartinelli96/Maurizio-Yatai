@@ -4,7 +4,7 @@ import { MAURIZIO_FEET, MAURIZIO_SIZE } from '../disegni/maurizio.js';
 import { fontsReady, textStyle } from '../kit/font.js';
 import { ellipse, pastelFill, pencilLine } from '../kit/matita.js';
 import { ensureTexture, panelTexture, textureFingerprint } from '../kit/texture.js';
-import { addButton } from '../kit/ui.js';
+import { addButton, addPaper, centerDesign } from '../kit/ui.js';
 
 // La tavola di prova del kit a matita (passo 1 di PIANO.md): il bersaglio visivo da approvare
 // prima di disegnare il resto della famiglia. Mette insieme un personaggio (Maurizio), un Piatto
@@ -25,7 +25,8 @@ export default class TavolaScene extends Phaser.Scene {
 
   create() {
     const W = VIEW.width;
-    this.add.tileSprite(0, 0, W, VIEW.height, 'carta').setOrigin(0);
+    addPaper(this);
+    centerDesign(this);
 
     const back = this.add.text(26, 24, '‹ sviluppo', textStyle(26, { bold: true }));
     back.setInteractive({ useHandCursor: true }).on('pointerup', () => this.scene.start('sviluppo'));

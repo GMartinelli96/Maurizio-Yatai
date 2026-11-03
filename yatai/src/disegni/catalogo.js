@@ -5,8 +5,10 @@
 import { PALETTE, STILE } from '../config.js';
 import { grain, panel, paper, restingShadow } from '../kit/matita.js';
 import { createRng } from '../kit/rng.js';
-import { MAURIZIO_SIZE, drawMaurizio } from './maurizio.js';
+import { MAURIZIO_SIZE, POSE, drawMaurizio, maurizioKey } from './maurizio.js';
 import { drawOnigiri, onigiriSize } from './onigiri.js';
+import { POSTAZIONE_SIZE, POSTAZIONI, postazioneKey } from './postazioni.js';
+import { BANCONE_SIZE, PAVIMENTO_SIZE, POSTO_SIZE, drawBancone, drawPavimento, drawPosto } from './yatai.js';
 
 export const ONIGIRI_BANCONE = 150;
 export const ONIGIRI_ICONA = 64;
@@ -15,9 +17,15 @@ export const DISEGNI = {
   // La carta non ha la grana della matita: ce l'ha già sua.
   carta: { w: STILE.carta.lato, h: STILE.carta.lato, grain: false, draw: (ctx, rng) => paper(ctx, STILE.carta.lato, rng) },
   ombra: { w: 200, h: 56, grain: false, draw: (ctx) => restingShadow(ctx, 100, 28, 96, 24) },
-  maurizio: { ...MAURIZIO_SIZE, draw: drawMaurizio },
+  // Le pose di Maurizio: `maurizio` è quella a riposo, le altre si chiamano maurizio-lavora, maurizio-evviva.
+  ...Object.fromEntries(Object.keys(POSE).map((posa) => [maurizioKey(posa), { ...MAURIZIO_SIZE, draw: (ctx, rng) => drawMaurizio(ctx, rng, posa) }])),
   onigiri: { ...onigiriSize(ONIGIRI_BANCONE), draw: (ctx, rng) => drawOnigiri(ctx, rng, ONIGIRI_BANCONE) },
   'onigiri-icona': { ...onigiriSize(ONIGIRI_ICONA), draw: (ctx, rng) => drawOnigiri(ctx, rng, ONIGIRI_ICONA) },
+  // Lo Yatai: il pavimento, il Bancone, il Posto e una Postazione per Piatto.
+  pavimento: { ...PAVIMENTO_SIZE, draw: drawPavimento },
+  bancone: { ...BANCONE_SIZE, draw: drawBancone },
+  posto: { ...POSTO_SIZE, draw: drawPosto },
+  ...Object.fromEntries(Object.entries(POSTAZIONI).map(([piatto, draw]) => [postazioneKey(piatto), { ...POSTAZIONE_SIZE, draw }])),
 };
 
 // I pannelli e i pulsanti cambiano misura da una schermata all'altra: si disegnano su richiesta.

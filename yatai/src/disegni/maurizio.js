@@ -9,6 +9,22 @@ import {
 
 export const MAURIZIO_SIZE = { w: 320, h: 450 };
 
+// Le pose di Maurizio. Cambiano solo le braccia, gli occhi e la bocca: il resto è lo stesso
+// disegno, così le pose si alternano senza che Maurizio sembri un altro.
+//   riposo: in piedi, braccia lungo i fianchi;
+//   lavora: le zampine alzate davanti al petto, mentre cucina;
+//   evviva: braccia in alto, occhi felici e bocca aperta, quando serve un Cliente.
+// Per ogni braccio: dx = distanza dal centro, y = altezza, rx/ry = misure, giro = inclinazione
+// (positiva: la zampina va verso l'esterno).
+export const POSE = {
+  riposo: { braccio: { dx: 100, y: 298, rx: 25, ry: 45, giro: -0.6 }, occhi: 'aperti', bocca: 'sorriso' },
+  lavora: { braccio: { dx: 92, y: 276, rx: 24, ry: 43, giro: -0.3 }, occhi: 'aperti', bocca: 'piccola' },
+  evviva: { braccio: { dx: 104, y: 208, rx: 24, ry: 47, giro: 0.42 }, occhi: 'felici', bocca: 'aperta' },
+};
+
+// La chiave della texture di una posa: `maurizio` è quella a riposo.
+export const maurizioKey = (posa) => (posa === 'riposo' ? 'maurizio' : `maurizio-${posa}`);
+
 // Il punto d'appoggio dei piedi, per metterci sotto l'ombra.
 export const MAURIZIO_FEET = { x: 160, y: 432 };
 
@@ -20,7 +36,8 @@ function plushPart(ctx, shape, rng, swatch, keep) {
   pencilLine(ctx, shape, rng, FUR_LINE);
 }
 
-export function drawMaurizio(ctx, rng) {
+export function drawMaurizio(ctx, rng, posa = 'riposo') {
+  const pose = POSE[posa];
   // I piedi: le gambe le copre la salopette.
   for (const x of [114, 206]) {
     plushPart(ctx, ellipse(x, 406, 40, 30), rng, C.pelo, (p) => p.y > 400);
@@ -79,8 +96,9 @@ export function drawMaurizio(ctx, rng) {
   }
 
   // Le braccia, corte e un po' aperte: partono dalle spalle e le zampine escono dal corpo.
+  const arm = pose.braccio;
   for (const side of [-1, 1]) {
-    plushPart(ctx, ellipse(160 + side * 100, 298, 25, 45, -side * 0.6), rng, C.pelo);
+    plushPart(ctx, ellipse(160 + side * arm.dx, arm.y, arm.rx, arm.ry, side * arm.giro), rng, C.pelo);
   }
 
   // Le orecchie, poi la testa che le copre a metà.
@@ -100,13 +118,28 @@ export function drawMaurizio(ctx, rng) {
   pastelFill(ctx, nose, rng, { colore: C.inchiostro, ombra: C.inchiostro, luce: '#6b5a52' }, { volume: false });
   pencilLine(ctx, nose, rng, { width: 2.4 });
   pastelFill(ctx, ellipse(152, 167, 5.5, 3.2, -0.3), rng, { colore: C.bianco, ombra: C.bianco, luce: C.bianco }, { volume: false, alpha: 0.85, hatching: 0 });
-  pencilLine(ctx, smoothCurve([
-    { x: 145, y: 197 }, { x: 152, y: 203 }, { x: 160, y: 196 }, { x: 168, y: 203 }, { x: 175, y: 197 },
-  ], { closed: false }), rng, { closed: false, width: 2.8 });
-  pencilLine(ctx, [{ x: 160, y: 183 }, { x: 160, y: 196 }], rng, { closed: false, width: 2.8 });
+  if (pose.bocca === 'sorriso') {
+    pencilLine(ctx, smoothCurve([
+      { x: 145, y: 197 }, { x: 152, y: 203 }, { x: 160, y: 196 }, { x: 168, y: 203 }, { x: 175, y: 197 },
+    ], { closed: false }), rng, { closed: false, width: 2.8 });
+    pencilLine(ctx, [{ x: 160, y: 183 }, { x: 160, y: 196 }], rng, { closed: false, width: 2.8 });
+  } else {
+    // Bocca aperta: un ovale scuro con la lingua rosa. Più grande quando Maurizio esulta.
+    const big = pose.bocca === 'aperta';
+    const mouth = ellipse(160, big ? 208 : 204, big ? 15 : 8, big ? 11 : 6.5);
+    pastelFill(ctx, mouth, rng, { colore: C.inchiostro, ombra: C.inchiostro, luce: '#6b5a52' }, { volume: false, hatching: 0.4 });
+    if (big) pastelFill(ctx, ellipse(160, 213, 8.5, 5), rng, { colore: C.rosa.colore, ombra: C.rosa.ombra, luce: C.rosa.luce }, { volume: false, hatching: 0 });
+    pencilLine(ctx, mouth, rng, { width: 2.4 });
+    pencilLine(ctx, [{ x: 160, y: 183 }, { x: 160, y: big ? 193 : 197 }], rng, { closed: false, width: 2.8 });
+  }
 
-  // Gli occhi, con il riflesso.
+  // Gli occhi, con il riflesso. Da felice sono due archetti all'insù, come quando si sorride a occhi chiusi.
   for (const side of [-1, 1]) {
+    if (pose.occhi === 'felici') {
+      const cx = 160 + side * 47;
+      pencilLine(ctx, smoothCurve([{ x: cx - 11, y: 138 }, { x: cx, y: 124 }, { x: cx + 11, y: 138 }], { closed: false }), rng, { closed: false, width: 4 });
+      continue;
+    }
     const eye = ellipse(160 + side * 47, 134, 9, 11.5);
     pastelFill(ctx, eye, rng, { colore: C.inchiostro, ombra: C.inchiostro, luce: '#6b5a52' }, { volume: false, hatching: 0.5 });
     pencilLine(ctx, eye, rng, { width: 2 });

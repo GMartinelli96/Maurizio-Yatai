@@ -3,8 +3,13 @@ import { loadFonts } from '../kit/font.js';
 import { generateTextures } from '../kit/texture.js';
 
 // L'avvio: disegna tutte le immagini del gioco con il kit a matita, aspetta il font scritto a
-// mano e passa alla prima schermata. In sviluppo, con ?sviluppo nell'indirizzo, apre la scena
-// di sviluppo (le tavole di prova).
+// mano e passa alla prima schermata.
+//
+// Solo in sviluppo (npm run dev), dall'indirizzo:
+//   ?sviluppo           apre la scena di sviluppo (le tavole di prova)
+//   ?sviluppo=yatai     apre direttamente una scena, per nome
+//   &posti=4            la apre con 4 Posti (lo Yatai)
+//   &area=47,0,34,0     simula i margini sicuri del telefono: alto, destra, basso, sinistra
 export default class BootScene extends Phaser.Scene {
   constructor() {
     super('avvio');
@@ -12,7 +17,13 @@ export default class BootScene extends Phaser.Scene {
 
   create() {
     generateTextures(this);
-    const dev = import.meta.env.DEV && new URLSearchParams(window.location.search).has('sviluppo');
-    loadFonts().then(() => this.scene.start(dev ? 'sviluppo' : 'title'));
+    let next = 'title';
+    let data;
+    if (import.meta.env.DEV) {
+      const query = new URLSearchParams(window.location.search);
+      if (query.has('sviluppo')) next = query.get('sviluppo') || 'sviluppo';
+      if (query.has('posti')) data = { posti: Number(query.get('posti')) };
+    }
+    loadFonts().then(() => this.scene.start(next, data));
   }
 }

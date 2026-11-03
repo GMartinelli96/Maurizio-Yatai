@@ -16,3 +16,24 @@ body {
   width: 100%;
   height: 100dvh;
 }
+
+/* Su computer il gioco è una colonna 9:16 centrata: ai lati un fondo un poco più scuro della
+   carta, e un'ombra morbida che stacca la colonna (come in FarmPlush). Su un telefono la
+   colonna riempie lo schermo e il fondo non si vede. */
+@media (min-aspect-ratio: 9/16) {
+  html, body {
+    background: #efdcc2;
+  }
+  #game canvas {
+    box-shadow: 0 0 48px rgba(58, 47, 43, 0.22);
+  }
+}
+
+/* Non si vede: serve solo a leggere i margini sicuri del dispositivo (src/schermo.js). */
+#area-sicura {
+  position: fixed;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}

@@ -5,11 +5,15 @@
 //   npm run playtest:offline                 costruisce dist/, lo carica, stacca la rete e ricarica
 //
 // Lo scenario è un elenco JSON di passi, eseguiti in ordine:
-//   { "tap": [x, y] }      tocco in coordinate di gioco (VIEW in src/config.js)
+//   { "tap": [x, y] }      tocco in coordinate di gioco (la larghezza è VIEW.width, in src/config.js)
+//   { "tapPath": "postazioni.2" }  tocco al centro (x, y) dell'elemento che lo stato di
+//                          render_game_to_text indica con questo percorso: lo scenario non scrive coordinate
 //   { "key": "Digit1" }    un tasto (nomi di Playwright: Digit1, KeyQ, KeyM...)
 //   { "advance": 500 }     window.advanceTime(500): il gioco avanza di 500 ms, a passi da 1/60 s
 //   { "shot": "nome" }     salva nome.png e nome.json (lo stato di window.render_game_to_text)
 //   { "goto": "?sviluppo" } carica di nuovo la pagina, con questo indirizzo relativo
+//   { "resize": "1280x720" } cambia la misura della finestra e lascia a Phaser un passo per accorgersene
+//   { "expect": "ultimoTocco.tipo", "equals": "posto" }  errore se quel valore dello stato (adesso) è diverso
 //   { "same": ["a", "b"], "field": "textures" }  errore se il campo è diverso nei due shot
 // Gli input vengono letti al passo "advance" successivo, quindi lo schema tipico è
 // tap → advance → shot.
@@ -65,6 +69,17 @@ const fail = (message) => { errors.push(message); };
 const readState = () => page.evaluate(() => JSON.parse(window.render_game_to_text()));
 const shots = {};
 
+// Un tocco in coordinate di gioco. Il canvas è largo sempre VIEW.width pixel di gioco, qualunque
+// sia la misura della finestra, e il gioco non viene mai deformato: la scala è la stessa sui due assi.
+async function tapGame(x, y) {
+  const box = await page.locator('#game canvas').boundingBox();
+  const scale = box.width / VIEW.width;
+  await page.mouse.click(box.x + x * scale, box.y + y * scale);
+}
+
+// Il valore di un percorso come "postazioni.2.x" dentro un oggetto.
+const valueAt = (object, path) => path.split('.').reduce((value, key) => value?.[key], object);
+
 // Aspetta che gli hook rispondano e che l'avvio (texture e font) sia finito.
 const waitForGame = () => page.waitForFunction(
   () => typeof window.advanceTime === 'function'
@@ -92,10 +107,24 @@ try {
       if (!(after.timeMs > before.timeMs)) fail(`advanceTime(${step.advance}) non ha fatto avanzare il tempo`);
       console.log(`advance ${step.advance} ms: ${before.timeMs} → ${after.timeMs}`);
     } else if ('tap' in step) {
-      const box = await page.locator('#game canvas').boundingBox();
-      const scale = box.width / VIEW.width;
-      await page.mouse.click(box.x + step.tap[0] * scale, box.y + step.tap[1] * scale);
+      await tapGame(step.tap[0], step.tap[1]);
       console.log(`tap ${step.tap}`);
+    } else if ('tapPath' in step) {
+      const target = valueAt(await readState(), step.tapPath);
+      if (typeof target?.x !== 'number' || typeof target?.y !== 'number') throw new Error(`tapPath ${step.tapPath}: non è un elemento con x e y (${JSON.stringify(target)})`);
+      await tapGame(target.x, target.y);
+      console.log(`tapPath ${step.tapPath} → ${target.x},${target.y}`);
+    } else if ('resize' in step) {
+      const [w, h] = step.resize.split('x').map(Number);
+      await page.setViewportSize({ width: w, height: h });
+      // Phaser se ne accorge al passo di gioco successivo (e l'evento della finestra arriva con un poco di ritardo).
+      await page.waitForTimeout(100);
+      await page.evaluate(() => window.advanceTime(100));
+      console.log(`resize ${step.resize}: gioco ${JSON.stringify((await readState()).gioco)}`);
+    } else if ('expect' in step) {
+      const actual = valueAt(await readState(), step.expect);
+      if (JSON.stringify(actual) !== JSON.stringify(step.equals)) fail(`expect ${step.expect}: ${JSON.stringify(actual)} invece di ${JSON.stringify(step.equals)}`);
+      else console.log(`expect ${step.expect} = ${JSON.stringify(actual)}`);
     } else if ('key' in step) {
       await page.keyboard.press(step.key);
       console.log(`key ${step.key}`);

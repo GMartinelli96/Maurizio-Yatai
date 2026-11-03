@@ -32,6 +32,7 @@ export function installTestHooks(game) {
       lang: getLanguage(),
       timeMs: Math.round(scene?.time.now ?? 0),
       manualTime: manual,
+      gioco: { w: game.scale.width, h: game.scale.height },
       ...scene?.getTextState?.(),
     });
   };
