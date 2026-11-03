@@ -120,6 +120,11 @@ export const PAZIENZA = {
   maxManciaRatio: 0.5,
 };
 
+// Il Lamento (GAME_SPEC.md, "Clienti"): la faccia del Cliente segue i cuoricini rimasti, non il tempo.
+// Da `perplessaA` cuoricini in giù è perplesso (con la goccia), da `imbronciataA` in giù imbronciato
+// (con lo sbuffo); sopra, neutro. Sono valori di partenza.
+export const LAMENTO = { perplessaA: 2, imbronciataA: 1 };
+
 export const FUMO_SEC = 3;
 export const CHE_STILE_BONUS = 0.2;
 

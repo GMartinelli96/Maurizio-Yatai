@@ -570,6 +570,10 @@ export default class SerataScene extends YataiScene {
       case 'cuoreSpento':
         this.clienti[evento.posto].impostaCuori(evento.cuori, true);
         break;
+      case 'lamento':
+        // Il Cliente scende di scalino. La faccia e il segno li decide impostaCuori() (così restano giusti
+        // anche dopo un cambio di misura); qui l'evento è solo il punto a cui il ticket 23 aggancia il "mmh".
+        break;
       case 'clienteVaVia':
         this.clienti[evento.posto].vaVia();
         break;

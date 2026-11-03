@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Serata, calcolaMancia, calcolaStelle, costoPiatto, cuoriDa } from '../src/serata/Serata.js';
+import { Serata, calcolaMancia, calcolaStelle, costoPiatto, cuoriDa, espressioneDa, segnoDa } from '../src/serata/Serata.js';
 import { TESTI } from '../src/i18n.js';
-import { CLIENTI, FRAME_MS, PAZIENZA, PIATTI, POSTI, SERATA, SERATA_PRIMA } from '../src/config.js';
+import { CLIENTI, FRAME_MS, LAMENTO, PAZIENZA, PIATTI, POSTI, SERATA, SERATA_PRIMA } from '../src/config.js';
 
 const SEC = 1000;
 
@@ -289,6 +289,73 @@ test('quando la Pazienza finisce il Cliente se ne va imbronciato e non paga', ()
   assert.equal(stato.serviti, 0);
   assert.equal(stato.persi, 1);
   assert.equal(stato.fase, 'in corso', 'nessun game over a metà Serata');
+});
+
+test('Lamento: l espressione e il segno seguono i cuoricini, con le soglie di config.js', () => {
+  assert.deepEqual(LAMENTO, { perplessaA: 2, imbronciataA: 1 });
+  const attesi = {
+    5: ['neutra', null],
+    4: ['neutra', null],
+    3: ['neutra', null],
+    2: ['perplessa', 'goccia'],
+    1: ['imbronciata', 'sbuffo'],
+    0: ['imbronciata', 'sbuffo'],
+  };
+  for (const [cuori, [espressione, segno]] of Object.entries(attesi)) {
+    assert.equal(espressioneDa(Number(cuori)), espressione, `espressione a ${cuori} cuoricini`);
+    assert.equal(segnoDa(Number(cuori)), segno, `segno a ${cuori} cuoricini`);
+  }
+});
+
+test('Lamento: un evento a 2 cuoricini e uno a 1, uno per scalino, dopo il cuoricino che si spegne', () => {
+  const serata = conPrimoCliente();
+  const eventi = avanza(serata, PAZIENZA.durationSec * SEC + 100);
+  // Solo il primo Cliente (al Posto 0): intanto ne arrivano altri, con i loro Lamenti.
+  const lamenti = eventi.filter((e) => e.tipo === 'lamento' && e.posto === 0 && e.clienteId === 1);
+  assert.deepEqual(lamenti.map((e) => [e.cuori, e.espressione, e.segno]), [[2, 'perplessa', 'goccia'], [1, 'imbronciata', 'sbuffo']]);
+  // Ogni Lamento viene subito dopo il cuoricino che lo provoca.
+  for (const lamento of lamenti) {
+    const i = eventi.indexOf(lamento);
+    assert.deepEqual([eventi[i - 1].tipo, eventi[i - 1].cuori], ['cuoreSpento', lamento.cuori]);
+  }
+  // E prima di 3 cuoricini non c'è nessun Lamento.
+  const finoATre = eventi.slice(0, eventi.findIndex((e) => e.tipo === 'cuoreSpento' && e.cuori === 2));
+  assert.ok(!finoATre.some((e) => e.tipo === 'lamento'));
+});
+
+test('Lamento: il Cliente servito a 2 cuoricini non ne ha altri, e il prossimo ricomincia da capo', () => {
+  const serata = conPrimoCliente();
+  const primo = serata.stato().posti[0].cliente;
+  const fino = avanza(serata, PAZIENZA.durationSec * SEC * 0.65);
+  assert.equal(serata.stato().posti[0].cliente.cuori, 2);
+  assert.equal(fino.filter((e) => e.tipo === 'lamento').length, 1);
+  preparaOnigiri(serata);
+  assert.equal(serata.servi(0)[0].tipo, 'servito');
+  const dopo = avanza(serata, 40 * SEC);
+  const lamenti = dopo.filter((e) => e.tipo === 'lamento');
+  assert.ok(lamenti.length >= 2, 'un Cliente nuovo deve lamentarsi per conto suo');
+  assert.ok(lamenti.every((e) => e.clienteId !== primo.id), 'il Cliente servito non si lamenta più');
+  for (const id of new Set(lamenti.map((e) => e.clienteId))) {
+    assert.ok(lamenti.filter((e) => e.clienteId === id).length <= 2, 'più di un evento per scalino');
+  }
+});
+
+test('Lamento: gli scalini sono quelli dei cuoricini, qualunque sia la velocità della Pazienza', () => {
+  // Una Pazienza che scende a passi di durata diversa (come con un Vizio che la accelera o la rallenta).
+  const scalini = (passoMs) => {
+    const serata = conPrimoCliente();
+    const posto = serata.posti[0];
+    const eventi = [];
+    while (posto.cliente) serata.aspetta(posto, 0, passoMs, eventi);
+    return eventi.filter((e) => e.tipo === 'lamento').map((e) => [e.cuori, e.espressione, e.segno]);
+  };
+  const attesi = [[2, 'perplessa', 'goccia'], [1, 'imbronciata', 'sbuffo']];
+  for (const passoMs of [1, 10, 40, 333]) assert.deepEqual(scalini(passoMs), attesi, `passo da ${passoMs} ms`);
+  // Un frame lunghissimo che salta due scalini in un colpo: nessuno si perde, e in ordine.
+  const serata = conPrimoCliente();
+  const eventi = [];
+  serata.aspetta(serata.posti[0], 0, PAZIENZA.durationSec * SEC * 0.85, eventi);
+  assert.deepEqual(eventi.filter((e) => e.tipo === 'lamento').map((e) => e.cuori), [2, 1]);
 });
 
 test('in un Posto appena liberato non arriva nessuno prima della pausa di ricambio', () => {

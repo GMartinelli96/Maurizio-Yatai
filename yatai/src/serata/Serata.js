@@ -3,6 +3,7 @@ import {
   BRUCIATURA,
   CLIENTI,
   FUMO_SEC,
+  LAMENTO,
   PAZIENZA,
   PIATTI,
   POSTAZIONI,
@@ -45,6 +46,7 @@ import { createRng } from '../kit/rng.js';
 //   mancia            { posto, yen, cuori }   solo se la Mancia non è zero
 //   moneta            { posto, yen }          il totale pagato, da far volare nell'Incasso
 //   cuoreSpento       { posto, cuori }
+//   lamento           { posto, clienteId, cuori, espressione, segno }   il Cliente scende di scalino (a 2 e a 1 cuoricini), una volta per scalino e per Cliente: l'audio ci aggancia il "mmh"
 //   clienteVaVia      { posto, clienteId, motivo: 'pazienza' }   imbronciato, senza pagare
 //   serataFinita      { incasso, vendite, spesa, spreco, obiettivo, stelle, serviti, persi }
 
@@ -55,6 +57,28 @@ const SEC = 1000;
 export function cuoriDa(rimastaMs) {
   const quintoMs = (PAZIENZA.durationSec * SEC) / PAZIENZA.hearts;
   return Math.max(0, Math.min(PAZIENZA.hearts, Math.ceil(rimastaMs / quintoMs)));
+}
+
+// L'espressione di un Cliente in attesa con `cuori` cuoricini accesi. Dipende dai cuoricini e non dal
+// tempo, quindi segue da sola i Vizi che cambiano la velocità della Pazienza. (Da servito è `contenta`,
+// ma lo decide la vista.)
+export function espressioneDa(cuori) {
+  if (cuori <= LAMENTO.imbronciataA) return 'imbronciata';
+  if (cuori <= LAMENTO.perplessaA) return 'perplessa';
+  return 'neutra';
+}
+
+// Il segno senza parole che accompagna la faccia: goccia di sudore, sbuffo d'aria, o niente.
+export function segnoDa(cuori) {
+  if (cuori <= LAMENTO.imbronciataA) return 'sbuffo';
+  if (cuori <= LAMENTO.perplessaA) return 'goccia';
+  return null;
+}
+
+// Gli scalini del Lamento (in cuoricini) che si superano passando da `prima` a `dopo` cuoricini, dal
+// primo all'ultimo. Di solito è uno solo; se un passo ne salta due, li dà tutti e due, così nessuno si perde.
+function scaliniSuperati(prima, dopo) {
+  return [LAMENTO.perplessaA, LAMENTO.imbronciataA].filter((scalino) => prima > scalino && dopo <= scalino);
 }
 
 // La Mancia va da zero (Pazienza finita) fino a maxManciaRatio del prezzo (cuoricini pieni).
@@ -290,8 +314,19 @@ export class Serata {
     cliente.pazienzaMs = Math.max(0, cliente.pazienzaMs - passoMs);
     const cuori = cuoriDa(cliente.pazienzaMs);
     if (cuori !== cliente.cuori) {
+      const prima = cliente.cuori;
       cliente.cuori = cuori;
       eventi.push({ tipo: 'cuoreSpento', posto: indice, cuori });
+      for (const scalino of scaliniSuperati(prima, cuori)) {
+        eventi.push({
+          tipo: 'lamento',
+          posto: indice,
+          clienteId: cliente.id,
+          cuori: scalino,
+          espressione: espressioneDa(scalino),
+          segno: segnoDa(scalino),
+        });
+      }
     }
     if (cliente.pazienzaMs === 0) {
       this.persi++;
