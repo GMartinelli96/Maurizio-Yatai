@@ -105,7 +105,7 @@ La faccia e il segno senza parole (goccia, sbuffo) che un Cliente mostra quando 
 _Avoid_: rabbia, protesta, rimprovero
 
 **Ondata**:
-Il momento della Serata in cui i Clienti arrivano più in fretta; la Serata alterna calma, ondata, respiro e ondata finale. Due secondi prima un segnale la annuncia.
+Il momento della Serata in cui i Clienti arrivano più in fretta e con meno Pazienza; la Serata alterna calma, ondata, respiro e ondata finale. Due secondi prima un segnale la annuncia.
 _Avoid_: picco, orda, ondata di Clienti
 
 **Serie**:

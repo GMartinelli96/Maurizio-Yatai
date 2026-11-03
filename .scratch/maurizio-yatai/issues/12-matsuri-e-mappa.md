@@ -19,3 +19,7 @@
 ### Dal ticket 34 (2026-11-03)
 
 La curva degli arrivi (quattro fasi: calma, ondata, respiro, ondata finale) è nei dati e per ora è una sola, comune. Qui ogni Serata e ogni Matsuri può avere la sua, comprese le curve più morbide delle prime Serate. Vedi GAME_SPEC.md ("La Serata", voce Ondate).
+
+### Dalla mappa yatai-serata-che-cambia (2026-11-03)
+
+La curva di ogni Serata comprende anche la **Pazienza dei Clienti in ondata** (oggi 15 s contro 25), non solo le fasi e gli intervalli. Le curve più morbide delle prime Serate possono quindi avere una Pazienza in ondata più lunga (per esempio 20 s: con la Serata dell'Hanami il lento prende ★ in ogni caso, a 18 s no senza Serie). Vedi GAME_SPEC.md ("La Serata", Ondate).

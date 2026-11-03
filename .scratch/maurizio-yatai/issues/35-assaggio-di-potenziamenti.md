@@ -26,3 +26,9 @@ Ricadute dei ticket 02 e 04 della mappa. Cambiato: la frase sulla Bottega a tre 
 **Deciso con Giuseppe (2026-11-03).** Il ticket 02 della mappa diceva che "tagliere più veloce" andava riletto: con l'onigiri senza cottura non ha effetto, e qui c'è solo l'onigiri. Scelta: "Postazione più veloce" si applica solo ai Piatti con cottura. Questo ticket vende quindi due Potenziamenti (Posto in più, ventaglio) e il terzo arriva con il ticket 06 (primo Piatto con cottura). Scartate: "meno tocchi" (contraddice la Ricetta fissa e il tetto, e non regge 3 livelli) e un effetto sull'onigiri (tocca la Spesa e il 29). Scritto in GAME_SPEC.md (Progressione) e nei ticket 06 e 17.
 
 I tocchi in più per Cliente cambiano anche il ritmo su cui si calibrano i prezzi (come per il 34): i prezzi restano provvisori fino al 29.
+
+### Dalla mappa yatai-serata-che-cambia (2026-11-03)
+
+Le ondate devono reggere con 3 e con 4 Posti e col ventaglio (decisione della destinazione, misure del ticket 02 e 05). Misurato con il bot (Hanami, 15 s di Pazienza in ondata, Serie come scritta, media di 6 semi): con 4 Posti rapido 5035, attento 3201, lento 2056, quindi ★★★ / ★★★ / ★ e il lento perde in media 5,7 Clienti in ondata. Con il ventaglio a **+20%** (ipotesi della misura: 30 s fuori ondata, 18 s in ondata) 5215 / 3390 / 2165, e il lento non perde nessuno.
+
+Da decidere qui: se il ventaglio allunga anche la Pazienza in ondata (e di quanto: i 15 s sono un valore di partenza) e i numeri dei 3 livelli. Attenzione: con le sole ondate di frequenza il quarto Posto da solo toglieva ★ al lento (la Mancia scende perché i Clienti aspettano di più); regge solo con la Pazienza corta in ondata e la Serie. Un test del bot per Posto in più e per ogni livello del ventaglio.

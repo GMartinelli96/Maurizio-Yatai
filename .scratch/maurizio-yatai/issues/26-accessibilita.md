@@ -21,6 +21,13 @@ Ricadute dei ticket 02, 03 e 04 della mappa. Cambiato: i tasti delle Scorte (da 
 
 Decisione del 2026-11-03 (ticket 07): le varianti non hanno un menu, ogni variante è una Scorta. Tolto dal "What to build" il riferimento ai tasti per il menu delle varianti; i tasti delle Scorte restano da decidere qui.
 
+### Dalla mappa yatai-serata-che-cambia (2026-11-03)
+
+Ricadute dei ticket 01 e 03 della mappa. Aggiunti agli effetti di "riduci movimento" (da completare qui):
+
+- **Serie**: il numero vicino a Maurizio (×2, ×3, ...) resta, fisso, senza rimbalzo; le monete più generose non volano più in alto o più in fretta, e il "pof" morbido quando si spezza diventa un semplice cambio di numero. Il tintinnio che sale di tono è del ticket 23 (nessuna informazione solo dal suono).
+- **Segnale dell'ondata** (circa 2 s prima, anche la finale; Maurizio alza la testa, la campanella dello Yatai oscilla): **decisione ancora aperta**, perché il ticket 01 non l'aveva risolta. Proposta di partenza da confermare: Maurizio alza la testa ma la campanella non oscilla; compare un segno fisso (una piccola lanterna accesa sul bancone, per esempio) per i 2 secondi, senza testo.
+
 ## Effetti di "riduci movimento"
 
 Elenco degli effetti controllati (da completare durante il ticket; ogni riga dice cosa fa l'effetto con l'opzione accesa):
