@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Serata, calcolaMancia, calcolaStelle, costoPiatto, cuoriDa, espressioneDa, segnoDa } from '../src/serata/Serata.js';
+import { Serata, calcolaMancia, calcolaStelle, costoPiatto, cuoriDa, espressioneDa, fasiDellaSerata, segnoDa } from '../src/serata/Serata.js';
 import { TESTI } from '../src/i18n.js';
-import { CLIENTI, FRAME_MS, LAMENTO, PAZIENZA, PIATTI, POSTI, SERATA, SERATA_PRIMA } from '../src/config.js';
+import { CLIENTI, FRAME_MS, LAMENTO, ONDATE, PAZIENZA, PIATTI, POSTI, SERATA, SERATA_PRIMA } from '../src/config.js';
 
 const SEC = 1000;
 
@@ -510,19 +510,188 @@ test('un giocatore attento fa Incasso e prende le stelle; lo stato è JSON e dic
   assert.equal(stato.stelle, calcolaStelle(stato.incasso, stato.obiettivo));
 });
 
-test('gli arrivi seguono gli intervalli della configurazione', () => {
+test('nella calma gli arrivi seguono l’intervallo della prima fase', () => {
   const serata = new Serata({ seed: 'ritmo' });
   const arrivi = [];
-  // Nei primi secondi i Posti sono liberi, quindi nessun arrivo deve aspettare.
-  for (let t = 10; t <= 22 * SEC; t += 10) {
+  // Nei primi secondi i Posti sono liberi, quindi nessun arrivo deve aspettare (il quarto aspetterebbe un Posto).
+  for (let t = 10; t <= 20 * SEC; t += 10) {
     if (serata.update(10).some((e) => e.tipo === 'clienteArrivato')) arrivi.push(t);
   }
   assert.equal(arrivi[0], CLIENTI.primoArrivoSec * SEC);
   assert.equal(arrivi.length, 3);
+  const { min, max } = ONDATE.fasi[0].arrivoSec;
   for (let i = 1; i < arrivi.length; i++) {
     const attesa = arrivi[i] - arrivi[i - 1];
-    assert.ok(attesa >= CLIENTI.arrivoSec.min * SEC && attesa <= CLIENTI.arrivoSec.max * SEC, `attesa di ${attesa} ms`);
+    assert.ok(attesa >= min * SEC && attesa <= max * SEC, `attesa di ${attesa} ms`);
   }
+});
+
+// Una Serata in cui i Posti non sono mai pieni: a ogni passo il Bancone ha tutto e ogni Cliente è servito
+// subito. Così gli arrivi cadono esattamente agli intervalli della curva. Restituisce gli arrivi (tempo e fase
+// al momento dell'arrivo) e quanta Pazienza aveva ognuno.
+function arriviSenzaAttese(seed) {
+  const serata = new Serata({ seed });
+  const arrivi = [];
+  while (!serata.finita) {
+    serata.bancone = ['onigiri', 'onigiri', 'onigiri'];
+    for (const e of serata.update(10)) {
+      if (e.tipo !== 'clienteArrivato') continue;
+      const { andamento, tempoMs, posti } = serata.stato();
+      arrivi.push({ tempoMs, fase: andamento.fase, inOndata: andamento.inOndata, pazienzaTotaleMs: posti[e.posto].cliente.pazienzaTotaleMs });
+    }
+    for (const { posto, cliente } of serata.stato().posti) if (cliente) serata.servi(posto);
+  }
+  return arrivi;
+}
+
+test('la curva ha quattro fasi nei dati: calma, ondata, respiro, ondata finale, con gli intervalli della spec', () => {
+  assert.deepEqual(ONDATE.fasi.map((f) => [f.nome, f.daSec, f.ondata]), [['calma', 0, false], ['ondata', 30, true], ['respiro', 55, false], ['finale', 80, true]]);
+  assert.deepEqual(ONDATE.fasi.map((f) => [f.arrivoSec.min, f.arrivoSec.max]), [[3.5, 5], [1.2, 2.2], [4, 6], [1.0, 2.0]]);
+  assert.deepEqual([ONDATE.scostoSec, ONDATE.avvisoSec, ONDATE.pazienzaSec], [5, 2, 15]);
+  // Senza Pazienza spostata dal seme, fuori dalle ondate resta quella di sempre.
+  assert.equal(PAZIENZA.durationSec, 25);
+});
+
+test('ogni arrivo segue l’intervallo della fase in cui era la Serata, e arriva in tutte e quattro le fasi', () => {
+  for (const seme of ['a', 'b', 'c']) {
+    const arrivi = arriviSenzaAttese(seme);
+    const fasi = new Serata({ seed: seme }).stato().andamento.fasi;
+    const faseA = (t) => ONDATE.fasi[fasi.findLastIndex((f) => f.inizioMs <= t)];
+    assert.equal(arrivi[0].tempoMs, CLIENTI.primoArrivoSec * SEC);
+    for (let i = 1; i < arrivi.length; i++) {
+      const { min, max } = faseA(arrivi[i - 1].tempoMs).arrivoSec;
+      const attesa = arrivi[i].tempoMs - arrivi[i - 1].tempoMs;
+      assert.ok(attesa >= min * SEC && attesa <= max * SEC, `seme ${seme}: attesa di ${attesa} ms dopo l’arrivo a ${arrivi[i - 1].tempoMs}`);
+    }
+    assert.deepEqual([...new Set(arrivi.map((a) => a.fase))], ['calma', 'ondata', 'respiro', 'finale'], `seme ${seme}: manca una fase`);
+  }
+});
+
+test('l’ondata porta più arrivi della calma e del respiro, a parità di secondi', () => {
+  const arrivi = arriviSenzaAttese('a');
+  const fasi = new Serata({ seed: 'a' }).stato().andamento.fasi;
+  const arriviAlSecondo = (nome) => {
+    const i = fasi.findIndex((f) => f.nome === nome);
+    const durataSec = ((fasi[i + 1]?.inizioMs ?? SERATA.durationSec * SEC) - fasi[i].inizioMs) / SEC;
+    return arrivi.filter((a) => a.fase === nome).length / durataSec;
+  };
+  assert.ok(arriviAlSecondo('ondata') > 1.8 * arriviAlSecondo('calma'), 'l’ondata deve essere un picco');
+  assert.ok(arriviAlSecondo('finale') > 1.8 * arriviAlSecondo('respiro'), 'anche la finale');
+  assert.ok(arriviAlSecondo('respiro') < arriviAlSecondo('calma'), 'il respiro respira');
+});
+
+test('la Pazienza si decide all’arrivo: 15 s in ondata, 25 s altrimenti', () => {
+  const arrivi = arriviSenzaAttese('b');
+  assert.ok(arrivi.some((a) => a.inOndata) && arrivi.some((a) => !a.inOndata));
+  for (const a of arrivi) {
+    assert.equal(a.pazienzaTotaleMs, (a.inOndata ? ONDATE.pazienzaSec : PAZIENZA.durationSec) * SEC, `arrivo a ${a.tempoMs} in ${a.fase}`);
+  }
+});
+
+test('i cuoricini sono sempre 5 e durano un quinto della Pazienza di quel Cliente', () => {
+  const totale = ONDATE.pazienzaSec * SEC;
+  const quinto = totale / PAZIENZA.hearts;
+  assert.equal(quinto, 3 * SEC, '3 s a cuoricino in ondata');
+  assert.equal(cuoriDa(totale, totale), 5);
+  assert.equal(cuoriDa(4 * quinto + 1, totale), 5);
+  assert.equal(cuoriDa(4 * quinto, totale), 4);
+  assert.equal(cuoriDa(quinto + 1, totale), 2);
+  assert.equal(cuoriDa(1, totale), 1);
+  assert.equal(cuoriDa(0, totale), 0);
+  // Senza il totale vale quello di sempre.
+  assert.equal(cuoriDa(PAZIENZA.durationSec * SEC), 5);
+});
+
+// Un Cliente arrivato negli ultimi secondi di un'ondata, tra i primi che si trovano, per un seme.
+function clienteChiArrivaPocoPrimaDellaFineDellOndata() {
+  for (const seme of 'abcdefghij') {
+    const serata = new Serata({ seed: seme });
+    const { fasi } = serata.stato().andamento;
+    const fineOndata = fasi[2].inizioMs;
+    let arrivo = null;
+    while (!serata.finita && serata.stato().tempoMs < fineOndata) {
+      const eventi = serata.update(10);
+      const arrivato = eventi.find((e) => e.tipo === 'clienteArrivato');
+      const t = serata.stato().tempoMs;
+      if (arrivato && t > fineOndata - 8 * SEC && t < fineOndata) arrivo = { id: arrivato.cliente.id, posto: arrivato.posto, tempoMs: t };
+    }
+    if (arrivo) return { serata, arrivo, fineOndata };
+  }
+  throw new Error('nessun Cliente arriva alla fine dell’ondata in questi semi');
+}
+
+test('un Cliente arrivato in ondata tiene i suoi 15 s anche se l’ondata finisce mentre aspetta', () => {
+  const { serata, arrivo, fineOndata } = clienteChiArrivaPocoPrimaDellaFineDellOndata();
+  const eventi = [];
+  // Siamo a fineOndata: l'ondata è appena finita e il Cliente è ancora al suo Posto.
+  assert.equal(serata.stato().andamento.inOndata, false);
+  const cliente = () => serata.stato().posti[arrivo.posto].cliente;
+  assert.equal(cliente().id, arrivo.id);
+  assert.equal(cliente().pazienzaTotaleMs, ONDATE.pazienzaSec * SEC);
+  // E se ne va 15 s dopo il suo arrivo, non 25.
+  while (cliente()?.id === arrivo.id) eventi.push(...serata.update(10));
+  const via = eventi.find((e) => e.tipo === 'clienteVaVia' && e.clienteId === arrivo.id);
+  assert.ok(via, 'il Cliente non se n’è andato');
+  assert.equal(serata.stato().tempoMs - arrivo.tempoMs, ONDATE.pazienzaSec * SEC);
+  assert.ok(serata.stato().tempoMs > fineOndata);
+  // I suoi cuoricini si sono spenti uno ogni 3 s, anche dopo la fine dell'ondata.
+  const spenti = eventi.filter((e) => e.tipo === 'cuoreSpento' && e.posto === arrivo.posto).map((e) => e.cuori);
+  assert.deepEqual(spenti.slice(-5), [4, 3, 2, 1, 0]);
+});
+
+test('il seme sposta i confini delle fasi di al più 5 s, e lo stesso seme dà le stesse fasi', () => {
+  const inizi = (seme) => fasiDellaSerata(seme).map((f) => f.inizioMs);
+  const diversi = new Set();
+  for (const seme of ['a', 'b', 'c', 'd', 'e', 'f', 'lunedi', 'martedi', 'x1', 'x2', 'x3', 'x4']) {
+    const fasi = fasiDellaSerata(seme);
+    assert.deepEqual(inizi(seme), inizi(seme), 'lo stesso seme, le stesse fasi');
+    assert.equal(fasi[0].inizioMs, 0, 'la calma comincia con la Serata');
+    for (let i = 1; i < fasi.length; i++) {
+      const teorico = ONDATE.fasi[i].daSec * SEC;
+      assert.ok(Math.abs(fasi[i].inizioMs - teorico) <= ONDATE.scostoSec * SEC, `seme ${seme}: la fase ${i} è a ${fasi[i].inizioMs} ms`);
+      assert.equal(fasi[i].inizioMs % 10, 0, 'un multiplo del passo del motore');
+    }
+    diversi.add(inizi(seme).join());
+  }
+  assert.ok(diversi.size >= 10, 'due semi diversi danno quasi sempre ondate in punti diversi');
+});
+
+test('qualunque seme dà una Serata giocabile: nessuna fase è troppo corta e l’ondata finale ha tempo per finire', () => {
+  for (let i = 0; i < 200; i++) {
+    const fasi = fasiDellaSerata(`prova-${i}`);
+    const fine = [...fasi.slice(1).map((f) => f.inizioMs), SERATA.durationSec * SEC];
+    fasi.forEach((fase, k) => {
+      const durataSec = (fine[k] - fase.inizioMs) / SEC;
+      assert.ok(durataSec >= 15, `seme prova-${i}: ${fase.nome} dura solo ${durataSec} s`);
+    });
+  }
+});
+
+test('lo stato dice dove siamo nella curva e quanto manca alla prossima ondata', () => {
+  const serata = new Serata({ seed: 'a' });
+  const { fasi } = serata.stato().andamento;
+  assert.deepEqual(serata.stato().andamento.fase, 'calma');
+  assert.equal(serata.stato().andamento.inOndata, false);
+  assert.equal(serata.stato().andamento.prossimaOndataTraMs, fasi[1].inizioMs);
+  avanza(serata, fasi[1].inizioMs + 20);
+  const dentro = serata.stato().andamento;
+  assert.deepEqual([dentro.fase, dentro.inOndata], ['ondata', true]);
+  assert.equal(dentro.prossimaOndataTraMs, fasi[3].inizioMs - serata.stato().tempoMs, 'la prossima è la finale');
+  avanza(serata, fasi[3].inizioMs - serata.stato().tempoMs + 20);
+  const finale = serata.stato().andamento;
+  assert.deepEqual([finale.fase, finale.inOndata, finale.prossimaOndataTraMs], ['finale', true, null]);
+  // Cambia l'ondata, non gli Ordini né i Clienti: l'andamento è dello stato, e lo stato è JSON.
+  assert.doesNotThrow(() => JSON.stringify(serata.stato()));
+});
+
+test('con le ondate lo stesso seme dà la stessa Serata fino all’ultimo dato, e un altro seme sposta l’ondata', () => {
+  const gioca = (seed) => {
+    const serata = new Serata({ seed });
+    giocaTutta(serata);
+    return JSON.stringify(serata.stato());
+  };
+  assert.equal(gioca('ondata-1'), gioca('ondata-1'));
+  assert.notEqual(JSON.parse(gioca('ondata-1')).andamento.fasi[1].inizioMs, JSON.parse(gioca('ondata-2')).andamento.fasi[1].inizioMs);
 });
 
 test('i testi della fine Serata esistono in italiano, inglese e giapponese', () => {
@@ -582,6 +751,15 @@ test('la prima Serata sul netto: un giocatore lento prende ★, uno attento ★�
   assert.ok(lento >= uno, `lento ${lento}: sotto ★ (${uno})`);
   assert.ok(attento >= due && attento < tre, `attento ${attento}: non è ★★ (${due}-${tre})`);
   assert.ok(rapido >= tre, `rapido ${rapido}: non arriva a ★★★ (${tre})`);
+});
+
+test('con le ondate nessun seme è impossibile per il lento: ogni Serata gli dà ★ e non si ferma a metà', () => {
+  const [uno] = new Serata({ seed: 'a' }).stato().sogliaStelle;
+  for (const seme of SEMI) {
+    const stato = giocaServata(BRAVURA.lento, seme);
+    assert.equal(stato.fase, 'finita', `seme ${seme}: la Serata non è arrivata alla fine`);
+    assert.ok(stato.incasso >= uno, `seme ${seme}: il lento fa ${stato.incasso}, sotto ★ (${uno})`);
+  }
 });
 
 test('ogni Serata dei giocatori finisce con la Spesa pagata e lo Spreco piccolo, mai un Incasso fuori conto', () => {

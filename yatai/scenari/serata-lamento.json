@@ -65,7 +65,7 @@
   { "expect": "clienti.0.segno", "equals": "sbuffo" },
   { "shot": "lamento-5-se-ne-va-con-lo-sbuffo" },
 
-  { "gioca": { "finoA": 28000, "sbadato": true } },
+  { "gioca": { "finoA": 30000, "sbadato": true } },
   { "expect": "clienti.0.stato", "equals": "attesa" },
   { "expect": "clienti.0.cuori", "equals": 5 },
   { "expect": "clienti.0.espressione", "equals": "neutra" },

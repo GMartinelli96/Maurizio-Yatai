@@ -119,6 +119,8 @@ export const SERATA = {
 
 export const PAZIENZA = {
   hearts: 5,
+  // La Pazienza di un Cliente che arriva fuori da un'ondata. In ondata è ONDATE.pazienzaSec. I cuoricini sono
+  // sempre `hearts` e ognuno dura un quinto della Pazienza di quel Cliente.
   durationSec: 25,
   // Mancia massima, a Pazienza piena, come frazione del prezzo.
   maxManciaRatio: 0.5,
@@ -261,9 +263,9 @@ export const SERATA_MOTORE = {
 
 // Quanto vale la prima Serata (onigiri). L'obiettivo è l'Incasso netto (Vendite meno Spesa) in Yen; con
 // le soglie di SERATA diventa 1920 per ★, 2496 per ★★, 3072 per ★★★. Dal passo 8 ogni Serata avrà il suo.
-// Ogni onigiri sono 3 tocchi e 30 Yen di Spesa. Con l'arrivo dei Clienti ogni 2,5-4,5 s, un tocco ogni
-// 1,4 s (lento) fa circa 1965 Yen netti, ogni 1,0 s (attento) circa 3020, ogni 0,6 s (rapido) circa 4050
-// (media di 12 Serate, ticket 33): provvisorio fino al ticket 29.
+// Ogni onigiri sono 3 tocchi e 30 Yen di Spesa. Con le Ondate (ONDATE) e prima della Serie, un tocco ogni
+// 1,4 s (lento) fa circa 2035 Yen netti, ogni 1,0 s (attento) circa 2937, ogni 0,6 s (rapido) circa 4302
+// (media di 6 semi, ticket 34): provvisorio fino al ticket 29.
 export const SERATA_PRIMA = {
   obiettivo: 1920,
   piatti: ['onigiri'],
@@ -393,14 +395,32 @@ export const POSTI = {
 };
 
 export const CLIENTI = {
-  // Il primo Cliente arriva presto, i successivi ogni tanto. Se i Posti sono pieni il prossimo
-  // aspetta che se ne liberi uno.
-  // Ogni 2,5-4,5 s (era 5-9 s dopo la prima prova, ticket 05): con i Clienti più lenti di chi
-  // cucina, l'Incasso non dipendeva dalla bravura del giocatore ma solo da quanti ne arrivavano.
+  // Il primo Cliente arriva presto, i successivi secondo la fase della Serata (ONDATE). Se i Posti sono
+  // pieni il prossimo aspetta che se ne liberi uno.
   primoArrivoSec: 1.5,
-  arrivoSec: { min: 2.5, max: 4.5 },
   // I Clienti di passaggio: nessun Vizio.
   passaggio: ['tanuki', 'kitsune', 'maneki-neko'],
+};
+
+// Le Ondate (GAME_SPEC.md, "La Serata"; ticket 34): la Serata ha un andamento invece di un solo intervallo di
+// arrivo. Una curva comune a tutti i Matsuri, in quattro fasi nell'ordine in cui accadono; le curve per Serata
+// sono del ticket 12 e del 29. Valori di partenza.
+//   daSec        quando comincia la fase (la prima a 0). Il seme sposta gli inizi delle altre di al più `scostoSec`
+//   arrivoSec    l'intervallo tra un arrivo e il successivo, scelto quando arriva un Cliente (la fase di quel momento)
+//   ondata       la fase è un'ondata: i Clienti che arrivano hanno `pazienzaSec` invece di PAZIENZA.durationSec e la
+//                tengono anche se l'ondata finisce mentre aspettano
+//   avvisoSec    quanto prima di un'ondata (anche la finale) un segnale visivo la annuncia
+// Ritmo a tocchi (ticket 33): un onigiri sono 3 tocchi più quello per servire, e un Cliente costa più di prima.
+export const ONDATE = {
+  scostoSec: 5,
+  avvisoSec: 2,
+  pazienzaSec: 15,
+  fasi: [
+    { nome: 'calma', daSec: 0, arrivoSec: { min: 3.5, max: 5 }, ondata: false },
+    { nome: 'ondata', daSec: 30, arrivoSec: { min: 1.2, max: 2.2 }, ondata: true },
+    { nome: 'respiro', daSec: 55, arrivoSec: { min: 4, max: 6 }, ondata: false },
+    { nome: 'finale', daSec: 80, arrivoSec: { min: 1.0, max: 2.0 }, ondata: true },
+  ],
 };
 
 export const BANCONE = {

@@ -4,6 +4,7 @@ import {
   CLIENTI,
   FUMO_SEC,
   LAMENTO,
+  ONDATE,
   PAZIENZA,
   PIATTI,
   POSTAZIONI,
@@ -55,11 +56,26 @@ import { createRng } from '../kit/rng.js';
 
 const SEC = 1000;
 
-// I cuoricini accesi per una Pazienza che ne ha ancora rimastaMs: cinque finché non è passato
-// il primo quinto del tempo, zero solo a Pazienza finita.
-export function cuoriDa(rimastaMs) {
-  const quintoMs = (PAZIENZA.durationSec * SEC) / PAZIENZA.hearts;
+// I cuoricini accesi per una Pazienza che ne ha ancora rimastaMs su totaleMs: cinque finché non è passato
+// il primo quinto del tempo, zero solo a Pazienza finita. Ogni Cliente ha il suo totale (25 s, 15 s se è
+// arrivato in un'ondata): i cuoricini sono sempre 5 e ognuno dura un quinto di quella Pazienza.
+export function cuoriDa(rimastaMs, totaleMs = PAZIENZA.durationSec * SEC) {
+  const quintoMs = totaleMs / PAZIENZA.hearts;
   return Math.max(0, Math.min(PAZIENZA.hearts, Math.ceil(rimastaMs / quintoMs)));
+}
+
+// Le fasi di una Serata (ONDATE.fasi) con gli inizi in ms. Il seme sposta l'inizio di ogni fase tranne la
+// prima di al più ONDATE.scostoSec, sempre su un multiplo del passo del motore. Ha il suo generatore, così non
+// cambia gli arrivi né gli Ordini: stesso seme, stesse fasi. Le fasi restano nell'ordine e distanti (lo controlla
+// un test), quindi nessuna Serata è impossibile per chi è lento.
+export function fasiDellaSerata(seed) {
+  const rng = createRng(`${seed}/ondate`);
+  const passo = SERATA_MOTORE.passoMs;
+  return ONDATE.fasi.map(({ nome, daSec, arrivoSec, ondata }, i) => {
+    const scartoMs = i === 0 ? 0 : rng.jitter(ONDATE.scostoSec * SEC);
+    const inizioMs = Math.round((daSec * SEC + scartoMs) / passo) * passo;
+    return { nome, inizioMs, arrivoSec, ondata };
+  });
 }
 
 // L'espressione di un Cliente in attesa con `cuori` cuoricini accesi. Dipende dai cuoricini e non dal
@@ -132,6 +148,7 @@ export class Serata {
     banconeCapienza = BANCONE.capienza,
   } = {}) {
     this.rng = createRng(seed);
+    this.fasi = fasiDellaSerata(seed);
     this.obiettivo = obiettivo;
     this.piatti = piatti;
     this.piattiPerOrdine = piattiPerOrdine;
@@ -362,7 +379,7 @@ export class Serata {
     const cliente = posto.cliente;
     if (!cliente) return;
     cliente.pazienzaMs = Math.max(0, cliente.pazienzaMs - passoMs);
-    const cuori = cuoriDa(cliente.pazienzaMs);
+    const cuori = cuoriDa(cliente.pazienzaMs, cliente.pazienzaTotaleMs);
     if (cuori !== cliente.cuori) {
       const prima = cliente.cuori;
       cliente.cuori = cuori;
@@ -390,9 +407,15 @@ export class Serata {
     posto.liberoDaMs = this.tempoMs + POSTI.ricambioSec * SEC;
   }
 
-  // Intero tra min e max secondi, in ms e multiplo del passo, così gli arrivi cadono su un passo.
+  // La fase in cui è la Serata a tempoMs: l'ultima che è già cominciata.
+  faseA(tempoMs) {
+    return this.fasi.findLast(({ inizioMs }) => inizioMs <= tempoMs);
+  }
+
+  // L'attesa fino al prossimo arrivo, tra min e max secondi della fase di adesso, in ms e multiplo del passo,
+  // così gli arrivi cadono su un passo.
   attesaArrivoMs() {
-    const { min, max } = CLIENTI.arrivoSec;
+    const { min, max } = this.faseA(this.tempoMs).arrivoSec;
     return Math.round(this.rng.range(min, max) * (SEC / SERATA_MOTORE.passoMs)) * SERATA_MOTORE.passoMs;
   }
 
@@ -407,11 +430,15 @@ export class Serata {
     const { posto, indice } = liberi[Math.floor(this.rng() * liberi.length)];
     const tipo = CLIENTI.passaggio[Math.floor(this.rng() * CLIENTI.passaggio.length)];
     const ordine = this.creaOrdine();
+    // La Pazienza si decide all'arrivo e non cambia più: chi arriva in ondata tiene i suoi 15 s anche se
+    // l'ondata finisce mentre aspetta.
+    const pazienzaTotaleMs = (this.faseA(this.tempoMs).ondata ? ONDATE.pazienzaSec : PAZIENZA.durationSec) * SEC;
     posto.cliente = {
       id: this.prossimoId++,
       tipo,
       ordine,
-      pazienzaMs: PAZIENZA.durationSec * SEC,
+      pazienzaMs: pazienzaTotaleMs,
+      pazienzaTotaleMs,
       cuori: PAZIENZA.hearts,
     };
     this.prossimoArrivoMs = this.tempoMs + this.attesaArrivoMs();
@@ -495,8 +522,10 @@ export class Serata {
           ordine: [...cliente.ordine],
           cuori: cliente.cuori,
           pazienzaMs: cliente.pazienzaMs,
+          pazienzaTotaleMs: cliente.pazienzaTotaleMs,
         },
       })),
+      andamento: this.andamento(),
       bancone: [...this.bancone],
       // fatti: gli Ingredienti già nel Piatto. prossimo: l'id della Scorta che il Piatto aspetta, anche mentre
       // cuoce (è quella da toccare appena finisce la cottura); null se non ne mancano. Mentre cuoce ('cuoce') le
@@ -520,6 +549,19 @@ export class Serata {
       scorte: this.scorte.map(({ id, piatto }) => ({ id, piatto, costo: PIATTI[piatto].ricetta.find((r) => r.ingrediente === id).costo })),
       // La fila vicino al pollice, da sinistra a destra: prima le Scorte, poi le Postazioni.
       fila: this.fila(),
+    };
+  }
+
+  // Dove siamo nella curva: la fase di adesso, se è un'ondata, e quanto manca alla prossima ondata (null se non
+  // ce ne sono più). `fasi` dà gli inizi mossi dal seme, per chi vuole vedere l'intera curva.
+  andamento() {
+    const fase = this.faseA(this.tempoMs);
+    const prossima = this.fasi.find(({ inizioMs, ondata }) => ondata && inizioMs > this.tempoMs);
+    return {
+      fase: fase.nome,
+      inOndata: fase.ondata,
+      prossimaOndataTraMs: prossima ? prossima.inizioMs - this.tempoMs : null,
+      fasi: this.fasi.map(({ nome, inizioMs, ondata }) => ({ nome, inizioMs, ondata })),
     };
   }
 

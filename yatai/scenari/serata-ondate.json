@@ -1,0 +1,32 @@
+[
+  { "resize": "360x640" },
+  { "goto": "?sviluppo=serata&seme=prova" },
+  { "advance": 100 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "serata.andamento.fase", "equals": "calma" },
+  { "expect": "serata.andamento.inOndata", "equals": false },
+  { "expect": "serata.andamento.prossimaOndataTraMs", "atLeast": 30000 },
+
+  { "gioca": { "finoA": 25000, "passoMs": 1100 } },
+  { "expect": "serata.andamento.fase", "equals": "calma" },
+  { "shot": "ondate-1-calma" },
+
+  { "gioca": { "finoA": 41000, "passoMs": 1100 } },
+  { "expect": "serata.andamento.fase", "equals": "ondata" },
+  { "expect": "serata.andamento.inOndata", "equals": true },
+  { "shot": "ondate-2-ondata" },
+
+  { "gioca": { "finoA": 53000, "passoMs": 1100 } },
+  { "expect": "serata.andamento.fase", "equals": "respiro" },
+  { "expect": "serata.andamento.inOndata", "equals": false },
+  { "shot": "ondate-3-respiro" },
+
+  { "gioca": { "finoA": 85000, "passoMs": 1100 } },
+  { "expect": "serata.andamento.fase", "equals": "finale" },
+  { "expect": "serata.andamento.prossimaOndataTraMs", "equals": null },
+  { "shot": "ondate-4-finale" },
+
+  { "gioca": { "passoMs": 1100 } },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "shot": "ondate-5-fine" }
+]
