@@ -250,7 +250,7 @@ test('le soglie delle stelle: ★ all obiettivo, ★★ a ×1,3, ★★★ a ×1
 test('lo stato dice quanti Yen servono per ogni stella', () => {
   const stato = new Serata({ seed: 'a' }).stato();
   assert.equal(stato.obiettivo, SERATA_PRIMA.obiettivo);
-  assert.deepEqual(stato.sogliaStelle, [1200, 1560, 1920]);
+  assert.deepEqual(stato.sogliaStelle, [3100, 4030, 4960]);
   assert.equal(stato.stelle, 0);
 });
 
@@ -356,4 +356,44 @@ test('i testi della fine Serata esistono in italiano, inglese e giapponese', () 
       assert.ok(TESTI[lingua][chiave]?.trim(), `${lingua}.${chiave} manca`);
     }
   }
+});
+
+// Un giocatore che fa una mossa ogni `reazioneMs`: serve chi ha l'Ordine sul Bancone (prima chi ha meno
+// cuoricini), porta sul Bancone i Piatti pronti e cuoce solo ciò che serve.
+function giocaServata(reazioneMs, seed) {
+  const serata = new Serata({ seed });
+  for (let t = 10; !serata.finita; t += 10) {
+    serata.update(10);
+    if (t % reazioneMs !== 0) continue;
+    const stato = serata.stato();
+    const servibili = stato.posti
+      .filter(({ cliente }) => cliente && cliente.ordine.every((piatto) => stato.bancone.includes(piatto)))
+      .sort((a, b) => a.cliente.cuori - b.cliente.cuori);
+    const pronta = stato.postazioni.find((p) => p.stato === 'pronto');
+    const libera = stato.postazioni.find((p) => p.stato === 'libera');
+    const inCorso = stato.postazioni.filter((p) => p.stato === 'cuoce').length;
+    const bisogni = stato.posti.filter(({ cliente }) => cliente).length;
+    if (servibili.length) serata.servi(servibili[0].posto);
+    else if (pronta) serata.tocca(pronta.id);
+    else if (libera && bisogni > stato.bancone.length + inCorso) serata.tocca(libera.id);
+  }
+  return serata.stato();
+}
+
+test('l’Incasso dipende dalla bravura: chi è più rapido incassa molto di più (ticket 05: prima era uguale per tutti)', () => {
+  const media = (reazioneMs) => {
+    const semi = ['a', 'b', 'c', 'd', 'e', 'f'];
+    return semi.reduce((somma, seme) => somma + giocaServata(reazioneMs, seme).incasso, 0) / semi.length;
+  };
+  const rapido = media(300);
+  const attento = media(800);
+  const lento = media(1400);
+  assert.ok(attento > lento * 1.15, `attento ${attento}, lento ${lento}`);
+  assert.ok(rapido >= attento, `rapido ${rapido}, attento ${attento}`);
+});
+
+test('la prima Serata: un giocatore lento prende ★, uno attento ★★ (valori provvisori, ticket 29)', () => {
+  const stelle = (reazioneMs) => giocaServata(reazioneMs, 'prova').stelle;
+  assert.ok(stelle(1400) >= 1, 'un giocatore lento prende almeno ★');
+  assert.ok(stelle(800) >= 2, 'un giocatore attento prende almeno ★★');
 });
