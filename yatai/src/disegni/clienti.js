@@ -369,7 +369,7 @@ const VENA = { tanuki: { x: 238, y: 36 }, kitsune: { x: 236, y: 40 }, 'maneki-ne
 export const SEGNI_POS = {
   tanuki: { goccia: { x: 238, y: 82 }, sbuffo: { x: 22, y: 92 } },
   kitsune: { goccia: { x: 236, y: 84 }, sbuffo: { x: 22, y: 94 } },
-  'maneki-neko': { goccia: { x: 232, y: 84 }, sbuffo: { x: 22, y: 76 } },
+  'maneki-neko': { goccia: { x: 232, y: 84 }, sbuffo: { x: 18, y: 48 } },
 };
 
 function drawCliente(ctx, rng, cliente, espressione) {
