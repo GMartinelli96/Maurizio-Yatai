@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Icona provvisoria: si ridisegna a matita con il kit del passo 1. -->
+  <rect width="512" height="512" rx="96" fill="#fff8ec"/>
+  <rect x="56" y="88" width="400" height="80" fill="#e8665a"/>
+  <rect x="136" y="88" width="80" height="80" fill="#ffffff"/>
+  <rect x="296" y="88" width="80" height="80" fill="#ffffff"/>
+  <circle cx="96" cy="168" r="40" fill="#e8665a"/>
+  <circle cx="176" cy="168" r="40" fill="#ffffff"/>
+  <circle cx="256" cy="168" r="40" fill="#e8665a"/>
+  <circle cx="336" cy="168" r="40" fill="#ffffff"/>
+  <circle cx="416" cy="168" r="40" fill="#e8665a"/>
+  <circle cx="170" cy="282" r="42" fill="#b07a52"/>
+  <circle cx="342" cy="282" r="42" fill="#b07a52"/>
+  <circle cx="256" cy="344" r="116" fill="#b07a52"/>
+  <ellipse cx="256" cy="388" rx="52" ry="38" fill="#f0d2b0"/>
+  <circle cx="214" cy="324" r="11" fill="#3b2a22"/>
+  <circle cx="298" cy="324" r="11" fill="#3b2a22"/>
+  <ellipse cx="256" cy="372" rx="15" ry="11" fill="#3b2a22"/>
+</svg>
