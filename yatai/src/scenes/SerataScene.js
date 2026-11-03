@@ -292,6 +292,7 @@ export default class SerataScene extends YataiScene {
     if (!this.pronta) return;
     this.esegui(this.serata.update(Math.min(delta, RISCONTRI.dtMaxMs)));
     this.aggiornaVista();
+    for (const cliente of this.clienti) cliente.segui();
   }
 
   // Quello che si legge dallo stato a ogni frame: il Bancone, le Postazioni e il tempo. Tutto il

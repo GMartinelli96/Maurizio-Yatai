@@ -87,6 +87,37 @@ export function drawCuoreVuoto(ctx, rng) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// I segni del Lamento (GAME_SPEC.md, "Clienti"): la goccia di sudore (2 cuoricini) e lo sbuffo
+// d'aria (1 cuoricino). Senza parole: si leggono accanto alla faccia, scocciati ma buffi.
+
+export const GOCCIA_SIZE = { w: 36, h: 48 };
+export const SBUFFO_SIZE = { w: 54, h: 40 };
+
+const SUDORE = { colore: '#a9d6f0', ombra: '#6fa9cc', luce: '#e3f3fb' };
+const ARIA = { colore: '#d9e8f3', ombra: '#97b3c7', luce: '#f4f9fd' };
+
+export function drawGoccia(ctx, rng) {
+  const goccia = smoothCurve([
+    { x: 18, y: 3 }, { x: 23, y: 14 }, { x: 30, y: 27 }, { x: 30, y: 36 },
+    { x: 24, y: 44 }, { x: 18, y: 46 }, { x: 12, y: 44 }, { x: 6, y: 36 }, { x: 6, y: 27 }, { x: 13, y: 14 },
+  ], { perSegment: 8 });
+  pastelFill(ctx, goccia, rng, SUDORE, { volume: false, hatching: 0.6 });
+  pastelFill(ctx, ellipse(13, 33, 2.8, 5.5, 0.25), rng, { colore: '#ffffff', ombra: '#ffffff', luce: '#ffffff' }, { volume: false, alpha: 0.85, hatching: 0 });
+  pencilLine(ctx, goccia, rng, { width: 2.8 });
+}
+
+// Uno sbuffo: una nuvoletta di tre tondi vicino alla faccia e due piccoli tondi che se ne vanno.
+// Soffia verso sinistra (il lato opposto alla venetta dell'imbronciata).
+export function drawSbuffo(ctx, rng) {
+  const tondi = [
+    ellipse(37, 21, 10.5, 9.5), ellipse(27, 14, 8.5, 8), ellipse(27, 28, 8.5, 8),
+    ellipse(13, 14, 4.8, 4.4), ellipse(6, 26, 3.4, 3.2),
+  ];
+  for (const tondo of tondi) pastelFill(ctx, tondo, rng, ARIA, { volume: false, hatching: 0.4 });
+  for (const tondo of tondi) pencilLine(ctx, tondo, rng, { width: 2.4, amount: 0.5 });
+}
+
+// ---------------------------------------------------------------------------------------------
 // Lo Yen: la monetina da 5 yen, d'ottone, con il buco al centro e un anello in rilievo.
 
 export const MONETA_SIZE = { w: 60, h: 60 };

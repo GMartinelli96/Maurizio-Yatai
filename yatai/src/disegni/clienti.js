@@ -362,6 +362,16 @@ const DISEGNATORI = { tanuki: drawTanuki, kitsune: drawKitsune, 'maneki-neko': d
 // L'imbronciata ha il segno di rabbia sopra la testa, a destra.
 const VENA = { tanuki: { x: 238, y: 36 }, kitsune: { x: 236, y: 40 }, 'maneki-neko': { x: 236, y: 52 } };
 
+// Dove stanno la goccia e lo sbuffo del Lamento rispetto al disegno del Cliente (centro del segno, in
+// pixel del riquadro CLIENTE_SIZE). Non fanno parte della texture: li mette ClienteView, così seguono il
+// peluche quando si muove. La goccia sta sul lato della venetta (che la perplessa non ha), lo sbuffo sul
+// lato opposto, fuori dal muso e dalla zampa del maneki-neko.
+export const SEGNI_POS = {
+  tanuki: { goccia: { x: 238, y: 82 }, sbuffo: { x: 22, y: 92 } },
+  kitsune: { goccia: { x: 236, y: 84 }, sbuffo: { x: 22, y: 94 } },
+  'maneki-neko': { goccia: { x: 232, y: 84 }, sbuffo: { x: 22, y: 76 } },
+};
+
 function drawCliente(ctx, rng, cliente, espressione) {
   // Corpo e grana hanno il seme del Cliente, la faccia quello della texture: in tutte e tre le
   // espressioni il peluche è lo stesso, tranne la faccia.

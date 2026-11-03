@@ -11,7 +11,7 @@ import { drawOnigiri, onigiriSize } from './onigiri.js';
 import { POSTAZIONE_SIZE, POSTAZIONI, SCORTE, postazioneKey, scortaKey } from './postazioni.js';
 import { CESTINO_SIZE, FUMO_SIZE, drawCestino, drawFumo, drawTakoyaki, takoyakiSize } from './takoyaki.js';
 import {
-  CUORE_SIZE, MONETA_SIZE, NUVOLETTA, STELLA_SIZE, drawCuore, drawCuoreVuoto, drawMoneta, drawNuvoletta, drawStella, drawStellaVuota,
+  CUORE_SIZE, GOCCIA_SIZE, MONETA_SIZE, NUVOLETTA, SBUFFO_SIZE, STELLA_SIZE, drawCuore, drawCuoreVuoto, drawGoccia, drawMoneta, drawNuvoletta, drawSbuffo, drawStella, drawStellaVuota,
 } from './serata.js';
 
 export const ONIGIRI_BANCONE = 150;
@@ -46,6 +46,9 @@ export const DISEGNI = {
   moneta: { ...MONETA_SIZE, draw: drawMoneta },
   stella: { ...STELLA_SIZE, draw: drawStella },
   'stella-vuota': { ...STELLA_SIZE, draw: drawStellaVuota },
+  // I segni del Lamento: la goccia a 2 cuoricini, lo sbuffo a 1. Li mette accanto al Cliente ClienteView.
+  'segno-goccia': { ...GOCCIA_SIZE, draw: drawGoccia },
+  'segno-sbuffo': { ...SBUFFO_SIZE, draw: drawSbuffo },
 };
 
 // I pannelli e i pulsanti cambiano misura da una schermata all'altra: si disegnano su richiesta.

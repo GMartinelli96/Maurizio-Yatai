@@ -301,6 +301,20 @@ export const RISCONTRI = {
   pronto: { durata: 420, ampiezza: 8 },
   // L'ultimo cuoricino lampeggia: manca poco.
   ultimoCuore: { durata: 260 },
+  // Il Lamento (GAME_SPEC.md, "Clienti"). Quando la faccia cambia il peluche fa un "pop" (si schiaccia
+  // e torna a riposo, `schiaccia` è la frazione di scala, `durata` in ms). Il segno entra con un rimbalzo
+  // (`entra`) e poi si muove piano e in loop: la goccia scende un po' (`discesa`, in pixel del disegno
+  // del Cliente) e lo sbuffo si gonfia e si sposta (`spinta` in pixel, `gonfia` come scala). Il loop dura
+  // `durata` ms per andata. Tutto parte da ClienteView.animaSegno(): con "riduci movimento" (ticket 26)
+  // si spegne quello e il segno resta fermo.
+  lamento: {
+    // Quanto è grande il segno rispetto al suo disegno: a 360 px di larghezza deve leggersi.
+    segnoScala: 1.6,
+    pop: { schiaccia: 0.09, durata: 220 },
+    entra: 260,
+    goccia: { discesa: 7, durata: 780 },
+    sbuffo: { spinta: 5, gonfia: 0.14, durata: 560 },
+  },
   // Il "−20" piccolo che scende sotto l'Incasso a ogni Ingrediente (la Spesa).
   spesa: { durata: 750, discesa: 34 },
   // La ricetta sul tagliere: un'icona per Ingrediente, piccola (frazione del disegno della Postazione),
