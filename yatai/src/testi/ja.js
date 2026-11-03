@@ -13,6 +13,13 @@ export default {
   ingrediente_pastella: '生地',
   ingrediente_polpo: 'たこ',
   ingrediente_salsa: 'ソース',
+  ingrediente_ghiaccio: '氷',
+  ingrediente_fragola: 'いちご',
+  ingrediente_melone: 'メロン',
+  ingrediente_matcha: '抹茶',
+  'piatto_kakigori-fragola': 'いちごのかき氷',
+  'piatto_kakigori-melone': 'メロンのかき氷',
+  'piatto_kakigori-matcha': '抹茶のかき氷',
 
 
   // Fine Serata

@@ -1,6 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CLIENTI, FRAME_MS, PIATTI, POSTAZIONI, SERATA_PRIMA, SERATA_TANABATA } from '../src/config.js';
+import { CLIENTI, FRAME_MS, PALETTE, PIATTI, POSTAZIONI, SERATA_PRIMA, SERATA_TANABATA } from '../src/config.js';
+import { DISEGNI, drawEntry } from '../src/disegni/catalogo.js';
+import { SCIROPPO, drawKakigori } from '../src/disegni/kakigori.js';
+import { POSTAZIONE_SIZE, scortaKey } from '../src/disegni/postazioni.js';
+import { TESTI } from '../src/i18n.js';
 import { Serata, costoPiatto, idPiatto, ingredientiDi, piattoBase, scorteDi, tocchiPerPiatto, varianteDi } from '../src/serata/Serata.js';
 
 // Il kakigōri e le sue varianti (ticket 07): ghiaccio, [2 s], uno dei tre sciroppi, prendi. Tutto senza browser.
@@ -273,4 +277,73 @@ test('le Serate senza varianti hanno solo Piatti semplici e sono ripetibili', ()
   assert.ok(tanabata.length > 5);
   for (const { ordine } of tanabata) for (const piatto of ordine) assert.ok(['onigiri', 'takoyaki'].includes(piatto), piatto);
   assert.deepEqual(ordini(SERATA_TANABATA), tanabata, 'ripetibile');
+});
+
+// --- I disegni (passo 2) ---
+
+// Un finto canvas che registra ogni chiamata (come in clienti.test.js): due disegni sono uguali se le registrazioni lo sono.
+function registra(key) {
+  const log = [];
+  const ctx = new Proxy({}, {
+    get(target, prop) {
+      if (prop in target) return target[prop];
+      return (...args) => { log.push([prop, ...args]); };
+    },
+    set(target, prop, value) { target[prop] = value; log.push(['=', prop, value]); return true; },
+  });
+  drawEntry(ctx, key, DISEGNI[key]);
+  return JSON.stringify(log);
+}
+
+// La luminosità percepita di un colore '#rrggbb', da 0 (nero) a 255 (bianco): quella che resta in bianco e nero.
+const luminosita = (hex) => {
+  const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+};
+
+test('ogni variante ha il Piatto per il Bancone e per l’icona, alla misura dell’onigiri', () => {
+  for (const variante of VARIANTI) {
+    for (const chiave of [`kakigori-${variante}`, `kakigori-${variante}-icona`]) {
+      assert.ok(DISEGNI[chiave], `manca la texture ${chiave}`);
+    }
+    assert.deepEqual([DISEGNI[`kakigori-${variante}`].w, DISEGNI[`kakigori-${variante}`].h], [DISEGNI.onigiri.w, DISEGNI.onigiri.h]);
+    assert.deepEqual([DISEGNI[`kakigori-${variante}-icona`].w, DISEGNI[`kakigori-${variante}-icona`].h], [DISEGNI['onigiri-icona'].w, DISEGNI['onigiri-icona'].h]);
+  }
+  assert.throws(() => drawKakigori({}, {}, 64, 'cioccolato'), /variante sconosciuta/);
+});
+
+test('il ghiaccio e i tre sciroppi hanno la loro Scorta disegnata, nella misura delle Postazioni', () => {
+  for (const ingrediente of ['ghiaccio', ...VARIANTI]) {
+    const entry = DISEGNI[scortaKey(ingrediente)];
+    assert.ok(entry, `manca la Scorta ${ingrediente}`);
+    assert.deepEqual([entry.w, entry.h], [POSTAZIONE_SIZE.w, POSTAZIONE_SIZE.h]);
+  }
+});
+
+test('i tre Piatti e le tre Scorte sono disegni diversi tra loro', () => {
+  const piatti = VARIANTI.map((v) => registra(`kakigori-${v}-icona`));
+  assert.equal(new Set(piatti).size, 3, 'due icone uguali');
+  const scorte = ['ghiaccio', ...VARIANTI].map((i) => registra(scortaKey(i)));
+  assert.equal(new Set(scorte).size, 4, 'due Scorte uguali');
+});
+
+test('in bianco e nero gli sciroppi restano diversi: almeno 40 punti di luminosità l’uno dall’altro', () => {
+  const luci = VARIANTI.map((v) => ({ v, l: luminosita(SCIROPPO[v].colore) }));
+  for (let i = 0; i < luci.length; i += 1) {
+    for (let j = i + 1; j < luci.length; j += 1) {
+      assert.ok(Math.abs(luci[i].l - luci[j].l) >= 40, `${luci[i].v} (${luci[i].l.toFixed(0)}) e ${luci[j].v} (${luci[j].l.toFixed(0)}) si somigliano in bianco e nero`);
+    }
+  }
+  assert.equal(SCIROPPO.fragola, PALETTE.fragola);
+});
+
+test('il ghiaccio, gli sciroppi e le tre varianti hanno il nome in italiano, inglese e giapponese', () => {
+  const chiavi = [
+    ...['ghiaccio', ...VARIANTI].map((i) => `ingrediente_${i}`),
+    ...VARIANTI.map((v) => `piatto_${idPiatto('kakigori', v)}`),
+  ];
+  for (const lingua of Object.keys(TESTI)) {
+    for (const chiave of chiavi) assert.ok(TESTI[lingua][chiave]?.trim(), `${lingua}: manca ${chiave}`);
+  }
+  assert.equal(new Set(VARIANTI.map((v) => TESTI.it[`ingrediente_${v}`])).size, 3);
 });

@@ -12,6 +12,13 @@ export default {
   ingrediente_pastella: 'Batter',
   ingrediente_polpo: 'Octopus',
   ingrediente_salsa: 'Sauce',
+  ingrediente_ghiaccio: 'Ice',
+  ingrediente_fragola: 'Strawberry',
+  ingrediente_melone: 'Melon',
+  ingrediente_matcha: 'Matcha',
+  'piatto_kakigori-fragola': 'Strawberry kakigori',
+  'piatto_kakigori-melone': 'Melon kakigori',
+  'piatto_kakigori-matcha': 'Matcha kakigori',
 
 
   // Fine Serata

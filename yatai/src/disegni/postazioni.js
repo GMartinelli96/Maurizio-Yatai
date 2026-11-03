@@ -8,6 +8,7 @@
 
 import { PALETTE as C } from '../config.js';
 import { clipTo, ellipse, pastelFill, pencilLine, restingShadow, roundedPolygon, roundedRect, smoothCurve } from '../kit/matita.js';
+import { SCORTE_KAKIGORI } from './kakigori.js';
 
 export const POSTAZIONE_SIZE = { w: 132, h: 152 };
 
@@ -220,6 +221,8 @@ export const SCORTE = {
   pastella: drawScortaPastella,
   polpo: drawScortaPolpo,
   salsa: drawScortaSalsa,
+  // Il ghiaccio e i tre sciroppi del kakigōri (ticket 07), disegnati in kakigori.js insieme ai Piatti.
+  ...SCORTE_KAKIGORI,
 };
 export const scortaKey = (ingrediente) => `scorta-${ingrediente}`;
 

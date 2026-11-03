@@ -15,6 +15,15 @@ export default {
   ingrediente_pastella: 'Pastella',
   ingrediente_polpo: 'Polpo',
   ingrediente_salsa: 'Salsa',
+  // Il kakigōri (ticket 07): il ghiaccio e una Scorta per variante, con i nomi corti (stanno sotto una Scorta piccola).
+  // Le varianti hanno anche il nome del Piatto: piatto_ più l'id con la variante (kakigori-fragola).
+  ingrediente_ghiaccio: 'Ghiaccio',
+  ingrediente_fragola: 'Fragola',
+  ingrediente_melone: 'Melone',
+  ingrediente_matcha: 'Matcha',
+  'piatto_kakigori-fragola': 'Kakigōri alla fragola',
+  'piatto_kakigori-melone': 'Kakigōri al melone',
+  'piatto_kakigori-matcha': 'Kakigōri al matcha',
 
 
   // Fine Serata

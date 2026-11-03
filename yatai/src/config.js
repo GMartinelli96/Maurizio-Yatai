@@ -45,6 +45,12 @@ export const PALETTE = {
   ghiaccio: { colore: '#e4f4fb', ombra: '#a9d3e6', luce: '#ffffff' },
   celeste: { colore: '#a9d6f0', ombra: '#6fa9cc', luce: '#d8eefa' },
   brodo: { colore: '#f3cf86', ombra: '#d6a64c', luce: '#fbe6b4' },
+  // Gli sciroppi del kakigōri (ticket 07). In bianco e nero devono restare diversi: la fragola è media (luminosità
+  // ~150), il melone molto chiaro (~215), il matcha scuro (~100). La foglia verde è la buccia del melone e il ciuffo.
+  fragola: { colore: '#ef6f86', ombra: '#c24560', luce: '#f9a9b6' },
+  melone: { colore: '#cfeda0', ombra: '#9cc468', luce: '#ecf8cf' },
+  matcha: { colore: '#55793a', ombra: '#3a5628', luce: '#86a867' },
+  foglia: { colore: '#7bbf72', ombra: '#4f8f4c', luce: '#a9dda0' },
 };
 
 export const VIEW = {
