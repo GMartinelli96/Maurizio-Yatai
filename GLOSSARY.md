@@ -41,7 +41,7 @@ Un Cliente senza Vizio, a tema giapponese (tanuki, kitsune, maneki-neko), che ri
 _Avoid_: comparsa, cliente generico, NPC
 
 **Disturbatore**:
-Un personaggio che intralcia lo Yatai durante la Serata senza essere un Cliente (gli scarafaggi, Croccola).
+Un personaggio che intralcia lo Yatai durante la Serata senza essere un Cliente (le formiche, i corvi, Croccola).
 _Avoid_: nemico, ostacolo
 
 ### Cucina
@@ -77,7 +77,7 @@ La sesta e ultima Serata di un Matsuri, con un obiettivo di Incasso più alto e 
 _Avoid_: boss, finale, serata speciale
 
 **Evento**:
-Il colpo di scena di una Gran Serata, diverso per ogni Matsuri (vento di petali, desideri, fuochi, corteo del mikoshi, freddo).
+Il colpo di scena di una Gran Serata, diverso per ogni Matsuri (Hanafubuki, desideri, fuochi, corteo del mikoshi, freddo).
 _Avoid_: sfida, modificatore, twist
 
 **Titolo**:
@@ -115,11 +115,11 @@ Un miglioramento dello Yatai, comprato con gli Yen, che cambia come si gioca (pe
 _Avoid_: upgrade, miglioria
 
 **Arredo**:
-Un oggetto solo estetico per lo Yatai, comprato con gli Yen, che non cambia come si gioca (tenda noren, lanterne chōchin, fūrin).
+Un oggetto solo estetico per lo Yatai, comprato con gli Yen, che non cambia come si gioca (tenda noren, lanterne chōchin e bonbori, fūrin).
 _Avoid_: decorazione, abbellimento
 
 **Vestito**:
-Un capo per Maurizio sbloccato con le stelle; ogni Matsuri ne ha due a tema (per esempio lo yukata con i fiori di ciliegio per l'Hanami).
+Un capo per Maurizio sbloccato con le stelle; ogni Matsuri ne ha due a tema (per esempio l'haori con i fiori di ciliegio per l'Hanami).
 _Avoid_: skin, costume, outfit
 
 **Che stile!**:

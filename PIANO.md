@@ -24,7 +24,7 @@ Cosa costruire: [GAME_SPEC.md](./GAME_SPEC.md). Vocabolario da usare nel codice:
 | 4 | Cottura e bruciatura con i takoyaki: Fumo, cestino, Ordini da più Piatti | `game-feel` | si brucia, c'è il Fumo e un Ordine da 2 Piatti si serve |
 | 5 | Kakigōri, ramen e taiyaki con le varianti e le loro icone | – | tutti e 5 i Piatti si giocano |
 | 6 | Il cast e i Vizi, compreso il Bis | `game-ai` (solo per l'arrivo dei Clienti) | ogni Vizio ha il suo test |
-| 7 | Disturbatori: Croccola e scarafaggi | `game-feel` | coccolare e scacciare funzionano, e anche il furto e il Piatto rovinato |
+| 7 | Disturbatori: Croccola, formiche e corvi | `game-feel` | coccolare e scacciare funzionano, e anche il furto e il Piatto rovinato |
 | 8 | I 5 Matsuri: sfondi, mappa delle Serate, Gran Serate ed Eventi, curva di difficoltà descritta nei dati | `level-design` | si giocano tutte e 30 le Serate |
 | 9 | Progressione: Yen, Potenziamenti, Arredo, Vestiti, Che stile!, salvataggio | `save-systems` | i progressi sopravvivono al ricaricamento della pagina |
 | 10 | Tutorial, Ricettario, Titoli, Condividi | `game-ui-ux` | un nuovo giocatore capisce senza leggere istruzioni |
