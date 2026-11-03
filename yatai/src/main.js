@@ -7,6 +7,7 @@ import BootScene from './scenes/BootScene.js';
 import TitleScene from './scenes/TitleScene.js';
 import SviluppoScene from './scenes/SviluppoScene.js';
 import YataiScene from './scenes/YataiScene.js';
+import SerataScene from './scenes/SerataScene.js';
 import TavolaScene from './scenes/TavolaScene.js';
 import ClientiScene from './scenes/ClientiScene.js';
 
@@ -24,7 +25,7 @@ const game = new Phaser.Game({
   backgroundColor: VIEW.background,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   // Le scene di sviluppo non entrano nella versione pubblicata.
-  scene: [BootScene, TitleScene, YataiScene, ...(import.meta.env.DEV ? [SviluppoScene, TavolaScene, ClientiScene] : [])],
+  scene: [BootScene, TitleScene, SerataScene, ...(import.meta.env.DEV ? [YataiScene, SviluppoScene, TavolaScene, ClientiScene] : [])],
 });
 
 installScreen(game);

@@ -1,0 +1,9 @@
+[
+  { "goto": "?sviluppo=serata&seme=trascinamento" },
+  { "advance": 100 },
+  { "gioca": { "finoA": 45000, "servi": "trascinamento" } },
+  { "expect": "serata.serviti", "atLeast": 3 },
+  { "expect": "eventi.contati.trascinamentiRiusciti", "atLeast": 3 },
+  { "expect": "trascinamento", "equals": null },
+  { "shot": "trascinamento-1-a-45-secondi" }
+]

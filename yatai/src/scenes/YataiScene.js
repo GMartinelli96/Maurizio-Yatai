@@ -32,8 +32,9 @@ const rectState = (r) => ({ x: round(center(r).x), y: round(center(r).y), w: rou
 // Dati di avvio, tutti facoltativi: posti (3 o 4), postazioni (da 1 a 5), demo (se mettere due
 // Piatti di prova sul Bancone).
 export default class YataiScene extends Phaser.Scene {
-  constructor() {
-    super('yatai');
+  // `key` serve a SerataScene, che è lo stesso Yatai con la Serata dentro.
+  constructor(key = 'yatai') {
+    super(key);
   }
 
   init(data) {
@@ -45,6 +46,7 @@ export default class YataiScene extends Phaser.Scene {
   }
 
   // Gli oggetti si disegnano nell'ordine in cui nascono: pavimento, Posti, Bancone, Piatti,
+    this.impronte = null;
   // Maurizio, Postazioni.
   create() {
     addPaper(this);
@@ -165,7 +167,9 @@ export default class YataiScene extends Phaser.Scene {
       maurizio: { ...this.maurizio.getTextState(), fascia: rectState(layout.maurizio) },
       hud: rectState(layout.zone.hud),
       ultimoTocco: this.lastTouch,
-      textures: Object.fromEntries(textureKeys.map((key) => [key, textureFingerprint(this, key)])),
+      // Le impronte si calcolano una volta per scena: leggere i pixel di sfondi da 720×1000 a ogni
+      // chiamata renderebbe lenti i test che chiedono lo stato a ogni mossa. Le texture non cambiano.
+      textures: (this.impronte ??= Object.fromEntries(textureKeys.map((key) => [key, textureFingerprint(this, key)]))),
     };
   }
 }

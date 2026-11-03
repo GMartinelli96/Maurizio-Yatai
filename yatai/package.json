@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test": "node --test \"test/*.test.js\"",
     "playtest": "node scripts/playtest.mjs",
-    "playtest:offline": "vite build && node scripts/playtest.mjs --offline"
+    "playtest:offline": "vite build && node scripts/playtest.mjs --offline",
+    "telefono": "vite --host",
+    "anteprima": "vite build && vite preview --host"
   },
   "dependencies": {
     "phaser": "4.2.1"

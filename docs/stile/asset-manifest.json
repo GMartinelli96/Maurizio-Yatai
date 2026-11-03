@@ -22,6 +22,12 @@
       "id": "font-comic-neue", "role": "font latino 400 e 700", "path": "yatai/public/fonts/comic-neue-latin-{400,700}-normal.woff2", "status": "placeholder-for-final",
       "source": { "kind": "third-party", "url_or_tool": "npm @fontsource/comic-neue 5.3.0 (da github.com/google/fonts, ofl/comicneue)", "creator": "The Comic Neue Project Authors (https://github.com/crozynski/comicneue)", "created_at": "2026-11-03", "license": "SIL OFL 1.1", "attribution": "Copyright 2014 The Comic Neue Project Authors; testo in yatai/public/fonts/OFL.txt", "prompt_or_source_record": "Subset latino invariato, nessuna modifica. Non copre ō e ★ (ripiego di sistema)." }
     }
+    { "id": "nuvoletta", "role": "nuvoletta dell'Ordine sopra il Cliente, con la punta in basso; le icone dei Piatti stanno nel corpo", "path": "generated: yatai/src/disegni/serata.js drawNuvoletta()", "status": "target", "technical": { "dimensions": "190x120", "alpha": true, "note": "corpo 178x92 da (6,6), punta al centro in basso" } },
+    { "id": "cuore", "role": "cuoricino acceso della Pazienza", "path": "generated: yatai/src/disegni/serata.js drawCuore()", "status": "target", "technical": { "dimensions": "56x52", "alpha": true } },
+    { "id": "cuore-vuoto", "role": "cuoricino spento della Pazienza", "path": "generated: yatai/src/disegni/serata.js drawCuoreVuoto()", "status": "target", "technical": { "dimensions": "56x52", "alpha": true } },
+    { "id": "moneta", "role": "lo Yen: la monetina da 5 yen con il buco (il buco è trasparente)", "path": "generated: yatai/src/disegni/serata.js drawMoneta()", "status": "target", "technical": { "dimensions": "60x60", "alpha": true } },
+    { "id": "stella", "role": "stella del voto accesa", "path": "generated: yatai/src/disegni/serata.js drawStella()", "status": "target", "technical": { "dimensions": "68x66", "alpha": true } },
+    { "id": "stella-vuota", "role": "stella del voto spenta", "path": "generated: yatai/src/disegni/serata.js drawStellaVuota()", "status": "target", "technical": { "dimensions": "68x66", "alpha": true } },
   ],
   "provenance_note": "Nessuna immagine generata con AI né importata: i disegni sono codice. Il font giapponese definitivo (Klee One SemiBold, docs/ricerca/font-giapponese.md) arriva con il ticket 24."
 }

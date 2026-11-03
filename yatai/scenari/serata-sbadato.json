@@ -1,0 +1,31 @@
+[
+  { "goto": "?sviluppo=serata&seme=sbadato" },
+  { "advance": 100 },
+  { "gioca": { "finoA": 24500, "sbadato": true } },
+  { "expect": "clienti.0.cuori", "equals": 1 },
+  { "shot": "sbadato-1-ultimo-cuoricino" },
+  { "gioca": { "finoA": 26500, "sbadato": true } },
+  { "advance": 240 },
+  { "expect": "serata.persi", "atLeast": 1 },
+  { "expect": "clienti.0.stato", "equals": "imbronciato" },
+  { "expect": "clienti.0.espressione", "equals": "imbronciata" },
+  { "shot": "sbadato-2-se-ne-va" },
+  { "expect": "serata.incasso", "equals": 0 },
+
+  { "gioca": { "sbadato": true } },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "expect": "serata.incasso", "equals": 0 },
+  { "expect": "serata.stelle", "equals": 0 },
+  { "expect": "serata.persi", "atLeast": 3 },
+  { "advance": 3000 },
+  { "expect": "fine.stelle", "equals": 0 },
+  { "expect": "fine.stelleAccese", "equals": 0 },
+  { "shot": "sbadato-3-fine-senza-stelle" },
+
+  { "key": "Enter" },
+  { "advance": 400 },
+  { "expect": "serata.fase", "equals": "in corso" },
+  { "expect": "serata.persi", "equals": 0 },
+  { "expect": "fine", "equals": null },
+  { "shot": "sbadato-4-rigioca-con-invio" }
+]

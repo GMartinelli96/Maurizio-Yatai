@@ -2,6 +2,7 @@
 export default {
   subtitle: 'マウリツィオの屋台',
   developedBy: '開発：Maurizio Influencer Official',
+  play: 'あそぶ',
   piatto_onigiri: 'おにぎり',
   piatto_takoyaki: 'たこ焼き',
   piatto_kakigori: 'かき氷',
@@ -14,4 +15,10 @@ export default {
   endIncasso: 'うりあげ',
   endObiettivo: 'もくひょう',
   endRigioca: 'もういちど',
+  endServiti: 'ごちそうしたおきゃくさん',
+  endPersi: 'かえったおきゃくさん',
+  endVoto0: 'あしたはきっとうまくいくよ！',
+  endVoto1: 'いいよるだったね！',
+  endVoto2: 'すてきなよるだったね！',
+  endVoto3: 'でんせつのよるだ！',
 };

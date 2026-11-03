@@ -1,0 +1,37 @@
+[
+  { "goto": "?sviluppo=serata&seme=completa" },
+  { "advance": 100 },
+  { "expect": "scene", "equals": "serata" },
+  { "shot": "completa-0-avvio" },
+
+  { "gioca": { "finoA": 30000, "servi": "tocco" } },
+  { "expect": "serata.fase", "equals": "in corso" },
+  { "expect": "serata.serviti", "atLeast": 2 },
+  { "shot": "completa-1-trenta-secondi" },
+
+  { "gioca": { "finoA": 90000, "servi": "tocco" } },
+  { "expect": "serata.fase", "equals": "in corso" },
+  { "shot": "completa-2-novanta-secondi" },
+
+  { "gioca": { "servi": "tocco" } },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "expect": "serata.restaMs", "equals": 0 },
+  { "expect": "serata.serviti", "atLeast": 8 },
+  { "expect": "serata.incasso", "atLeast": 800 },
+  { "advance": 3500 },
+  { "expect": "hud.incasso", "atLeast": 800 },
+  { "expect": "fine.stelle", "atLeast": 1 },
+  { "expect": "fine.stelleAccese", "atLeast": 1 },
+  { "shot": "completa-3-fine-serata" },
+
+  { "tapPath": "fine" },
+  { "advance": 400 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "serata.fase", "equals": "in corso" },
+  { "expect": "serata.incasso", "equals": 0 },
+  { "expect": "serata.serviti", "equals": 0 },
+  { "expect": "hud.incasso", "equals": 0 },
+  { "expect": "seme", "notEquals": "completa" },
+  { "expect": "fine", "equals": null },
+  { "shot": "completa-4-rigioca" }
+]

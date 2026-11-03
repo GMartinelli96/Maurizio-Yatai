@@ -10,7 +10,7 @@
 // I tre mattoni sono stack (fasce una sopra l'altra), row (una fila centrata) e fitIn (un
 // disegno dentro un rettangolo).
 
-import { YATAI } from '../config.js';
+import { PAZIENZA, YATAI } from '../config.js';
 
 export const center = (r) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
 export const bottomCenter = (r) => ({ x: r.x + r.w / 2, y: r.y + r.h });
@@ -60,6 +60,62 @@ export function placeMaurizio(zone, w, h) {
   const { scalaMax, riempimento } = YATAI.maurizio;
   const fit = fitIn({ ...zone, h: zone.h * riempimento }, w, h, { maxScale: scalaMax, anchor: 'center' });
   return { ...fit, y: fit.y + (zone.h * (1 - riempimento)) / 2 };
+}
+
+// Il Cliente al suo Posto, dall'alto in basso dentro la fascia `rect` del Posto: la nuvoletta con
+// l'Ordine, la fila dei cuoricini di Pazienza, il Cliente seduto sullo sgabello. Il Cliente è un
+// disegno largo size.w e alto size.h, con i piedi in `feet` ({ x, y } dentro il disegno).
+//
+// Si parte dal basso: i piedi poggiano sul cuscino (YATAI.cliente.sedutoDalFondo dal fondo) e il
+// Cliente si ingrandisce fin dove lo lasciano la larghezza del Posto e lo spazio che resta sotto
+// nuvoletta e cuoricini. Così i tre pezzi non si sovrappongono a nessuna altezza di schermo.
+// Il punto del Cliente è il centro in basso del disegno (origine 0.5, 1).
+export function placeCliente(rect, size, feet) {
+  const C = YATAI.cliente;
+  const cx = rect.x + rect.w / 2;
+  const piediY = rect.y + rect.h - C.sedutoDalFondo;
+
+  const nuvolettaH = Math.max(C.nuvoletta.min, rect.h * C.nuvoletta.altezza);
+  const nuvolettaW = Math.min(rect.w, C.nuvoletta.larghezzaMax);
+  const nuvoletta = { x: cx - nuvolettaW / 2, y: rect.y, w: nuvolettaW, h: nuvolettaH };
+
+  const lato = Math.min(C.cuori.lato, (rect.w - 4 * C.cuori.spazio) / PAZIENZA.hearts);
+  const budget = piediY - (nuvoletta.y + nuvolettaH + lato + 2 * C.vuoto);
+  const scale = Math.max(0.1, Math.min(rect.w / size.w, budget / feet.y));
+  const testa = piediY - feet.y * scale;
+
+  const cuoriW = PAZIENZA.hearts * lato + (PAZIENZA.hearts - 1) * C.cuori.spazio;
+  const cuoriY = testa - C.vuoto - lato;
+  const cuori = {
+    rect: { x: cx - cuoriW / 2, y: cuoriY, w: cuoriW, h: lato },
+    lato,
+    centri: Array.from({ length: PAZIENZA.hearts }, (_, i) => ({ x: cx - cuoriW / 2 + lato / 2 + i * (lato + C.cuori.spazio), y: cuoriY + lato / 2 })),
+  };
+
+  return {
+    cliente: { x: cx, y: piediY + (size.h - feet.y) * scale, scale },
+    piedi: { x: cx, y: piediY },
+    nuvoletta,
+    cuori,
+  };
+}
+
+// La fascia in alto durante la Serata: sopra la moneta con l'Incasso a sinistra e il tempo a
+// destra, sotto la barra con le stelle. `frazioni` dice dove cade ogni stella sulla barra (da 0 a
+// 1, per esempio le soglie diviso la più alta). Il testo dell'Incasso parte da `incasso.x` (a
+// sinistra) e quello del tempo finisce a `tempo.x` (a destra), entrambi centrati su y.
+export function layoutHud(rect, frazioni) {
+  const H = YATAI.hud;
+  const riga = { ...rect, h: H.rigaAlta };
+  const barraY = rect.y + H.rigaAlta + (rect.h - H.rigaAlta) / 2;
+  const barra = { x: rect.x + H.stella / 2, y: barraY - H.barra / 2, w: rect.w - H.stella, h: H.barra };
+  return {
+    moneta: { x: rect.x + H.moneta / 2, y: riga.y + riga.h / 2, lato: H.moneta },
+    incasso: { x: rect.x + H.moneta + 10, y: riga.y + riga.h / 2 },
+    tempo: { x: rect.x + rect.w, y: riga.y + riga.h / 2 },
+    barra,
+    stelle: frazioni.map((f) => ({ x: barra.x + barra.w * f, y: barraY, lato: H.stella })),
+  };
 }
 
 // L'area in cui sta il contenuto: l'immagine di gioco meno l'area sicura e i margini (in alto

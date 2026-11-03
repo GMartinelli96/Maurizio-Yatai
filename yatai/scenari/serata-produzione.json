@@ -1,0 +1,12 @@
+[
+  { "advance": 200 },
+  { "expect": "scene", "equals": "title" },
+  { "tapPath": "play" },
+  { "advance": 600 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "serata.fase", "equals": "in corso" },
+  { "expect": "seme", "notEquals": null },
+  { "gioca": { "finoA": 25000 } },
+  { "expect": "serata.serviti", "atLeast": 2 },
+  { "shot": "produzione-1-a-25-secondi" }
+]

@@ -142,14 +142,31 @@ export const YATAI = {
   ],
   // I Posti: 3 all'inizio, 4 con il Potenziamento. Lo spazio c'è già per tutti e 4.
   posti: { iniziali: 3, massimo: 4, larghezzaMax: 190 },
-  // Le Postazioni: una per Piatto, in fila vicino al pollice. `altezzaEtichetta` è lo spazio per il nome.
-  postazioni: { massimo: 5, larghezzaMax: 140, spazio: 6, altezzaEtichetta: 40 },
+  // Le Postazioni: una per Piatto, in fila vicino al pollice. `altezzaEtichetta` è lo spazio per il nome;
+  // `barraDallaCima` e `piattoDallaCima` dicono a che altezza dalla cima del disegno stanno la barra della
+  // cottura e il Piatto pronto (la base dell'icona), in pixel del disegno.
+  postazioni: { massimo: 5, larghezzaMax: 140, spazio: 6, altezzaEtichetta: 40, barraDallaCima: 50, piattoDallaCima: 80 },
   // Quanti Piatti pronti stanno in fila sul Bancone (GAME_SPEC.md non lo dice: valore di partenza).
   // `superficie` è la parte alta del Bancone, il piano su cui si appoggiano i Piatti: 0,66 di 200 px
   // è l'altezza del piano nel disegno (BANCONE_PIANO), per questo la fascia del Bancone non cresce.
   bancone: { capacita: 5, larghezzaMax: 150, superficie: 0.66 },
   // Maurizio sta al centro della fascia `cucina`, senza ingrandirsi oltre il disegno.
   maurizio: { scalaMax: 0.85, riempimento: 0.95 },
+  // Il Cliente al suo Posto (placeCliente in src/layout/yatai.js). Dall'alto in basso dentro la fascia
+  // del Posto: la nuvoletta con l'Ordine, i cuoricini della Pazienza, il Cliente seduto sullo sgabello.
+  //   sedutoDalFondo: quanto sta in alto il punto dove poggiano i piedi, dal fondo della fascia (lo
+  //                   sgabello è alto 100 px e il cuscino è a 35 px dal suo bordo alto)
+  //   nuvoletta: altezza come frazione della fascia, mai sotto `min`, larghezza al massimo `larghezzaMax`
+  //   cuori: misura di ogni cuoricino; `spazio` tra uno e l'altro
+  //   vuoto: aria tra un pezzo e l'altro
+  cliente: {
+    sedutoDalFondo: 68,
+    nuvoletta: { altezza: 0.24, min: 64, larghezzaMax: 176 },
+    cuori: { lato: 30, spazio: 2 },
+    vuoto: 6,
+  },
+  // La fascia in alto durante la Serata: l'Incasso e il tempo sopra, la barra delle stelle sotto.
+  hud: { rigaAlta: 52, barra: 20, stella: 34, moneta: 40 },
 };
 
 // Maurizio si anima a ogni azione (le azioni sono istantanee, questa è solo scena): un saltino
@@ -184,6 +201,50 @@ export const SERATA_PRIMA = {
   piattiPerOrdine: { min: 1, max: 1 },
 };
 
+// --- La scena della Serata (src/scenes/SerataScene.js): comandi e riscontri ---
+// I tempi sono in millisecondi, le distanze in pixel di gioco.
+
+export const COMANDI = {
+  // I tasti rapidi (GAME_SPEC.md, "Comandi e accessibilità"): 1–5 per le Postazioni, Q/W/E/R per i
+  // Posti. Sono codici fisici (KeyboardEvent.code): restano nello stesso punto su ogni tastiera.
+  postazioni: ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'],
+  posti: ['KeyQ', 'KeyW', 'KeyE', 'KeyR'],
+  // Anche il tastierino numerico fa le Postazioni.
+  postazioniTastierino: ['Numpad1', 'Numpad2', 'Numpad3', 'Numpad4', 'Numpad5'],
+  rigioca: ['Enter', 'Space'],
+  // Un tocco sulla Postazione un attimo prima che il Piatto sia pronto non va perso: se manca
+  // meno di così, il tocco si ricorda e scatta appena il Piatto è pronto.
+  anticipoMs: 250,
+};
+
+export const RISCONTRI = {
+  // Un frame lungo (scheda in secondo piano, telefono lento) non fa saltare mezza Serata: la
+  // scena non fa avanzare la logica di più di così per frame.
+  dtMaxMs: 250,
+  // Il Cliente arriva con un saltino, e se ne va in meno di POSTI.ricambioSec: il Posto resta
+  // libero abbastanza a lungo da vedere l'uscita (un test lo controlla).
+  arrivo: { durata: 340 },
+  uscita: { servito: 620, imbronciato: 760, spostamento: 90 },
+  // La testa che scuote: `volte` andata e ritorno di `angolo` gradi, ognuno di `durata`.
+  scuoteTesta: { angolo: 9, durata: 70, volte: 3 },
+  // Il Piatto che vola dal Bancone al Cliente e dalla Postazione al Bancone.
+  piatto: { vola: 230 },
+  // Le monete volano dal Cliente all'Incasso: una ogni `scaglione` Yen, da 1 a `max`.
+  monete: { durata: 560, scaglione: 50, max: 6, ritardo: 70 },
+  // I cuoricini della Mancia: tanti quanti i cuoricini di Pazienza rimasti.
+  mancia: { durata: 900, salita: 90 },
+  // La scritta "+150" che sale dal Cliente.
+  somma: { durata: 950, salita: 80 },
+  // Il Piatto pronto sulla Postazione, che ondeggia perché lo si tocchi.
+  pronto: { durata: 420, ampiezza: 8 },
+  // L'ultimo cuoricino lampeggia: manca poco.
+  ultimoCuore: { durata: 260 },
+  // I secondi finali, in cui il tempo diventa rosso.
+  tempoRosso: 10,
+  // La schermata di fine Serata arriva dopo che le monete sono arrivate; poi le stelle una a una.
+  fine: { ritardo: 1200, stella: 420, conta: 900 },
+};
+
 export const POSTI = {
   quanti: 3,
   // Dopo che un Cliente se n'è andato il Posto resta libero per un attimo, così la scena ha il tempo
@@ -197,12 +258,14 @@ export const CLIENTI = {
   primoArrivoSec: 1.5,
   arrivoSec: { min: 5, max: 9 },
   // I Clienti di passaggio: nessun Vizio.
-  passaggio: ['tanuki', 'kitsune', 'manekineko'],
+  passaggio: ['tanuki', 'kitsune', 'maneki-neko'],
 };
 
 export const BANCONE = {
-  // Quanti Piatti pronti stanno sul Bancone. Se è pieno, il Piatto resta sulla Postazione.
-  capienza: 6,
+  // Quanti Piatti pronti stanno sul Bancone. Se è pieno, il Piatto resta sulla Postazione. Sono
+  // quanti ne mostra lo schermo (YATAI.bancone.capacita): un numero solo, così la logica e il
+  // disegno non possono più discordare.
+  capienza: YATAI.bancone.capacita,
 };
 
 // Le Postazioni: l'id è quello che si tocca; piatto è il Piatto che preparano.

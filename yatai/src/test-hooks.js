@@ -12,12 +12,26 @@ export function installTestHooks(game) {
   let manual = false;
   let time = 0;
 
+  // I tween di Phaser (TweenManager.getDelta) misurano il tempo reale con Date.now(), non quello che
+  // passa a ogni game.step(): con il tempo manuale una prova da 2 secondi li farebbe avanzare di
+  // pochi millisecondi. Si fa seguire loro il tempo del test, un frame per volta.
+  const followManualTime = () => {
+    for (const scene of game.scene.scenes) {
+      const tweens = scene.tweens;
+      if (tweens && !tweens.manualClock) {
+        tweens.manualClock = true;
+        tweens.getDelta = () => FRAME_MS;
+      }
+    }
+  };
+
   window.advanceTime = (ms) => {
     if (!manual) {
       game.loop.sleep();
       manual = true;
       time = game.loop.time;
     }
+    followManualTime();
     const frames = Math.max(1, Math.round(ms / FRAME_MS));
     for (let i = 0; i < frames; i++) {
       time += FRAME_MS;

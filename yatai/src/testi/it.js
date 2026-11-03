@@ -2,6 +2,7 @@
 export default {
   subtitle: 'La bancarella del Matsuri',
   developedBy: 'sviluppato da Maurizio Influencer Official',
+  play: 'Gioca',
   // I nomi dei Piatti: la chiave è piatto_ più quella di PIATTI in config.js.
   piatto_onigiri: 'Onigiri',
   piatto_takoyaki: 'Takoyaki',
@@ -15,4 +16,11 @@ export default {
   endIncasso: 'Incasso',
   endObiettivo: 'Obiettivo',
   endRigioca: 'Rigioca',
+  endServiti: 'Clienti serviti',
+  endPersi: 'Andati via',
+  // Il commento di Maurizio, secondo le stelle (da 0 a 3).
+  endVoto0: 'Domani andrà meglio!',
+  endVoto1: 'Bella serata!',
+  endVoto2: 'Che serata!',
+  endVoto3: 'Una serata da leggenda!',
 };

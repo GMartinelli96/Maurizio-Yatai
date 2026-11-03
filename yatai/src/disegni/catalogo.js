@@ -9,6 +9,9 @@ import { MAURIZIO_SIZE, POSE, drawMaurizio, maurizioKey } from './maurizio.js';
 import { DISEGNI_CLIENTI } from './clienti.js';
 import { drawOnigiri, onigiriSize } from './onigiri.js';
 import { POSTAZIONE_SIZE, POSTAZIONI, postazioneKey } from './postazioni.js';
+import {
+  CUORE_SIZE, MONETA_SIZE, NUVOLETTA, STELLA_SIZE, drawCuore, drawCuoreVuoto, drawMoneta, drawNuvoletta, drawStella, drawStellaVuota,
+} from './serata.js';
 import { BANCONE_SIZE, PAVIMENTO_SIZE, POSTO_SIZE, drawBancone, drawPavimento, drawPosto } from './yatai.js';
 
 export const ONIGIRI_BANCONE = 150;
@@ -29,6 +32,13 @@ export const DISEGNI = {
   ...Object.fromEntries(Object.entries(POSTAZIONI).map(([piatto, draw]) => [postazioneKey(piatto), { ...POSTAZIONE_SIZE, draw }])),
   // I Clienti di passaggio: tre per tre espressioni.
   ...DISEGNI_CLIENTI,
+  // La Serata: la nuvoletta dell'Ordine, i cuoricini della Pazienza, lo Yen e le stelle del voto.
+  nuvoletta: { w: NUVOLETTA.w, h: NUVOLETTA.h, draw: drawNuvoletta },
+  cuore: { ...CUORE_SIZE, draw: drawCuore },
+  'cuore-vuoto': { ...CUORE_SIZE, draw: drawCuoreVuoto },
+  moneta: { ...MONETA_SIZE, draw: drawMoneta },
+  stella: { ...STELLA_SIZE, draw: drawStella },
+  'stella-vuota': { ...STELLA_SIZE, draw: drawStellaVuota },
 };
 
 // I pannelli e i pulsanti cambiano misura da una schermata all'altra: si disegnano su richiesta.

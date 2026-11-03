@@ -1,0 +1,15 @@
+[
+  { "goto": "?sviluppo=serata&seme=tasti" },
+  { "advance": 100 },
+  { "key": "KeyR" },
+  { "key": "Digit4" },
+  { "key": "KeyA" },
+  { "advance": 200 },
+  { "expect": "serata.fase", "equals": "in corso" },
+  { "expect": "ultimoTocco", "equals": null },
+  { "gioca": { "finoA": 45000, "servi": "tasti" } },
+  { "expect": "serata.serviti", "atLeast": 3 },
+  { "expect": "eventi.contati.sulBancone", "atLeast": 3 },
+  { "expect": "eventi.contati.servito", "atLeast": 3 },
+  { "shot": "tasti-1-a-45-secondi" }
+]

@@ -1,0 +1,13 @@
+[
+  { "advance": 200 },
+  { "expect": "scene", "equals": "title" },
+  { "expect": "play.w", "equals": 420 },
+  { "shot": "titolo-1" },
+  { "tapPath": "play" },
+  { "advance": 600 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "serata.fase", "equals": "in corso" },
+  { "expect": "serata.incasso", "equals": 0 },
+  { "expect": "serata.posti.length", "equals": 3 },
+  { "shot": "titolo-2-serata" }
+]

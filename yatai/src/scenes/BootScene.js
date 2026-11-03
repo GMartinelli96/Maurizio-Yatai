@@ -9,6 +9,7 @@ import { generateTextures } from '../kit/texture.js';
 //   ?sviluppo           apre la scena di sviluppo (le tavole di prova)
 //   ?sviluppo=yatai     apre direttamente una scena, per nome
 //   &posti=4            la apre con 4 Posti (lo Yatai)
+//   &seme=prova         fissa il seme dei Clienti della Serata (?sviluppo=serata&seme=prova), per ripetere una partita
 //   &area=47,0,34,0     simula i margini sicuri del telefono: alto, destra, basso, sinistra
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -23,6 +24,7 @@ export default class BootScene extends Phaser.Scene {
       const query = new URLSearchParams(window.location.search);
       if (query.has('sviluppo')) next = query.get('sviluppo') || 'sviluppo';
       if (query.has('posti')) data = { posti: Number(query.get('posti')) };
+      if (query.has('seme')) data = { ...data, seme: query.get('seme') };
     }
     loadFonts().then(() => this.scene.start(next, data));
   }
