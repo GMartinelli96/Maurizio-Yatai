@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>PROTOTIPO – Cucina a tocchi</title>
+<!--
+  PROTOTIPO USA-E-GETTA. Non è il gioco e non entra nel gioco.
+  Domanda (ticket 02 della mappa yatai-economia-e-cucina): quanto interattiva deve essere la cucina
+  dello Yatai senza rovinare la rapidità sul telefono (tocchi istantanei, 120 s, 3 Posti)?
+  Tre varianti, stessi Clienti per tutte (stesso seme), numeri veri della Serata:
+    A) com'è oggi: un tocco, il Piatto cuoce da solo, un tocco per prenderlo
+    B) a tocchi in sequenza: gli Ingredienti in un ordine fisso (la "ricetta"), poi si prende
+    C) a tocchi, ordine libero: gli Ingredienti nello stesso passaggio in qualsiasi ordine
+  Tutto in memoria. Il blocco "Cucina" è logica pura (niente DOM): è la parte che si potrebbe
+  sollevare; il resto è solo la pagina per giocarci.
+  Parametri nell'indirizzo: ?variante=A|B|C &menu=hanami|tanabata &sbagliato=a|b|c &auto=1 (parte
+  subito) &manuale=1 (il tempo avanza solo con window.advanceTime, per i test).
+-->
+<style>
+  :root{
+    --carta:#fbf3e4; --carta2:#f3e6cc; --inchiostro:#3b2f2f; --tenue:#8a7a6a;
+    --accento:#d9482f; --accento2:#f6d9cf; --ok:#4f8a5b; --rosso:#b3261e; --linea:#e0cfae;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--carta);color:var(--inchiostro);
+    font:15px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+  body{padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+  .app{width:100%;max-width:420px;height:100dvh;max-height:780px;margin:0 auto;display:flex;flex-direction:column;
+    position:relative;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+  button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;touch-action:manipulation}
+  /* HUD */
+  .hud{display:flex;align-items:center;gap:10px;padding:8px 12px 4px}
+  .esci{width:34px;height:34px;border-radius:10px;background:var(--carta2);font-size:18px}
+  .incasso{font-size:13px;color:var(--tenue);flex:1}
+  .incasso b{font-size:24px;color:var(--inchiostro);margin-left:4px}
+  .incasso.rosso b{color:var(--rosso)}
+  .tempo{font-size:20px;font-variant-numeric:tabular-nums;font-weight:700}
+  .tempo.fine{color:var(--rosso)}
+  .tocchi{font-size:11px;color:var(--tenue);min-width:52px;text-align:right}
+  .barra{height:4px;margin:0 12px;background:var(--carta2);border-radius:2px;overflow:hidden}
+  .barra i{display:block;height:100%;background:var(--accento)}
+  /* Posti */
+  .posti{display:flex;gap:8px;padding:10px 12px 4px}
+  .posto{flex:1;height:138px;border-radius:14px;background:var(--carta2);border:2px solid var(--linea);
+    display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:6px 4px;cursor:pointer}
+  .posto.vuoto{opacity:.45;border-style:dashed}
+  .posto .nuvola{min-height:30px;background:#fff;border-radius:12px;padding:2px 6px;font-size:20px;letter-spacing:2px;
+    box-shadow:0 1px 0 var(--linea)}
+  .posto .faccia{font-size:42px;line-height:1}
+  .posto .cuori{font-size:13px;letter-spacing:1px;color:var(--accento)}
+  .posto .cuori .spento{color:#cdbb9c}
+  /* Bancone */
+  .bancone{margin:6px 12px 0;padding:6px 8px;border-radius:12px;background:#e9d3a8;display:flex;align-items:center;gap:6px}
+  .bancone .eti{font-size:11px;color:#7a6440;width:56px}
+  .bancone .slot{flex:1;height:38px;border-radius:9px;background:#f6e8c8;display:flex;align-items:center;justify-content:center;font-size:24px}
+  /* Postazioni */
+  .postazioni{flex:1;display:flex;gap:8px;padding:10px 12px 12px;min-height:0}
+  .post{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .piatto{flex:1;min-height:90px;border-radius:16px;background:#fff;border:2px solid var(--linea);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:2px;position:relative;overflow:hidden;cursor:pointer;text-align:center}
+  .piatto .gr{font-size:46px;line-height:1.05}
+  .piatto .did{font-size:12px;color:var(--tenue);padding:0 6px}
+  .piatto .messi{font-size:22px;min-height:26px}
+  .piatto.pronto{border-color:var(--ok)}
+  .piatto.bruciato{border-color:var(--rosso);background:#fde7e4}
+  .piatto.fumo{background:#ece6df}
+  .piatto .cuoce{position:absolute;left:0;bottom:0;height:6px;background:var(--accento)}
+  .ricetta{font-size:13px;text-align:center;color:var(--tenue);min-height:18px;letter-spacing:.5px}
+  .ricetta .fatto{opacity:.35;text-decoration:line-through}
+  .ings{display:flex;gap:6px}
+  .ing{flex:1;height:58px;border-radius:14px;background:var(--accento2);border:2px solid transparent;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;line-height:1.15}
+  .ing .ic{font-size:24px;line-height:1}
+  .ing small{color:var(--tenue);font-size:11px}
+  .ing.prossimo{border-color:var(--accento);background:#fff}
+  .ing.messo{opacity:.35}
+  /* Pannelli: inizio e fine */
+  .pannello{position:absolute;inset:0;background:var(--carta);padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+  .pannello.velo{background:rgba(251,243,228,.985)}
+  h1{font-size:19px;margin:0}
+  h2{font-size:13px;margin:6px 0 0;text-transform:uppercase;letter-spacing:.06em;color:var(--tenue)}
+  p{margin:0}
+  .domanda{font-size:13px;color:var(--tenue)}
+  .scelte{display:flex;flex-direction:column;gap:6px}
+  .scelta{text-align:left;padding:9px 12px;border-radius:12px;background:var(--carta2);border:2px solid transparent}
+  .scelta b{display:block}
+  .scelta span{font-size:12px;color:var(--tenue)}
+  .scelta.on{border-color:var(--accento);background:#fff}
+  .scelta.off{opacity:.4}
+  .riga{display:flex;gap:6px}
+  .riga .scelta{flex:1;text-align:center}
+  .grande{height:52px;border-radius:14px;background:var(--accento);color:#fff;font-weight:700;font-size:17px}
+  .grande.fisso{position:sticky;bottom:0;box-shadow:0 -10px 12px -2px var(--carta);margin-top:auto;flex:none}
+  .scelta{flex:none}
+  .secondario{height:46px;border-radius:14px;background:var(--carta2);font-weight:600}
+  table{border-collapse:collapse;width:100%;font-size:12px}
+  td,th{padding:4px 5px;border-bottom:1px solid var(--linea);text-align:right}
+  td:first-child,th:first-child{text-align:left}
+  .recap td{font-size:14px}
+  .recap tr.tot td{font-weight:700;border-bottom:0;font-size:16px}
+  .gentile{padding:8px 10px;background:var(--accento2);border-radius:10px;font-size:13px}
+  .tab{overflow-x:auto}
+  /* Scritte che salgono */
+  #floats{position:fixed;inset:0;pointer-events:none;z-index:5}
+  .f{position:absolute;transform:translate(-50%,-50%);font-weight:800;font-size:19px;white-space:nowrap;
+    text-shadow:0 1px 0 #fff,0 -1px 0 #fff,1px 0 0 #fff,-1px 0 0 #fff;animation:sale 900ms ease-out forwards}
+  .f.spesa{color:var(--rosso);font-size:15px}
+  .f.vendita{color:var(--ok)}
+  .f.avviso{color:var(--accento);font-size:14px}
+  @keyframes sale{from{opacity:1;margin-top:0}to{opacity:0;margin-top:-56px}}
+</style>
+</head>
+<body>
+<div id="app" class="app"></div>
+<div id="floats"></div>
+
+<script>
+/* ============================================================================================
+   Cucina: la logica pura (niente DOM, niente tempo reale). I numeri sono quelli di config.js
+   del gioco (Pazienza 25 s e 5 cuoricini, Mancia fino a +50%, 3 Posti, arrivi ogni 2,5–4,5 s,
+   Bancone da 5, Fumo 3 s) e la bozza degli Ingredienti di GAME_SPEC.md.
+   ============================================================================================ */
+const Cucina = (() => {
+  const PASSO = 10;
+  const CFG = {
+    durataMs: 120000, posti: 3, ricambioMs: 1000, primoArrivoMs: 1500, arrivoMs: [2500, 4500],
+    pazienzaMs: 25000, cuori: 5, mancia: 0.5, banconeCap: 5, fumoMs: 3000,
+  };
+  const INGREDIENTI = {
+    riso:    { nome: 'Riso',    icona: '🍚', costo: 20 },
+    alga:    { nome: 'Alga',    icona: '🌿', costo: 10 },
+    pastella:{ nome: 'Pastella',icona: '🥣', costo: 30 },
+    polpo:   { nome: 'Polpo',   icona: '🐙', costo: 50 },
+    salsa:   { nome: 'Salsa',   icona: '🥫', costo: 20 },
+  };
+  // prima: gli Ingredienti prima della cottura; dopo: quelli da mettere a cottura finita.
+  // cotturaA: la cottura di oggi (tutto in automatico); cotturaBC: la cottura quando gli
+  // Ingredienti li metti tu (l'onigiri non ha attesa: il lavoro sono i tocchi).
+  const PIATTI = {
+    onigiri:  { nome: 'Onigiri',  icona: '🍙', prezzo: 100, prima: ['riso', 'alga'],      dopo: [],        cotturaA: 1000, cotturaBC: 0,    brucia: null },
+    takoyaki: { nome: 'Takoyaki', icona: '🧆', prezzo: 300, prima: ['pastella', 'polpo'], dopo: ['salsa'], cotturaA: 5000, cotturaBC: 5000, brucia: 4000 },
+  };
+  const MENU = { hanami: ['onigiri'], tanabata: ['onigiri', 'takoyaki'] };
+  const CLIENTI = ['🦝', '🦊', '🐱'];
+
+  function rng(seme) {
+    let a = seme >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const cuoriDa = (ms) => Math.max(0, Math.min(CFG.cuori, Math.ceil(ms / (CFG.pazienzaMs / CFG.cuori))));
+  const calcolaMancia = (prezzo, cuori) => Math.round((prezzo * CFG.mancia * cuori) / CFG.cuori);
+  const incasso = (s) => s.vendite - s.spesa;
+
+  function nuova({ variante = 'A', menu = 'hanami', sbagliato = 'a', seme = 7 } = {}) {
+    const r = rng(seme + (menu === 'hanami' ? 0 : 1000));
+    const piatti = MENU[menu];
+    // Gli arrivi sono scritti prima: stessi Clienti per A, B e C.
+    const arrivi = Array.from({ length: 80 }, () => {
+      const dopoMs = Math.round((CFG.arrivoMs[0] + r() * (CFG.arrivoMs[1] - CFG.arrivoMs[0])) / PASSO) * PASSO;
+      const quanti = menu === 'hanami' ? 1 : 1 + Math.floor(r() * 2);
+      const ordine = Array.from({ length: quanti }, () => (piatti.length === 1 ? piatti[0] : r() < 0.6 ? 'onigiri' : 'takoyaki'));
+      return { dopoMs, ordine, tipo: Math.floor(r() * CLIENTI.length) };
+    });
+    return {
+      variante, menu, sbagliato, tempoMs: 0, resto: 0, finita: false,
+      vendite: 0, spesa: 0, spreco: 0, avanzati: 0, serviti: 0, persi: 0, tocchi: 0,
+      posti: Array.from({ length: CFG.posti }, () => ({ cliente: null, liberoDaMs: 0 })),
+      bancone: [],
+      postazioni: piatti.map((p) => ({ id: p, piatto: p, stato: 'libera', messi: [], cottoMs: 0, prontoMs: 0, fumoMs: 0, costo: 0 })),
+      arrivi, indiceArrivo: 0, prossimoArrivoMs: CFG.primoArrivoMs, prossimoId: 1,
+    };
+  }
+
+  const postazione = (s, id) => s.postazioni.find((p) => p.id === id);
+  const tutti = (def) => [...def.prima, ...def.dopo];
+  const completo = (p) => tutti(PIATTI[p.piatto]).every((i) => p.messi.includes(i));
+  const cotturaMs = (s, p) => (s.variante === 'A' ? PIATTI[p.piatto].cotturaA : PIATTI[p.piatto].cotturaBC);
+
+  // Gli Ingredienti che adesso vanno bene: in B uno solo (il prossimo), in C tutti quelli del passaggio.
+  function attesi(s, p) {
+    const def = PIATTI[p.piatto];
+    let gruppo = [];
+    if (p.stato === 'libera' || p.stato === 'prepara') gruppo = def.prima;
+    else if (p.stato === 'pronto') gruppo = def.dopo;
+    const mancanti = gruppo.filter((i) => !p.messi.includes(i));
+    return s.variante === 'B' ? mancanti.slice(0, 1) : mancanti;
+  }
+
+  function paga(s, p, ing, ev) {
+    const costo = INGREDIENTI[ing].costo;
+    s.spesa += costo;
+    ev.push({ tipo: 'spesa', post: p.id, yen: costo });
+    return costo;
+  }
+  function spreca(s, yen) { s.spreco += yen; }
+
+  // Dopo un Ingrediente giusto: se il passaggio prima della cottura è finito, parte la cottura.
+  function avanza(s, p, ev) {
+    const def = PIATTI[p.piatto];
+    if (!(p.stato === 'libera' || p.stato === 'prepara')) return;
+    if (def.prima.every((i) => p.messi.includes(i))) {
+      if (cotturaMs(s, p) > 0) { p.stato = 'cuoce'; p.cottoMs = 0; ev.push({ tipo: 'cotturaIniziata', post: p.id }); }
+      else { p.stato = 'pronto'; p.prontoMs = 0; ev.push({ tipo: 'pronto', post: p.id }); }
+    } else p.stato = 'prepara';
+  }
+
+  // Il tocco su un Ingrediente (solo B e C).
+  function ingrediente(s, id, ing) {
+    if (s.finita || s.variante === 'A') return [];
+    s.tocchi++;
+    const p = postazione(s, id); const ev = [];
+    if (p.messi.includes(ing)) return [{ tipo: 'giaMesso', post: id }];
+    if (p.stato === 'cuoce' || p.stato === 'bruciato' || p.stato === 'fumo') return [{ tipo: 'scuote', dove: 'postazione', id }];
+    if (attesi(s, p).includes(ing)) {
+      p.costo += paga(s, p, ing, ev);
+      p.messi.push(ing);
+      ev.push({ tipo: 'messo', post: id, ing });
+      avanza(s, p, ev);
+      return ev;
+    }
+    // Ordine sbagliato. a: niente; b: l'Ingrediente è Spreco; c: la sequenza riparte, tutto Spreco.
+    ev.push({ tipo: 'sbagliato', post: id, ing });
+    if (s.sbagliato === 'b') { const c = paga(s, p, ing, ev); spreca(s, c); }
+    if (s.sbagliato === 'c') {
+      const c = paga(s, p, ing, ev); spreca(s, c + p.costo);
+      p.stato = 'libera'; p.messi = []; p.costo = 0; ev.push({ tipo: 'riparte', post: id });
+    }
+    return ev;
+  }
+
+  // Il tocco sul Piatto della Postazione.
+  function tocca(s, id) {
+    if (s.finita) return [];
+    s.tocchi++;
+    const p = postazione(s, id); const def = PIATTI[p.piatto]; const ev = [];
+    if (p.stato === 'libera') {
+      if (s.variante !== 'A') return [{ tipo: 'scuote', dove: 'postazione', id }];
+      for (const ing of tutti(def)) { p.costo += paga(s, p, ing, ev); p.messi.push(ing); }
+      p.stato = 'cuoce'; p.cottoMs = 0;
+      ev.push({ tipo: 'cotturaIniziata', post: id });
+    } else if (p.stato === 'pronto') {
+      if (!completo(p)) return [{ tipo: 'scuote', dove: 'postazione', id }];
+      if (s.bancone.length >= CFG.banconeCap) return [{ tipo: 'banconePieno', post: id }, { tipo: 'scuote', dove: 'postazione', id }];
+      s.bancone.push({ piatto: p.piatto, costo: p.costo });
+      p.stato = 'libera'; p.messi = []; p.costo = 0; p.prontoMs = 0;
+      ev.push({ tipo: 'sulBancone', post: id });
+    } else if (p.stato === 'bruciato') {
+      p.stato = 'fumo'; p.fumoMs = CFG.fumoMs; p.messi = []; p.costo = 0;
+      ev.push({ tipo: 'cestino', post: id });
+    } else if (p.stato === 'prepara' || p.stato === 'fumo') {
+      ev.push({ tipo: 'scuote', dove: 'postazione', id });
+    }
+    return ev; // cuoce: non succede niente
+  }
+
+  // Il tocco sul Cliente: è servito se sul Bancone c'è tutto il suo Ordine.
+  function servi(s, i) {
+    if (s.finita) return [];
+    s.tocchi++;
+    const cliente = s.posti[i].cliente;
+    if (!cliente) return [];
+    const rimasti = [...s.bancone]; const mancano = [];
+    for (const piatto of cliente.ordine) {
+      const k = rimasti.findIndex((x) => x.piatto === piatto);
+      if (k === -1) mancano.push(piatto); else rimasti.splice(k, 1);
+    }
+    if (mancano.length) return [{ tipo: 'scuote', dove: 'posto', id: i }];
+    s.bancone = rimasti;
+    const prezzo = cliente.ordine.reduce((n, x) => n + PIATTI[x].prezzo, 0);
+    const mancia = calcolaMancia(prezzo, cliente.cuori);
+    s.vendite += prezzo + mancia; s.serviti++;
+    liberaPosto(s, s.posti[i]);
+    return [{ tipo: 'servito', posto: i, prezzo, mancia, yen: prezzo + mancia }];
+  }
+
+  function liberaPosto(s, posto) { posto.cliente = null; posto.liberoDaMs = s.tempoMs + CFG.ricambioMs; }
+
+  function passo(s, ev) {
+    s.tempoMs += PASSO;
+    for (const p of s.postazioni) {
+      if (p.stato === 'cuoce') {
+        p.cottoMs += PASSO;
+        if (p.cottoMs >= cotturaMs(s, p)) { p.stato = 'pronto'; p.prontoMs = 0; ev.push({ tipo: 'pronto', post: p.id }); }
+      } else if (p.stato === 'pronto') {
+        const brucia = PIATTI[p.piatto].brucia;
+        p.prontoMs += PASSO;
+        if (brucia !== null && p.prontoMs >= brucia) { p.stato = 'bruciato'; spreca(s, p.costo); ev.push({ tipo: 'bruciato', post: p.id }); }
+      } else if (p.stato === 'fumo') {
+        p.fumoMs -= PASSO;
+        if (p.fumoMs <= 0) p.stato = 'libera';
+      }
+    }
+    s.posti.forEach((posto, i) => {
+      const c = posto.cliente;
+      if (!c) return;
+      c.pazienzaMs = Math.max(0, c.pazienzaMs - PASSO);
+      c.cuori = cuoriDa(c.pazienzaMs);
+      if (c.pazienzaMs === 0) { s.persi++; ev.push({ tipo: 'perso', posto: i }); liberaPosto(s, posto); }
+    });
+    if (s.tempoMs >= s.prossimoArrivoMs) {
+      const liberi = s.posti.map((posto, i) => ({ posto, i })).filter(({ posto }) => !posto.cliente && posto.liberoDaMs <= s.tempoMs);
+      if (liberi.length) {
+        const { posto, i } = liberi[0];
+        const a = s.arrivi[s.indiceArrivo++ % s.arrivi.length];
+        posto.cliente = { id: s.prossimoId++, tipo: a.tipo, ordine: a.ordine, pazienzaMs: CFG.pazienzaMs, cuori: CFG.cuori };
+        s.prossimoArrivoMs = s.tempoMs + a.dopoMs;
+        ev.push({ tipo: 'arrivato', posto: i });
+      }
+    }
+    if (s.tempoMs >= CFG.durataMs) {
+      s.finita = true;
+      // Ciò che a fine tempo è ancora sul Bancone o a metà sulle Postazioni è Spreco.
+      for (const x of s.bancone) { s.avanzati += x.costo; spreca(s, x.costo); }
+      for (const p of s.postazioni) if (['prepara', 'cuoce', 'pronto'].includes(p.stato)) { s.avanzati += p.costo; spreca(s, p.costo); }
+      ev.push({ tipo: 'serataFinita' });
+    }
+  }
+
+  function aggiorna(s, dtMs) {
+    const ev = [];
+    if (s.finita) return ev;
+    s.resto += dtMs;
+    while (!s.finita && s.resto >= PASSO - 1e-6) { s.resto = Math.max(0, s.resto - PASSO); passo(s, ev); }
+    return ev;
+  }
+
+  return { CFG, INGREDIENTI, PIATTI, MENU, CLIENTI, nuova, aggiorna, tocca, ingrediente, servi, attesi, completo, cotturaMs, incasso };
+})();
+window.Cucina = Cucina;
+
+/* ============================================================================================
+   La pagina: una camicia sottile sopra Cucina. Si può buttare.
+   ============================================================================================ */
+(() => {
+  const { PIATTI, INGREDIENTI, CLIENTI, CFG } = Cucina;
+  const q = new URLSearchParams(location.search);
+  const VARIANTI = {
+    A: ['A · Com\'è oggi', 'Un tocco e il Piatto cuoce da solo; un tocco per prenderlo. Gli Ingredienti si pagano tutti all\'avvio.'],
+    B: ['B · A tocchi in sequenza', 'Gli Ingredienti uno dopo l\'altro, nell\'ordine della ricetta (onigiri: riso, alga, prendi). Ogni tocco paga il suo.'],
+    C: ['C · A tocchi, ordine libero', 'Gli Ingredienti dello stesso passaggio in qualsiasi ordine (onigiri: riso e alga come vuoi). Niente ordine sbagliato.'],
+  };
+  const MENUS = {
+    hanami: ['Hanami', 'solo onigiri, Ordini da 1 Piatto'],
+    tanabata: ['Tanabata', 'onigiri e takoyaki, Ordini da 1–2 Piatti'],
+  };
+  const SBAGLIATI = {
+    a: ['a · non succede niente', 'trema, non si paga'],
+    b: ['b · Spreco', 'l\'Ingrediente è perso'],
+    c: ['c · si riparte', 'tutto perso, da capo'],
+  };
+
+  const ui = {
+    schermata: q.get('auto') ? 'gioco' : 'inizio', t: 0, p: null, storico: [], shake: {}, ultimo: '',
+    cfg: {
+      variante: ['A', 'B', 'C'].includes(q.get('variante')) ? q.get('variante') : 'B',
+      menu: MENUS[q.get('menu')] ? q.get('menu') : 'hanami',
+      sbagliato: SBAGLIATI[q.get('sbagliato')] ? q.get('sbagliato') : 'a',
+    },
+  };
+  const app = document.getElementById('app');
+  const manuale = !!q.get('manuale');
+
+  /* --- suono: un beep per dare risposta al tocco, niente di più --- */
+  let audio = null;
+  function beep(freq, ms = 70, tipo = 'triangle', vol = 0.06) {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = tipo; o.frequency.value = freq; g.gain.value = vol;
+      g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + ms / 1000);
+      o.connect(g).connect(audio.destination); o.start(); o.stop(audio.currentTime + ms / 1000);
+    } catch (e) { /* senza suono si gioca lo stesso */ }
+  }
+
+  /* --- scritte che salgono e tremolii --- */
+  function flota(testo, selettore, cls) {
+    const el = document.querySelector(selettore); if (!el) return;
+    const r = el.getBoundingClientRect();
+    const f = document.createElement('div');
+    f.className = 'f ' + cls; f.textContent = testo;
+    f.style.left = (r.left + r.width / 2) + 'px'; f.style.top = (r.top + r.height / 3) + 'px';
+    document.getElementById('floats').appendChild(f);
+    setTimeout(() => f.remove(), 950);
+  }
+  const trema = (chiave) => { ui.shake[chiave] = ui.t; };
+  function tremito(chiave) {
+    const inizio = ui.shake[chiave]; if (inizio === undefined) return '';
+    const dt = ui.t - inizio; if (dt > 340) return '';
+    return `transform:translateX(${(8 * Math.sin(dt / 24) * (1 - dt / 340)).toFixed(1)}px);`;
+  }
+
+  function reagisci(eventi) {
+    for (const e of eventi) {
+      if (e.tipo === 'spesa') { flota('−' + e.yen, `[data-post="${e.post}"].piatto`, 'spesa'); beep(330, 40, 'square', 0.03); }
+      else if (e.tipo === 'messo') beep(520, 60);
+      else if (e.tipo === 'cotturaIniziata') beep(440, 80);
+      else if (e.tipo === 'pronto') beep(700, 120);
+      else if (e.tipo === 'sulBancone') beep(600, 70);
+      else if (e.tipo === 'servito') { flota('+' + e.yen, `[data-posto="${e.posto}"]`, 'vendita'); beep(880, 90); setTimeout(() => beep(1175, 120), 80); }
+      else if (e.tipo === 'scuote') { trema(e.dove + e.id); beep(170, 90, 'sawtooth', 0.03); }
+      else if (e.tipo === 'sbagliato') { trema('postazione' + e.post); flota('non così', `[data-post="${e.post}"].piatto`, 'avviso'); beep(170, 90, 'sawtooth', 0.03); }
+      else if (e.tipo === 'riparte') flota('si riparte', `[data-post="${e.post}"].piatto`, 'avviso');
+      else if (e.tipo === 'bruciato') { flota('bruciato!', `[data-post="${e.post}"].piatto`, 'avviso'); beep(120, 200, 'sawtooth', 0.04); }
+      else if (e.tipo === 'banconePieno') flota('Bancone pieno', `[data-post="${e.post}"].piatto`, 'avviso');
+      else if (e.tipo === 'perso') beep(260, 140, 'sine', 0.04);
+      else if (e.tipo === 'serataFinita') chiudi();
+    }
+  }
+
+  function chiudi() {
+    const s = ui.p;
+    ui.storico.push({
+      v: ui.cfg.variante, menu: ui.cfg.menu, sb: ui.cfg.sbagliato, incasso: Cucina.incasso(s), tocchi: s.tocchi,
+      serviti: s.serviti, persi: s.persi, spreco: s.spreco,
+      perCliente: s.serviti ? (s.tocchi / s.serviti).toFixed(1) : '–',
+    });
+    ui.schermata = 'fine';
+  }
+
+  function avanza(ms) {
+    ui.t += ms;
+    if (ui.schermata === 'gioco' && ui.p) reagisci(Cucina.aggiorna(ui.p, ms));
+  }
+
+  function comincia() {
+    ui.p = Cucina.nuova(ui.cfg); ui.schermata = 'gioco'; ui.shake = {}; document.getElementById('floats').innerHTML = '';
+  }
+
+  /* --- HTML --- */
+  const yen = (n) => (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('it-IT');
+  const mmss = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+
+  function htmlPosti(s) {
+    return '<div class="posti">' + s.posti.map((po, i) => {
+      const c = po.cliente; const st = tremito('posto' + i);
+      if (!c) return `<div class="posto vuoto" data-az="cliente" data-posto="${i}" style="${st}"><div class="nuvola"></div><div class="faccia">·</div><div class="cuori"></div></div>`;
+      const seg = c.cuori <= 1 ? ' 💨' : c.cuori === 2 ? ' 💧' : '';
+      const cuori = '♥'.repeat(c.cuori) + `<span class="spento">${'♥'.repeat(CFG.cuori - c.cuori)}</span>`;
+      return `<div class="posto" data-az="cliente" data-posto="${i}" style="${st}"><div class="nuvola">${c.ordine.map((x) => PIATTI[x].icona).join('')}</div>` +
+        `<div class="faccia">${CLIENTI[c.tipo]}${seg}</div><div class="cuori">${cuori}</div></div>`;
+    }).join('') + '</div>';
+  }
+
+  function htmlBancone(s) {
+    const slot = Array.from({ length: CFG.banconeCap }, (_, i) => `<div class="slot">${s.bancone[i] ? PIATTI[s.bancone[i].piatto].icona : ''}</div>`).join('');
+    return `<div class="bancone"><div class="eti">Bancone</div>${slot}</div>`;
+  }
+
+  function ricetta(s, p) {
+    if (s.variante === 'A') return '';
+    const def = PIATTI[p.piatto]; const fatto = (i) => (p.messi.includes(i) ? 'fatto' : '');
+    const g = (lista, sep) => lista.map((i) => `<span class="${fatto(i)}">${INGREDIENTI[i].icona}</span>`).join(sep);
+    const sepPrima = s.variante === 'B' ? ' → ' : ' + ';
+    const parti = [g(def.prima, sepPrima)];
+    if (def.cotturaBC > 0) parti.push('⏱');
+    if (def.dopo.length) parti.push(g(def.dopo, sepPrima));
+    parti.push('✋');
+    return parti.join(' → ');
+  }
+
+  function htmlPostazione(s, p) {
+    const def = PIATTI[p.piatto]; const A = s.variante === 'A';
+    let gr = def.icona, did = '', cuoce = '', classe = '', messi = '';
+    const pieno = Cucina.completo(p);
+    switch (p.stato) {
+      case 'libera': gr = `<span style="opacity:.35">${def.icona}</span>`; did = A ? 'Tocca per cominciare' : 'Scegli gli Ingredienti'; break;
+      case 'prepara': gr = `<span style="opacity:.35">${def.icona}</span>`; messi = p.messi.map((i) => INGREDIENTI[i].icona).join(' '); did = 'Continua…'; break;
+      case 'cuoce': {
+        const ms = Cucina.cotturaMs(s, p); did = 'Cuoce…'; messi = p.messi.map((i) => INGREDIENTI[i].icona).join(' ');
+        cuoce = `<div class="cuoce" style="width:${Math.min(100, (p.cottoMs / ms) * 100).toFixed(0)}%"></div>`; break;
+      }
+      case 'pronto': classe = 'pronto'; gr = `<span style="display:inline-block;transform:scale(${(1 + 0.07 * Math.sin(ui.t / 110)).toFixed(3)})">${def.icona}</span>`;
+        did = pieno ? 'Prendilo!' : 'Manca ' + def.dopo.filter((i) => !p.messi.includes(i)).map((i) => INGREDIENTI[i].nome.toLowerCase()).join(', ');
+        if (def.brucia !== null) cuoce = `<div class="cuoce" style="width:${Math.min(100, (p.prontoMs / def.brucia) * 100).toFixed(0)}%;background:var(--rosso)"></div>`;
+        break;
+      case 'bruciato': classe = 'bruciato'; gr = '🔥'; did = 'Bruciato! Tocca per il cestino'; break;
+      case 'fumo': classe = 'fumo'; gr = '💨'; did = 'Fumo…'; break;
+    }
+    const ings = A ? '' : '<div class="ings">' + tutti(def).map((i) => {
+      const messo = p.messi.includes(i); const prossimo = Cucina.attesi(s, p).includes(i);
+      const cl = messo ? 'messo' : prossimo && s.variante === 'B' ? 'prossimo' : '';
+      return `<button class="ing ${cl}" data-az="ing" data-post="${p.id}" data-ing="${i}"><span class="ic">${messo ? '✓' : INGREDIENTI[i].icona}</span>${INGREDIENTI[i].nome}<small>−${INGREDIENTI[i].costo}</small></button>`;
+    }).join('') + '</div>';
+    function tutti(d) { return [...d.prima, ...d.dopo]; }
+    return `<div class="post"><div class="piatto ${classe}" data-az="piatto" data-post="${p.id}" style="${tremito('postazione' + p.id)}">` +
+      `<div class="gr">${gr}</div><div class="messi">${messi}</div><div class="did">${did}</div>${cuoce}</div>` +
+      `<div class="ricetta">${ricetta(s, p)}</div>${ings}</div>`;
+  }
+
+  function htmlGioco() {
+    const s = ui.p; const inc = Cucina.incasso(s);
+    const resto = CFG.durataMs - s.tempoMs;
+    return `<div class="hud"><button class="esci" data-az="esci" aria-label="Menu">☰</button>` +
+      `<div class="incasso ${inc < 0 ? 'rosso' : ''}">Incasso <b>¥${yen(inc)}</b></div>` +
+      `<div class="tempo ${resto <= 10000 ? 'fine' : ''}">${mmss(resto)}</div><div class="tocchi">${s.tocchi} tocchi</div></div>` +
+      `<div class="barra"><i style="width:${(100 * s.tempoMs / CFG.durataMs).toFixed(1)}%"></i></div>` +
+      htmlPosti(s) + htmlBancone(s) +
+      `<div class="postazioni">${s.postazioni.map((p) => htmlPostazione(s, p)).join('')}</div>`;
+  }
+
+  function sceltaVariante(k) {
+    return `<button class="scelta ${ui.cfg.variante === k ? 'on' : ''}" data-az="var" data-v="${k}"><b>${VARIANTI[k][0]}</b><span>${VARIANTI[k][1]}</span></button>`;
+  }
+  function htmlStorico() {
+    if (!ui.storico.length) return '';
+    return '<h2>Le prove di questa sessione</h2><div class="tab"><table><tr><th>Var.</th><th>Menù</th><th>Sb.</th><th>Incasso</th><th>Serviti</th><th>Persi</th><th>Tocchi</th><th>Tocchi/Cliente</th></tr>' +
+      ui.storico.map((r) => `<tr><td>${r.v}</td><td>${MENUS[r.menu][0]}</td><td>${r.v === 'A' ? '–' : r.sb}</td><td>¥${yen(r.incasso)}</td><td>${r.serviti}</td><td>${r.persi}</td><td>${r.tocchi}</td><td>${r.perCliente}</td></tr>`).join('') + '</table></div>';
+  }
+
+  function htmlInizio() {
+    const menu = Object.keys(MENUS).map((k) => `<button class="scelta ${ui.cfg.menu === k ? 'on' : ''}" data-az="menu" data-v="${k}"><b>${MENUS[k][0]}</b><span>${MENUS[k][1]}</span></button>`).join('');
+    const sb = Object.keys(SBAGLIATI).map((k) => `<button class="scelta ${ui.cfg.sbagliato === k ? 'on' : ''} ${ui.cfg.variante === 'A' ? 'off' : ''}" data-az="sb" data-v="${k}"><b>${SBAGLIATI[k][0]}</b><span>${SBAGLIATI[k][1]}</span></button>`).join('');
+    return `<div class="pannello"><h1>🍙 Prototipo: la cucina a tocchi</h1>` +
+      `<p class="domanda">Domanda: quanto interattiva deve essere la cucina dello Yatai senza rovinare la rapidità col pollice (120 secondi, 3 Posti, Clienti ogni 2,5–4,5 s)? ` +
+      `Prova una Serata per variante: sono gli stessi Clienti, quindi i numeri a fine Serata si confrontano. Tocca un Cliente per servirlo; ogni Ingrediente costa Yen (il "−20" che sale). ` +
+      `Usa-e-getta: non è il gioco.</p>` +
+      `<h2>Variante</h2><div class="scelte">${['A', 'B', 'C'].map(sceltaVariante).join('')}</div>` +
+      `<h2>Matsuri</h2><div class="riga">${menu}</div>` +
+      `<h2>Ordine sbagliato (B e C)</h2><div class="riga">${sb}</div>` +
+      htmlStorico() +
+      `<button class="grande fisso" data-az="comincia">Comincia la Serata</button></div>`;
+  }
+
+  function htmlFine() {
+    const s = ui.p; const inc = Cucina.incasso(s);
+    const gentile = inc < 0 ? '<div class="gentile">Stasera abbiamo sprecato troppo, riproviamo!</div>' : '';
+    return `<div class="pannello velo"><h1>Fine Serata · ${ui.cfg.variante} · ${MENUS[ui.cfg.menu][0]}</h1>` +
+      `<table class="recap"><tr><td>Vendite</td><td>¥${yen(s.vendite)}</td></tr>` +
+      `<tr><td>Spesa</td><td>−¥${yen(s.spesa)}</td></tr>` +
+      `<tr><td>di cui Spreco</td><td>¥${yen(s.spreco)}${s.avanzati ? ` <small>(avanzati ¥${yen(s.avanzati)})</small>` : ''}</td></tr>` +
+      `<tr class="tot"><td>Incasso</td><td>¥${yen(inc)}</td></tr></table>` + gentile +
+      `<table class="recap"><tr><td>Clienti serviti / persi</td><td>${s.serviti} / ${s.persi}</td></tr>` +
+      `<tr><td>Tocchi in tutto</td><td>${s.tocchi}</td></tr>` +
+      `<tr><td>Tocchi per Cliente servito</td><td>${s.serviti ? (s.tocchi / s.serviti).toFixed(1) : '–'}</td></tr></table>` +
+      `<button class="grande" data-az="comincia">Rigioca (${ui.cfg.variante})</button>` +
+      `<button class="secondario" data-az="esci">Cambia variante o Matsuri</button>` + htmlStorico() + `</div>`;
+  }
+
+  function render() {
+    let html;
+    if (ui.schermata === 'inizio') html = htmlInizio();
+    else html = htmlGioco() + (ui.schermata === 'fine' ? htmlFine() : '');
+    if (html !== ui.ultimo) { app.innerHTML = html; ui.ultimo = html; }
+  }
+
+  /* --- ingressi: pointerdown, così il tocco parte subito senza aspettare il rilascio --- */
+  app.addEventListener('pointerdown', (e) => {
+    const el = e.target.closest('[data-az]'); if (!el) return;
+    e.preventDefault();
+    const d = el.dataset; const s = ui.p;
+    if (navigator.vibrate) { try { navigator.vibrate(8); } catch (x) { /* niente vibrazione */ } }
+    if (d.az === 'var') ui.cfg.variante = d.v;
+    else if (d.az === 'menu') ui.cfg.menu = d.v;
+    else if (d.az === 'sb') ui.cfg.sbagliato = d.v;
+    else if (d.az === 'comincia') comincia();
+    else if (d.az === 'esci') ui.schermata = 'inizio';
+    else if (ui.schermata === 'gioco' && s) {
+      if (d.az === 'ing') reagisci(Cucina.ingrediente(s, d.post, d.ing));
+      else if (d.az === 'piatto') reagisci(Cucina.tocca(s, d.post));
+      else if (d.az === 'cliente') reagisci(Cucina.servi(s, +d.posto));
+    }
+    render();
+  });
+  app.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  /* --- tempo --- */
+  let ultimo = 0;
+  function frame(ts) {
+    const dt = ultimo ? Math.min(100, ts - ultimo) : 0; ultimo = ts;
+    avanza(dt); render();
+    requestAnimationFrame(frame);
+  }
+  if (!manuale) requestAnimationFrame(frame);
+
+  /* --- per i test col browser (come nel gioco vero) --- */
+  window.advanceTime = (ms) => { avanza(ms); render(); };
+  window.render_game_to_text = () => JSON.stringify({
+    schermata: ui.schermata, cfg: ui.cfg,
+    partita: ui.p && {
+      tempoMs: ui.p.tempoMs, incasso: Cucina.incasso(ui.p), vendite: ui.p.vendite, spesa: ui.p.spesa, spreco: ui.p.spreco,
+      serviti: ui.p.serviti, persi: ui.p.persi, tocchi: ui.p.tocchi, bancone: ui.p.bancone.map((x) => x.piatto),
+      posti: ui.p.posti.map((po, i) => ({ posto: i, ordine: po.cliente && po.cliente.ordine, cuori: po.cliente && po.cliente.cuori })),
+      postazioni: ui.p.postazioni.map((p) => ({ id: p.id, stato: p.stato, messi: p.messi, attesi: Cucina.attesi(ui.p, p) })),
+    },
+  });
+
+  if (ui.schermata === 'gioco') comincia();
+  render();
+})();
+</script>
+</body>
+</html>

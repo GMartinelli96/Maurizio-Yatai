@@ -15,3 +15,17 @@ Giochi per browser di "Maurizio Influencer Official", l'orsetto di peluche influ
 - `GLOSSARY.md`: il vocabolario del gioco in sviluppo (Maurizio Yatai). Usa questi termini nel codice, nei testi e nei commenti.
 - `GAME_SPEC.md` e `PIANO.md`: cosa costruire per Maurizio Yatai e in che ordine. `BACKLOG.md`: le idee rimandate, da non implementare adesso.
 - `RICERCA-skills-prompt-giochi.md`: skill e prompt raccolti, la mappa gioco → genere e un prompt base. Leggilo quando inizi un gioco nuovo.
+
+## Agent skills
+
+### Issue tracker
+
+Le issue sono file markdown locali in `.scratch/<feature>/`. Vedi `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Le cinque etichette predefinite (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). Vedi `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` e `docs/adr/` alla radice. Vedi `docs/agents/domain.md`.

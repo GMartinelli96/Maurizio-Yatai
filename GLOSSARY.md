@@ -48,14 +48,26 @@ _Avoid_: nemico, ostacolo
 
 **Piatto**:
 Un cibo che Maurizio prepara e serve a un Cliente (per esempio i takoyaki).
-_Avoid_: ricetta, pietanza, cibo
+_Avoid_: pietanza, cibo
+
+**Ingrediente**:
+Ciò che compone un Piatto e costa Yen (per esempio il riso e l'alga dell'onigiri). Il costo di un Piatto è la somma dei suoi Ingredienti.
+_Avoid_: materia prima, componente, prodotto
+
+**Scorta**:
+Il punto dello Yatai da cui si prende un Ingrediente: se ne tocca una per Ingrediente, e il tocco giusto lo paga e lo mette nel Piatto. Ogni variante di un Piatto ha la sua Scorta.
+_Avoid_: dispensa, magazzino, cassetto, bottone
+
+**Ricetta**:
+L'ordine in cui si toccano gli Ingredienti di un Piatto (onigiri: riso, alga). È sempre mostrata, in icone, sotto la Postazione; un tocco fuori ordine non fa niente e non si paga. Il Ricettario mostra la stessa sequenza.
+_Avoid_: procedura, combinazione, formula
 
 **Ordine**:
 L'insieme dei Piatti, da uno a tre, che un Cliente chiede e che gli si serve tutto insieme.
 _Avoid_: richiesta, comanda
 
 **Postazione**:
-Il punto dello Yatai in cui un Piatto cuoce da solo e, se dimenticato, si brucia (per esempio la piastra dei takoyaki).
+Il punto dello Yatai in cui si compone un Piatto; se il Piatto ha una cottura, cuoce da solo e, se dimenticato, si brucia (per esempio la piastra dei takoyaki).
 _Avoid_: stazione, fornello, macchina
 
 **Fumo**:
@@ -85,16 +97,32 @@ Un riconoscimento buffo assegnato a fine Serata per come si è giocato (per esem
 _Avoid_: trofeo, achievement, medaglia
 
 **Pazienza**:
-I cuoricini di un Cliente che si svuotano mentre aspetta; quando finiscono, se ne va senza pagare.
+I cuoricini di un Cliente che si svuotano mentre aspetta; mentre si svuotano la sua faccia cambia (vedi Lamento) e quando finiscono se ne va senza pagare.
 _Avoid_: timer, attesa, umore
+
+**Lamento**:
+La faccia e il segno senza parole (goccia, sbuffo) che un Cliente mostra quando la Pazienza scende sotto i 3 cuoricini: scocciato ma buffo, mai arrabbiato.
+_Avoid_: rabbia, protesta, rimprovero
 
 **Yen**:
 La moneta del gioco, disegnata come la monetina da 5 yen con il buco.
 _Avoid_: monete, soldi, punti
 
+**Vendite**:
+Gli Yen che i Clienti pagano in una Serata: il prezzo dei Piatti serviti più la Mancia.
+_Avoid_: ricavi, entrate, guadagno
+
+**Spesa**:
+Gli Yen spesi in Ingredienti durante una Serata.
+_Avoid_: costo, uscite
+
+**Spreco**:
+Gli Ingredienti usati che non sono finiti in un Piatto servito (un Piatto bruciato, avanzato, rubato o rovinato). Non si rimborsano.
+_Avoid_: perdita, scarto, rifiuto
+
 **Incasso**:
-Gli Yen guadagnati servendo i Clienti durante una Serata.
-_Avoid_: punti, punteggio, guadagno
+Gli Yen che restano in una Serata dopo la Spesa, cioè le Vendite meno la Spesa. È il numero in alto durante la Serata e quello su cui si contano le stelle; se è in rosso la Serata non dà stelle né Yen.
+_Avoid_: punti, punteggio, guadagno, profitto
 
 **Mancia**:
 Gli Yen in più che un Cliente lascia quando viene servito in fretta.
@@ -118,10 +146,14 @@ _Avoid_: upgrade, miglioria
 Un oggetto solo estetico per lo Yatai, comprato con gli Yen, che non cambia come si gioca (tenda noren, lanterne chōchin e bonbori, fūrin).
 _Avoid_: decorazione, abbellimento
 
+**Bottega**:
+La schermata, raggiungibile dalla mappa, con tre sezioni: i Potenziamenti e l'Arredo, che si comprano con gli Yen, e i Vestiti, che si scelgono tra quelli sbloccati con le stelle.
+_Avoid_: negozio, shop, store
+
 **Vestito**:
-Un capo per Maurizio sbloccato con le stelle; ogni Matsuri ne ha due a tema (per esempio l'haori con i fiori di ciliegio per l'Hanami).
+Un capo per Maurizio sbloccato con le stelle di quel Matsuri (non si compra con gli Yen); ogni Matsuri ne ha due a tema (per esempio l'haori con i fiori di ciliegio per l'Hanami). Si sceglie nella Bottega.
 _Avoid_: skin, costume, outfit
 
 **Che stile!**:
-La Mancia in più che i Clienti lasciano quando Maurizio indossa un Vestito del Matsuri in corso.
+La Mancia in più (×1,2) che i Clienti lasciano quando Maurizio indossa un Vestito del Matsuri in corso.
 _Avoid_: bonus moda, bonus vestito
