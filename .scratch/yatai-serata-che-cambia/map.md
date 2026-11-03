@@ -48,7 +48,7 @@ Prova che la destinazione è raggiunta: con le regole scritte, il giocatore auto
 
 ## Frontier
 
-Nessuno: la mappa è chiusa. Il prossimo passo è costruire il ticket 34 di `maurizio-yatai` (bloccato dal 05 di `maurizio-yatai`, la prima prova).
+Nessuno: la mappa è chiusa. Il prossimo passo è costruire il ticket 34 di `maurizio-yatai`, già sbloccato (il 05, la prima prova, è risolto).
 
 ## Not yet specified
 
