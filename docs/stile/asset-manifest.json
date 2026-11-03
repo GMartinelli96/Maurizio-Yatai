@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "art_direction_brief": "docs/stile/art-direction-brief.md",
+  "assets": [
+    { "id": "carta", "role": "carta ruvida che si ripete", "path": "generated: yatai/src/kit/matita.js paper()", "status": "target", "technical": { "dimensions": "512x512", "alpha": false, "tile": true, "filtering": "linear" } },
+    { "id": "ombra", "role": "ombra sotto personaggi e Piatti", "path": "generated: restingShadow()", "status": "target", "technical": { "dimensions": "200x56", "alpha": true } },
+    { "id": "maurizio", "role": "personaggio, di fronte", "path": "generated: yatai/src/disegni/maurizio.js", "status": "target", "technical": { "dimensions": "320x450", "alpha": true, "anchor": "feet 160,432" }, "visual_locks": ["pelo nocciola", "salopette azzurra con arcobaleno", "contorno a matita"] },
+    { "id": "onigiri", "role": "Piatto sul Bancone", "path": "generated: yatai/src/disegni/onigiri.js", "status": "target", "technical": { "dimensions": "168x153", "alpha": true } },
+    { "id": "onigiri-icona", "role": "icona dell'Ordine", "path": "generated: yatai/src/disegni/onigiri.js", "status": "target", "technical": { "dimensions": "82x76", "alpha": true } },
+    { "id": "pannelli e pulsanti", "role": "UI, su richiesta", "path": "generated: panel() in matita.js", "status": "target", "technical": { "alpha": true } },
+    {
+      "id": "font-comic-neue", "role": "font latino 400 e 700", "path": "yatai/public/fonts/comic-neue-latin-{400,700}-normal.woff2", "status": "placeholder-for-final",
+      "source": { "kind": "third-party", "url_or_tool": "npm @fontsource/comic-neue 5.3.0 (da github.com/google/fonts, ofl/comicneue)", "creator": "The Comic Neue Project Authors (https://github.com/crozynski/comicneue)", "created_at": "2026-11-03", "license": "SIL OFL 1.1", "attribution": "Copyright 2014 The Comic Neue Project Authors; testo in yatai/public/fonts/OFL.txt", "prompt_or_source_record": "Subset latino invariato, nessuna modifica. Non copre ō e ★ (ripiego di sistema)." }
+    }
+  ],
+  "provenance_note": "Nessuna immagine generata con AI né importata: i disegni sono codice. Il font giapponese definitivo (Klee One SemiBold, docs/ricerca/font-giapponese.md) arriva con il ticket 24."
+}

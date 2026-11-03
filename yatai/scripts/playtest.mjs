@@ -9,10 +9,13 @@
 //   { "key": "Digit1" }    un tasto (nomi di Playwright: Digit1, KeyQ, KeyM...)
 //   { "advance": 500 }     window.advanceTime(500): il gioco avanza di 500 ms, a passi da 1/60 s
 //   { "shot": "nome" }     salva nome.png e nome.json (lo stato di window.render_game_to_text)
+//   { "goto": "?sviluppo" } carica di nuovo la pagina, con questo indirizzo relativo
+//   { "same": ["a", "b"], "field": "textures" }  errore se il campo è diverso nei due shot
 // Gli input vengono letti al passo "advance" successivo, quindi lo schema tipico è
 // tap → advance → shot.
 //
-// Esce con errore se la console del browser riporta errori o se gli hook non rispondono.
+// Esce con errore se la console del browser riporta errori, se gli hook non rispondono o se
+// la pagina chiede un'immagine: la grafica la disegna il codice (ADR-0001).
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -52,8 +55,24 @@ page.on('console', (msg) => {
 });
 page.on('pageerror', (err) => errors.push(String(err)));
 
+// Solo l'icona dell'app è un file: la usa il browser, non il gioco.
+page.on('request', (request) => {
+  const file = new URL(request.url()).pathname;
+  if (request.resourceType() === 'image' && !file.endsWith('/icon.svg')) errors.push(`immagine caricata da file: ${file}`);
+});
+
 const fail = (message) => { errors.push(message); };
 const readState = () => page.evaluate(() => JSON.parse(window.render_game_to_text()));
+const shots = {};
+
+// Aspetta che gli hook rispondano e che l'avvio (texture e font) sia finito.
+const waitForGame = () => page.waitForFunction(
+  () => typeof window.advanceTime === 'function'
+    && typeof window.render_game_to_text === 'function'
+    && !['avvio', null].includes(JSON.parse(window.render_game_to_text()).scene),
+  null,
+  { timeout: 15000 },
+);
 
 try {
   await page.goto(url);
@@ -63,13 +82,7 @@ try {
     await page.reload();
   }
 
-  await page.waitForFunction(
-    () => typeof window.advanceTime === 'function'
-      && typeof window.render_game_to_text === 'function'
-      && JSON.parse(window.render_game_to_text()).scene,
-    null,
-    { timeout: 15000 },
-  );
+  await waitForGame();
 
   for (const step of steps) {
     if ('advance' in step) {
@@ -88,9 +101,18 @@ try {
       console.log(`key ${step.key}`);
     } else if ('shot' in step) {
       const state = await readState();
+      shots[step.shot] = state;
       await page.screenshot({ path: join(opt.out, `${step.shot}.png`) });
       writeFileSync(join(opt.out, `${step.shot}.json`), JSON.stringify(state, null, 2));
       console.log(`shot ${step.shot}: ${JSON.stringify(state)}`);
+    } else if ('goto' in step) {
+      await page.goto(new URL(step.goto, url).href);
+      await waitForGame();
+      console.log(`goto ${step.goto}`);
+    } else if ('same' in step) {
+      const [a, b] = step.same.map((name) => JSON.stringify(shots[name]?.[step.field]));
+      if (a === undefined || a !== b) fail(`${step.field} diverso tra ${step.same.join(' e ')}: ${a} / ${b}`);
+      else console.log(`same ${step.field}: ${step.same.join(' = ')}`);
     } else {
       throw new Error(`Passo sconosciuto: ${JSON.stringify(step)}`);
     }

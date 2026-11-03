@@ -2,7 +2,10 @@ import Phaser from 'phaser';
 import { VIEW } from './config.js';
 import { initLanguage } from './i18n.js';
 import { installTestHooks } from './test-hooks.js';
+import BootScene from './scenes/BootScene.js';
 import TitleScene from './scenes/TitleScene.js';
+import SviluppoScene from './scenes/SviluppoScene.js';
+import TavolaScene from './scenes/TavolaScene.js';
 
 initLanguage();
 
@@ -13,7 +16,8 @@ const game = new Phaser.Game({
   height: VIEW.height,
   backgroundColor: VIEW.background,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [TitleScene],
+  // Le scene di sviluppo non entrano nella versione pubblicata.
+  scene: [BootScene, TitleScene, ...(import.meta.env.DEV ? [SviluppoScene, TavolaScene] : [])],
 });
 
 installTestHooks(game);
