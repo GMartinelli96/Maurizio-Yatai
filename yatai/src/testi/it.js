@@ -2,4 +2,10 @@
 export default {
   subtitle: 'La bancarella del Matsuri',
   developedBy: 'sviluppato da Maurizio Influencer Official',
+
+  // Fine Serata
+  endTitle: 'Serata finita!',
+  endIncasso: 'Incasso',
+  endObiettivo: 'Obiettivo',
+  endRigioca: 'Rigioca',
 };
