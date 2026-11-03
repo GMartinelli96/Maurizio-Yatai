@@ -1,6 +1,7 @@
-import { COMANDI, PALETTE, PIATTI, RISCONTRI, YATAI } from '../config.js';
+import { BRUCIATURA, COMANDI, FUMO_SEC, MATSURI_PREDEFINITO, PALETTE, PIATTI, RISCONTRI, SERATE, SERATA_PRIMA, TEMI, YATAI } from '../config.js';
 import { PANEL_MARGIN } from '../disegni/catalogo.js';
 import { POSTAZIONE_SIZE, postazioneKey, scortaKey } from '../disegni/postazioni.js';
+import { CESTINO_SIZE } from '../disegni/takoyaki.js';
 import { t } from '../i18n.js';
 import { textStyle } from '../kit/font.js';
 import { panelTexture } from '../kit/texture.js';
@@ -9,6 +10,7 @@ import { center, fitIn, layoutHud } from '../layout/yatai.js';
 import { azioneDaTasto } from '../serata/comandi.js';
 import { Serata } from '../serata/Serata.js';
 import ClienteView from '../yatai/ClienteView.js';
+import FumoView from '../yatai/FumoView.js';
 import YataiScene from './YataiScene.js';
 
 const round = (n) => Math.round(n * 10) / 10;
@@ -21,6 +23,12 @@ const nuovoSeme = () => `${Date.now().toString(36)}-${Math.random().toString(36)
 // la schermata di fine Serata.
 const PROFONDITA = { hud: 10, volo: 120, trascinato: 150, fine: 200 };
 
+// Un colore a metà strada tra a e b (t da 0 a 1), come numeri 0xRRGGBB.
+const mescola = (a, b, t) => {
+  const canale = (x, y, passo) => Math.round(((x >> passo) & 255) * (1 - t) + ((y >> passo) & 255) * t);
+  return (canale(a, b, 16) << 16) | (canale(a, b, 8) << 8) | canale(a, b, 0);
+};
+
 // La prima Serata giocabile (passo 3 di PIANO.md): lo Yatai di YataiScene con la logica di
 // src/serata/Serata.js dentro. La scena non decide niente: passa i tocchi alla Serata, fa
 // avanzare il suo tempo e trasforma gli eventi che tornano indietro in disegni e movimenti.
@@ -30,10 +38,13 @@ const PROFONDITA = { hud: 10, volo: 120, trascinato: 150, fine: 200 };
 //   input      tocco e tasti → tocca(Scorta o Postazione) e servi(Posto); trascinare un Piatto dal
 //              Bancone su un Cliente fa la stessa cosa di toccare il Cliente
 //   riscontri  Maurizio, monete, cuoricini, Cliente che scuote la testa o se ne va
+//   cottura    il Piatto pronto che scurisce e trema prima di bruciarsi, il Piatto bruciato che va nel
+//              cestino, il Fumo che copre la Postazione (passo 4)
 //   fine       a 120 secondi compare la schermata con Incasso e stelle
 //
-// Dati di avvio, tutti facoltativi: matsuri (il tema, come YataiScene), seme (solo per ripetere
-// una partita: di norma ogni partita ha il suo).
+// Dati di avvio, tutti facoltativi: matsuri (il tema, come YataiScene, e la Serata da giocare: per i
+// takoyaki è il Tanabata, vedi SERATE in config.js), seme (solo per ripetere una partita: di norma ogni
+// partita ha il suo).
 export default class SerataScene extends YataiScene {
   constructor() {
     super('serata');
@@ -41,7 +52,10 @@ export default class SerataScene extends YataiScene {
 
   init(data) {
     this.seme = data?.seme ?? nuovoSeme();
-    this.serata = new Serata({ seed: this.seme });
+    const matsuri = data?.matsuri in TEMI ? data.matsuri : MATSURI_PREDEFINITO;
+    this.serata = new Serata({ seed: this.seme, ...(SERATE[matsuri] ?? SERATA_PRIMA) });
+    // Il cestino serve solo se in menù c'è un Piatto che si brucia.
+    this.haCestino = this.serata.postazioni.some(({ piatto }) => (PIATTI[piatto].burnAfterSec ?? null) !== null);
     super.init({
       matsuri: data?.matsuri,
       posti: this.serata.posti.length,
@@ -95,7 +109,12 @@ export default class SerataScene extends YataiScene {
         icona.acceso = false;
         return icona;
       });
+      view.fumo = new FumoView(this, PROFONDITA.hud + 3);
+      // Il "!" rosso dell'allarme: non è una parola, quindi non si traduce.
+      view.punto = this.add.text(0, 0, '!', textStyle(52, { bold: true, color: '#d9534f', outline: 9 })).setOrigin(0.5).setDepth(PROFONDITA.hud + 4).setVisible(false);
+      view.pulsa = null;
     });
+    this.cestino = this.add.image(0, 0, 'cestino').setOrigin(0.5, 1).setDepth(PROFONDITA.hud - 5).setVisible(this.haCestino);
     this.dishViews.forEach((view, i) => view.zone.on('pointerdown', (pointer) => this.iniziaTrascinamento(i, pointer)));
 
     this.clienti = this.serata.posti.map((_, i) => new ClienteView(this, i));
@@ -148,8 +167,12 @@ export default class SerataScene extends YataiScene {
         return;
       }
       view.pronto.setPosition(view.cima.x, view.iconaY);
+      view.barraBruciaY = view.cima.y + YATAI.postazioni.barraBruciaDallaCima * disegno.scale;
+      view.punto.setPosition(view.cima.x + YATAI.postazioni.puntoDalCentro.x * disegno.scale, view.iconaY + YATAI.postazioni.puntoDalCentro.y * disegno.scale);
       view.ondeggia?.remove();
       view.ondeggia = null;
+      view.pulsa?.remove();
+      view.pulsa = null;
       view.statoVisto = 'libera';
       // Le icone della ricetta stanno in fila sopra il tagliere, dove poi compare il Piatto pronto.
       const { scala, spazio, altezza } = RISCONTRI.passo;
@@ -157,7 +180,13 @@ export default class SerataScene extends YataiScene {
         icona.setPosition(view.cima.x + (k - (view.passi.length - 1) / 2) * spazio * disegno.scale, view.cima.y + altezza * disegno.scale);
         icona.setScale(scala * disegno.scale);
       });
+      // Il Fumo copre il disegno della Postazione; i fili salgono dal Piatto che brucia.
+      view.fumo.place(view.cima, view.larghezza, POSTAZIONE_SIZE.h * disegno.scale, { x: view.cima.x, y: view.iconaY - 56 });
     });
+    // Il cestino sta a destra di Maurizio, appoggiato in fondo alla fascia della cucina.
+    const { cucina } = this.layout.zone;
+    const { dalBordo, dalFondo, larghezza } = YATAI.cestino;
+    this.cestino.setPosition(cucina.x + cucina.w - dalBordo, cucina.y + cucina.h - dalFondo).setScale(larghezza / CESTINO_SIZE.w);
   }
 
   // --- HUD: l'Incasso, il tempo e la barra con le stelle ---
@@ -274,6 +303,12 @@ export default class SerataScene extends YataiScene {
       const visibile = i < this.visibili;
       view.image.setVisible(visibile);
       view.shadow.setVisible(visibile);
+      // Sul Bancone ogni posto mostra il Piatto che c'è: onigiri o takoyaki.
+      const piatto = stato.bancone[i];
+      if (visibile && piatto && view.piattoVisto !== piatto) {
+        view.piattoVisto = piatto;
+        view.image.setTexture(piatto);
+      }
     });
     // Le Scorte che qualche Postazione aspetta (il prossimo Ingrediente) hanno l'alone.
     const attese = new Set(stato.postazioni.map((p) => p.prossimo).filter(Boolean));
@@ -299,31 +334,103 @@ export default class SerataScene extends YataiScene {
     });
   }
 
+  // Una Postazione si vede in sei modi: libera, cuoce, pronto, allarme (pronto e negli ultimi secondi prima
+  // di bruciarsi), bruciato e fumo. Il cambio di modo viene dallo stato della logica; quello che cambia
+  // frame per frame (la barra, la tinta, il Fumo che svanisce) si aggiorna qui sotto.
   aggiornaPostazione(view, postazione) {
-    const { barra, pronto } = view;
     this.aggiornaPassi(view, postazione);
-    if (postazione.stato === 'cuoce') {
-      const frazione = 1 - postazione.restaMs / (PIATTI[postazione.piatto].cookSec * 1000);
-      const w = view.larghezza * 0.62;
-      barra.clear().setVisible(true);
-      barra.fillStyle(0xfff8ec, 1).fillRoundedRect(view.cima.x - w / 2, view.barraY, w, 16, 8);
-      barra.fillStyle(0x93d69a, 1).fillRoundedRect(view.cima.x - w / 2 + 3, view.barraY + 3, Math.max(6, (w - 6) * frazione), 10, 5);
-      barra.lineStyle(3, 0x3a2f2b, 1).strokeRoundedRect(view.cima.x - w / 2, view.barraY, w, 16, 8);
-    } else {
-      barra.clear().setVisible(false);
+    const modo = this.modoDellaPostazione(postazione);
+    if (modo !== view.statoVisto) {
+      const prima = view.statoVisto;
+      view.statoVisto = modo;
+      this.entraNelModo(view, modo, prima);
     }
-    if (postazione.stato === view.statoVisto) return;
-    view.statoVisto = postazione.stato;
+    this.disegnaBarraPostazione(view, postazione, modo);
+    if (modo === 'pronto' || modo === 'allarme') this.scurisci(view, postazione);
+    if (modo === 'fumo') view.fumo.aggiorna(postazione.fumoRestaMs / (FUMO_SEC * 1000));
+  }
+
+  modoDellaPostazione(postazione) {
+    const inAllarme = postazione.stato === 'pronto' && postazione.bruciaTraMs !== null && postazione.bruciaTraMs <= BRUCIATURA.avvisoSec * 1000;
+    return inAllarme ? 'allarme' : postazione.stato;
+  }
+
+  // Quello che cambia una volta sola quando la Postazione passa a un altro modo.
+  entraNelModo(view, modo) {
+    const { pronto } = view;
     view.ondeggia?.remove();
     view.ondeggia = null;
-    pronto.setVisible(postazione.stato === 'pronto').setPosition(view.cima.x, view.iconaY);
-    if (postazione.stato === 'pronto') {
+    pronto.setAngle(0).clearTint();
+    view.pulsa?.remove();
+    view.pulsa = null;
+    view.punto.setVisible(modo === 'allarme').setScale(1);
+    if (modo !== 'fumo') view.fumo.chiudi();
+    if (modo !== 'allarme' && modo !== 'bruciato') view.fumo.spegniFili();
+    const conPiatto = modo === 'pronto' || modo === 'allarme' || modo === 'bruciato';
+    pronto.setVisible(conPiatto).setPosition(view.cima.x, view.iconaY);
+    pronto.setTexture(modo === 'bruciato' ? `${view.piatto}-bruciato-icona` : `${view.piatto}-icona`);
+
+    if (modo === 'pronto') {
       // Il Piatto pronto salta fuori e poi ondeggia, perché lo si tocchi.
       const { durata, ampiezza } = RISCONTRI.pronto;
       pronto.setScale(0.2);
       this.tweens.add({ targets: pronto, scale: 1, duration: durata * 0.6, ease: 'Back.easeOut' });
       view.ondeggia = this.tweens.add({ targets: pronto, y: view.iconaY - ampiezza, duration: durata, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: durata * 0.6 });
+    } else if (modo === 'allarme') {
+      // Sta per bruciarsi: trema forte, e sale un filo di fumo.
+      const { tremaMs, angolo } = RISCONTRI.brucia;
+      pronto.setScale(1);
+      view.ondeggia = this.tweens.add({ targets: pronto, angle: { from: -angolo, to: angolo }, duration: tremaMs, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      view.fumo.accendiFili();
+      // Il "!" salta fuori e poi pulsa.
+      view.punto.setScale(0.3);
+      this.tweens.add({ targets: view.punto, scale: 1, duration: 200, ease: 'Back.easeOut' });
+      view.pulsa = this.tweens.add({ targets: view.punto, scale: 1.2, duration: RISCONTRI.brucia.lampeggioMs, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: 200 });
+    } else if (modo === 'bruciato') {
+      // Si è bruciato: compare scuro e schiacciato, e poi trema piano finché non lo si tocca.
+      const { appare, tremolio } = RISCONTRI.bruciato;
+      pronto.setScale(1.5, 0.65);
+      this.tweens.add({ targets: pronto, scaleX: 1, scaleY: 1, duration: appare, ease: 'Back.easeOut' });
+      view.ondeggia = this.tweens.add({ targets: pronto, angle: { from: -tremolio.angolo, to: tremolio.angolo }, duration: tremolio.durata, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: appare });
+      view.fumo.accendiFili();
+    } else if (modo === 'fumo') {
+      view.fumo.mostra(true);
     }
+  }
+
+  // La barra sopra la Postazione: la cottura che sale (verde) e, per un Piatto che si brucia, il tempo che
+  // resta prima che si bruci (scende, da verde a giallo a rosso, e lampeggia negli ultimi secondi).
+  disegnaBarraPostazione(view, postazione, modo) {
+    const { barra } = view;
+    if (postazione.stato === 'cuoce') {
+      const frazione = 1 - postazione.restaMs / (PIATTI[postazione.piatto].cookSec * 1000);
+      this.riempiBarra(view, frazione, RISCONTRI.brucia.colori.pieno, view.barraY, view.larghezza * 0.62);
+      barra.setAlpha(1);
+    } else if (postazione.stato === 'pronto' && postazione.bruciaTraMs !== null) {
+      const resta = postazione.bruciaTraMs / (PIATTI[postazione.piatto].burnAfterSec * 1000);
+      const { colori, lampeggioMs } = RISCONTRI.brucia;
+      const consumato = 1 - resta;
+      const colore = consumato < 0.5 ? mescola(colori.pieno, colori.meta, consumato * 2) : mescola(colori.meta, colori.poco, (consumato - 0.5) * 2);
+      this.riempiBarra(view, resta, colore, view.barraBruciaY, view.larghezza * 0.8);
+      barra.setAlpha(modo === 'allarme' ? 0.55 + 0.45 * Math.abs(Math.sin((this.time.now / lampeggioMs) * Math.PI)) : 1);
+    } else {
+      barra.clear().setVisible(false);
+    }
+  }
+
+  riempiBarra(view, frazione, colore, y, w) {
+    const { barra } = view;
+    barra.clear().setVisible(true);
+    barra.fillStyle(0xfff8ec, 1).fillRoundedRect(view.cima.x - w / 2, y, w, 16, 8);
+    barra.fillStyle(colore, 1).fillRoundedRect(view.cima.x - w / 2 + 3, y + 3, Math.max(6, (w - 6) * frazione), 10, 5);
+    barra.lineStyle(3, 0x3a2f2b, 1).strokeRoundedRect(view.cima.x - w / 2, y, w, 16, 8);
+  }
+
+  // Il Piatto pronto scurisce man mano che si avvicina a bruciarsi.
+  scurisci(view, postazione) {
+    if (postazione.bruciaTraMs === null) return;
+    const consumato = 1 - postazione.bruciaTraMs / (PIATTI[postazione.piatto].burnAfterSec * 1000);
+    view.pronto.setTint(mescola(0xffffff, RISCONTRI.brucia.tinta, consumato));
   }
 
   // --- Input: tocco, tasti, trascinamento ---
@@ -362,7 +469,7 @@ export default class SerataScene extends YataiScene {
   iniziaTrascinamento(indice, pointer) {
     if (!this.pronta || this.serata.finita || this.trascina || indice >= this.visibili) return;
     const view = this.dishViews[indice];
-    const copia = this.add.image(pointer.x, pointer.y, 'onigiri').setOrigin(0.5, 0.8).setScale(view.image.scaleX * 1.12).setDepth(PROFONDITA.trascinato);
+    const copia = this.add.image(pointer.x, pointer.y, this.serata.bancone[indice]).setOrigin(0.5, 0.8).setScale(view.image.scaleX * 1.12).setDepth(PROFONDITA.trascinato);
     this.trascina = { indice, copia, sopra: -1 };
     view.image.setAlpha(0.35);
   }
@@ -494,6 +601,21 @@ export default class SerataScene extends YataiScene {
       case 'piattoPronto':
         if (this.anticipati.delete(evento.postazione)) this.esegui(this.serata.tocca(evento.postazione));
         break;
+      case 'staPerBruciarsi':
+        this.perAllarme(evento);
+        break;
+      case 'piattoBruciato':
+        this.perBruciato(evento);
+        break;
+      case 'nelCestino':
+        this.perCestino(evento);
+        break;
+      case 'postazioneNelFumo':
+        this.vistaDellaPostazione(evento.postazione).fumo.sbuffa();
+        break;
+      case 'fumoPassato':
+        this.perFumoPassato(evento);
+        break;
       case 'sulBancone':
         this.perSulBancone(evento);
         break;
@@ -519,7 +641,7 @@ export default class SerataScene extends YataiScene {
 
   // Un tween di un oggetto che vola da (da.x, da.y) a (a.x, a.y) e poi sparisce. x e y hanno ease diversi
   // (curva a parabola); alla fine `fine` fa quello che serve.
-  vola(texture, da, a, { durata, scalaDa, scalaA, alphaA = 1, ritardo = 0, origineY = 1, easeY = 'Quad.easeInOut', fine }) {
+  vola(texture, da, a, { durata, scalaDa, scalaA, alphaA = 1, ritardo = 0, origineY = 1, easeY = 'Quad.easeInOut', giro = 0, fine }) {
     const oggetto = this.add.image(da.x, da.y, texture).setOrigin(0.5, origineY).setScale(scalaDa).setDepth(PROFONDITA.volo);
     this.tweens.add({ targets: oggetto, x: a.x, duration: durata, delay: ritardo, ease: 'Sine.easeInOut' });
     this.tweens.add({
@@ -527,6 +649,7 @@ export default class SerataScene extends YataiScene {
       y: a.y,
       scale: scalaA,
       alpha: alphaA,
+      angle: giro,
       duration: durata,
       delay: ritardo,
       ease: easeY,
@@ -568,6 +691,63 @@ export default class SerataScene extends YataiScene {
     const { pronto } = this.vistaDellaPostazione(id);
     pronto.setAngle(0);
     this.tweens.add({ targets: pronto, angle: { from: -14, to: 14 }, duration: 70, yoyo: true, repeat: 2, ease: 'Sine.easeInOut', onComplete: () => pronto.setAngle(0) });
+  }
+
+  // Il Piatto pronto è negli ultimi secondi: un colpetto che attira l'occhio (poi trema, vedi entraNelModo).
+  perAllarme(evento) {
+    const { pronto } = this.vistaDellaPostazione(evento.postazione);
+    this.tweens.add({ targets: pronto, scale: 1.3, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
+  }
+
+  // Si è bruciato: uno scoppio di nuvolette che salgono e la Postazione che sussulta.
+  perBruciato(evento) {
+    const vista = this.vistaDellaPostazione(evento.postazione);
+    const { nuvolette, salita, durata } = RISCONTRI.bruciato;
+    for (let i = 0; i < nuvolette; i++) {
+      const dx = (i - (nuvolette - 1) / 2) * 26;
+      const da = { x: vista.cima.x + dx, y: vista.iconaY - 30 };
+      this.vola('fumo', da, { x: da.x + dx * 0.8, y: da.y - salita - (i % 2) * 24 }, {
+        durata,
+        ritardo: i * 45,
+        scalaDa: 0.12,
+        scalaA: 0.42,
+        alphaA: 0,
+        origineY: 0.5,
+        easeY: 'Quad.easeOut',
+      });
+    }
+    const { image } = vista;
+    const { scaleX, scaleY } = image;
+    this.tweens.add({ targets: image, scaleX: scaleX * 1.1, scaleY: scaleY * 0.9, duration: 100, yoyo: true, onComplete: () => image.setScale(scaleX, scaleY) });
+  }
+
+  // Il Piatto bruciato vola nel cestino, che sobbalza quando lo prende. Il Fumo sulla Postazione c'è già.
+  perCestino(evento) {
+    this.maurizio.azione('raccogli');
+    const vista = this.vistaDellaPostazione(evento.postazione);
+    const { cestino } = this;
+    const { volo, giro, sobbalzo } = RISCONTRI.cestino;
+    this.vola(`${evento.piatto}-bruciato-icona`, { x: vista.cima.x, y: vista.iconaY }, { x: cestino.x, y: cestino.y - cestino.displayHeight * 0.72 }, {
+      durata: volo,
+      scalaDa: 1,
+      scalaA: 0.45,
+      alphaA: 0.9,
+      giro,
+      easeY: 'Back.easeIn',
+      fine: () => {
+        const { scaleX, scaleY } = cestino;
+        cestino.setScale(scaleX * 1.12, scaleY * 0.88);
+        this.tweens.add({ targets: cestino, scaleX, scaleY, duration: sobbalzo, ease: 'Back.easeOut' });
+      },
+    });
+  }
+
+  // Il Fumo è passato: la Postazione è di nuovo libera e fa un saltino.
+  perFumoPassato(evento) {
+    const { image } = this.vistaDellaPostazione(evento.postazione);
+    const { scaleX, scaleY } = image;
+    image.setScale(scaleX * 1.1, scaleY * 0.9);
+    this.tweens.add({ targets: image, scaleX, scaleY, duration: 200, ease: 'Back.easeOut' });
   }
 
   // Il Piatto pronto passa dalla Postazione al primo posto libero del Bancone.
@@ -759,6 +939,12 @@ export default class SerataScene extends YataiScene {
           stato: logica?.stato ?? null,
           fatti: logica?.fatti ?? null,
           prossimo: logica?.prossimo ?? null,
+          // Come si vede adesso (libera, cuoce, pronto, allarme, bruciato, fumo) e quanto manca a bruciarsi o a
+          // finire il Fumo; il Fumo dice se le nuvole e i fili si vedono.
+          modo: view.statoVisto ?? null,
+          bruciaTraMs: logica?.bruciaTraMs ?? null,
+          fumoRestaMs: logica?.fumoRestaMs ?? null,
+          fumo: view.fumo ? view.fumo.getTextState() : null,
           // Per una Scorta: ha l'alone, cioè è il prossimo Ingrediente che un Piatto aspetta.
           evidenziata: view.glow ? view.glow.visible : null,
           pronto: view.pronto ? { visibile: view.pronto.visible, scala: Math.round(view.pronto.scaleX * 1000) / 1000 } : null,
@@ -771,6 +957,7 @@ export default class SerataScene extends YataiScene {
       },
       // Come i Clienti si vedono: dove sono, che faccia hanno, quali icone ha la nuvoletta.
       clienti: this.clienti.map((cliente) => cliente.getTextState()),
+      cestino: this.cestino.visible ? rectState({ x: this.cestino.x - this.cestino.displayWidth / 2, y: this.cestino.y - this.cestino.displayHeight, w: this.cestino.displayWidth, h: this.cestino.displayHeight }) : null,
       hud: {
         ...base.hud,
         incasso: this.incassoMostrato,

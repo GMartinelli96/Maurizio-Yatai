@@ -152,18 +152,24 @@ function scegliMossa({ serata, bancone: piano }) {
       return { tipo: 'servi', posto };
     }
   }
-  // Un Piatto pronto passa sul Bancone (se c'è posto).
-  const pronta = serata.postazioni.find((p) => p.stato === 'pronto');
-  if (pronta && bancone.length < piano.piatti.length) return { tipo: 'tocca', id: pronta.id };
+  // Un Piatto pronto passa sul Bancone (se c'è posto), prima quello che sta per bruciarsi.
+  const pronte = serata.postazioni
+    .filter((p) => p.stato === 'pronto')
+    .sort((a, b) => (a.bruciaTraMs ?? Infinity) - (b.bruciaTraMs ?? Infinity));
+  if (pronte.length && bancone.length < piano.piatti.length) return { tipo: 'tocca', id: pronte[0].id };
+  // Un Piatto bruciato va nel cestino: poi la Postazione resta nel Fumo e non si tocca.
+  const bruciata = serata.postazioni.find((p) => p.stato === 'bruciato');
+  if (bruciata) return { tipo: 'tocca', id: bruciata.id };
   // Un Piatto a tocchi già cominciato riceve l'Ingrediente che aspetta: la sequenza della ricetta
   // (riso, alga) si legge in `prossimo`, che è l'id della Scorta da toccare.
   const cominciata = serata.postazioni.find((p) => p.stato === 'inPreparazione');
   if (cominciata) return { tipo: 'tocca', id: cominciata.prossimo };
-  // Si comincia solo quel che manca: i Piatti ordinati meno quelli sul Bancone e quelli già in preparazione.
+  // Si comincia solo quel che manca: i Piatti ordinati meno quelli sul Bancone e quelli già in preparazione,
+  // in cottura o pronti (un Piatto bruciato o nel Fumo non arriverà mai).
   const mancanti = clienti.flatMap(({ cliente }) => cliente.ordine);
   const togli = (piatto) => { const i = mancanti.indexOf(piatto); if (i !== -1) mancanti.splice(i, 1); };
   for (const piatto of bancone) togli(piatto);
-  for (const p of serata.postazioni) if (p.stato !== 'libera') togli(p.piatto);
+  for (const p of serata.postazioni) if (!['libera', 'bruciato', 'fumo'].includes(p.stato)) togli(p.piatto);
   const libera = serata.postazioni.find((p) => p.stato === 'libera' && mancanti.includes(p.piatto));
   // Un Piatto a tocchi comincia dalla sua prima Scorta; uno che cuoce da solo, toccando la Postazione.
   return libera ? { tipo: 'tocca', id: libera.prossimo ?? libera.id } : null;

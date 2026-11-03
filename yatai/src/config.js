@@ -19,6 +19,14 @@ export const PALETTE = {
   arcobaleno: ['#f28b8b', '#f6b36b', '#f5dc72', '#93d69a', '#7fb7ee'],
   riso: { colore: '#fffdf7', ombra: '#cfcac0', luce: '#ffffff' },
   nori: { colore: '#33463c', ombra: '#1d2a23', luce: '#5b7a68' },
+  // Il takoyaki: le palline dorate, la salsa scura, l'alga aonori e la maionese; la versione bruciata è quasi nera.
+  // Il fumo (dei Piatti bruciati e delle Postazioni nel Fumo) è un grigio caldo, mai nero.
+  takoyaki: { colore: '#e0a95f', ombra: '#b0702f', luce: '#f6d9a0' },
+  salsa: { colore: '#7a4a2e', ombra: '#4f2f1d', luce: '#a2704f' },
+  aonori: '#6fae6a',
+  maionese: '#fff3d6',
+  bruciato: { colore: '#4d3d37', ombra: '#2b211d', luce: '#76645c' },
+  fumo: { colore: '#d9d4d8', ombra: '#a9a3aa', luce: '#f3f0f2' },
   // Gli accenti per pulsanti e pannelli, come i pulsanti di FarmPlush. Nuvola: i pannelli bianchi.
   nuvola: { colore: '#fffdf8', ombra: '#cdbfa9', luce: '#ffffff' },
   rosa: { colore: '#f7a8c4', ombra: '#d9708f', luce: '#fde0ea' },
@@ -115,6 +123,11 @@ export const PAZIENZA = {
 export const FUMO_SEC = 3;
 export const CHE_STILE_BONUS = 0.2;
 
+// La bruciatura (passo 4). Un Piatto con burnAfterSec, una volta pronto, si brucia se resta sulla
+// Postazione più di così (PIATTI). Negli ultimi avvisoSec secondi la Serata dà l'allarme (l'evento
+// staPerBruciarsi) e la scena lo fa vedere: il giocatore ha ancora il tempo di arrivare.
+export const BRUCIATURA = { avvisoSec: 1.5 };
+
 // I Piatti stanno nell'ordine in cui si sbloccano (GAME_SPEC.md): le Postazioni sullo schermo li seguono.
 // cookSec: tempo di cottura. burnAfterSec: secondi in più prima che si bruci (null = mai).
 // ricetta: la cucina a tocchi (ticket 33). Al posto della cottura, gli Ingredienti si toccano nell'ordine
@@ -151,8 +164,19 @@ export const YATAI = {
   posti: { iniziali: 3, massimo: 4, larghezzaMax: 190 },
   // Le Postazioni: una per Piatto, in fila vicino al pollice. `altezzaEtichetta` è lo spazio per il nome;
   // `barraDallaCima` e `piattoDallaCima` dicono a che altezza dalla cima del disegno stanno la barra della
-  // cottura e il Piatto pronto (la base dell'icona), in pixel del disegno.
-  postazioni: { massimo: 5, larghezzaMax: 140, spazio: 6, altezzaEtichetta: 40, barraDallaCima: 50, piattoDallaCima: 80 },
+  // cottura e il Piatto pronto (la base dell'icona), in pixel del disegno. `barraBruciaDallaCima` è la barra
+  // che scende prima che il Piatto si bruci: negativa, perché sta sopra il Piatto (che copre la barra della
+  // cottura). `puntoDalCentro` è dove sta il "!" dell'allarme rispetto al Piatto, a destra e in alto.
+  postazioni: {
+    massimo: 5,
+    larghezzaMax: 140,
+    spazio: 6,
+    altezzaEtichetta: 40,
+    barraDallaCima: 50,
+    barraBruciaDallaCima: -26,
+    piattoDallaCima: 80,
+    puntoDalCentro: { x: 58, y: -44 },
+  },
   // Quanti Piatti pronti stanno in fila sul Bancone (GAME_SPEC.md non lo dice: valore di partenza).
   // `superficie` è la parte alta del Bancone, il piano su cui si appoggiano i Piatti: 0,66 di 200 px
   // è l'altezza del piano nel disegno (BANCONE_PIANO), per questo la fascia del Bancone non cresce.
@@ -174,6 +198,10 @@ export const YATAI = {
   },
   // La fascia in alto durante la Serata: l'Incasso e il tempo sopra, la barra delle stelle sotto.
   hud: { rigaAlta: 52, barra: 20, stella: 34, moneta: 40 },
+  // Il cestino per i Piatti bruciati: nella fascia della cucina, a destra di Maurizio, appoggiato in basso.
+  // `dalBordo` è la distanza del suo centro dal margine destro, `dalFondo` quanto sta sopra il fondo della
+  // fascia, `larghezza` quanto è largo sullo schermo (il disegno si adatta).
+  cestino: { dalBordo: 62, dalFondo: 18, larghezza: 84 },
 };
 
 // Maurizio si anima a ogni azione (le azioni sono istantanee, questa è solo scena): un saltino
@@ -209,6 +237,25 @@ export const SERATA_PRIMA = {
   piatti: ['onigiri'],
   // Quanti Piatti ha un Ordine (da uno a tre; nell'Hanami è sempre uno).
   piattiPerOrdine: { min: 1, max: 1 },
+};
+
+// La Serata del Tanabata (passo 4): arriva il takoyaki, il primo Piatto che si brucia, e con lui gli
+// Ordini da 2 Piatti (GAME_SPEC.md, tabella dei Matsuri). Il menù è quello dell'Hanami più il Piatto
+// nuovo. Obiettivo provvisorio fino al ticket 29. Il bot senza browser (test/bruciatura.test.js), che non
+// sbaglia mai una mossa, su 13 semi fa con un tocco ogni 1,4 s tra 3220 e 4770 Yen (★ a 3200), ogni 0,8 s
+// tra 6450 e 7530 e ogni 0,3 s tra 9370 e 10910. ★★★ (5120) è quindi alla portata del bot attento: un
+// umano, che si distrae e brucia qualcosa, sta sotto. Da stringere nel ticket 29.
+export const SERATA_TANABATA = {
+  obiettivo: 3200,
+  piatti: ['onigiri', 'takoyaki'],
+  piattiPerOrdine: { min: 1, max: 2 },
+};
+
+// Come è fatta la Serata di ogni Matsuri. Dal passo 8 ogni Serata avrà la sua; per ora ne ha una il
+// Matsuri, e chi manca gioca quella dell'Hanami.
+export const SERATE = {
+  hanami: SERATA_PRIMA,
+  tanabata: SERATA_TANABATA,
 };
 
 // --- La scena della Serata (src/scenes/SerataScene.js): comandi e riscontri ---
@@ -261,6 +308,20 @@ export const RISCONTRI = {
   evidenzia: { durata: 520, larghezza: 1.05, altezza: 0.85, dallaCima: 100 },
   // L'Ingrediente che vola dalla Scorta al tagliere.
   ingrediente: { vola: 200 },
+  // Il Piatto pronto che si brucia (takoyaki): scurisce piano piano fino alla `tinta` e, negli ultimi
+  // BRUCIATURA.avvisoSec secondi, trema forte (`angolo` gradi ogni `tremaMs`) mentre la barra lampeggia
+  // (un lampeggio ogni `lampeggioMs`).
+  brucia: { tinta: 0xa86f48, tremaMs: 65, angolo: 9, lampeggioMs: 170, colori: { pieno: 0x93d69a, meta: 0xf5dc72, poco: 0xe8706a } },
+  // Il Piatto bruciato sulla Postazione: lo scoppio di nuvolette quando si brucia (`nuvolette`, `salita` in
+  // pixel), l'icona che appare schiacciata e il tremolio mentre aspetta il tocco.
+  bruciato: { durata: 640, nuvolette: 4, salita: 120, appare: 260, tremolio: { angolo: 3, durata: 150 } },
+  // Il Piatto bruciato che vola nel cestino, e il cestino che sobbalza quando lo prende.
+  cestino: { volo: 440, giro: 300, sobbalzo: 220 },
+  // Il Fumo sulla Postazione: le nuvole entrano, ondeggiano e nell'ultimo quarto di FUMO_SEC svaniscono
+  // (`svanisce`, frazione del Fumo). `sbuffo` è lo scuotimento se si tocca la Postazione nel Fumo.
+  fumo: { entra: 380, ondeggia: 900, svanisce: 0.25, sbuffo: 240 },
+  // I fili di fumo che salgono da un Piatto che brucia: durata di un giro e quanto salgono.
+  fili: { durata: 1100, salita: 78 },
   // I secondi finali, in cui il tempo diventa rosso.
   tempoRosso: 10,
   // La schermata di fine Serata arriva dopo che le monete sono arrivate; poi le stelle una a una.
@@ -293,8 +354,10 @@ export const BANCONE = {
 };
 
 // Le Postazioni: l'id è quello che si tocca; piatto è il Piatto che preparano.
+// Nell'ordine in cui si sbloccano i Piatti (PIATTI): le Postazioni della Serata seguono questo ordine.
 export const POSTAZIONI = {
   tagliere: { piatto: 'onigiri' },
+  piastra: { piatto: 'takoyaki' },
 };
 
 // Le Scorte (GLOSSARY.md) non hanno numeri propri: sono una per Ingrediente di ogni ricetta (PIATTI),

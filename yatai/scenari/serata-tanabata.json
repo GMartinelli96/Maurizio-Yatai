@@ -1,0 +1,26 @@
+[
+  { "goto": "?sviluppo=serata&seme=completa&matsuri=tanabata" },
+  { "advance": 100 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "matsuri", "equals": "tanabata" },
+  { "expect": "serata.obiettivo", "equals": 3200 },
+  { "shot": "tanabata-0-avvio" },
+
+  { "gioca": { "finoA": 25000, "servi": "tocco" } },
+  { "expect": "serata.fase", "equals": "in corso" },
+  { "expect": "serata.serviti", "atLeast": 3 },
+  { "shot": "tanabata-1-venticinque-secondi" },
+
+  { "gioca": { "finoA": 70000, "servi": "trascinamento" } },
+  { "expect": "serata.fase", "equals": "in corso" },
+  { "shot": "tanabata-2-settanta-secondi" },
+
+  { "gioca": { "servi": "tocco" } },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "expect": "serata.serviti", "atLeast": 10 },
+  { "expect": "serata.incasso", "atLeast": 3200 },
+  { "expect": "serata.bruciati", "equals": 0 },
+  { "advance": 3500 },
+  { "expect": "fine.stelle", "atLeast": 1 },
+  { "shot": "tanabata-3-fine-serata" }
+]

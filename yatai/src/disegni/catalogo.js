@@ -9,6 +9,7 @@ import { MAURIZIO_SIZE, POSE, drawMaurizio, maurizioKey } from './maurizio.js';
 import { DISEGNI_CLIENTI } from './clienti.js';
 import { drawOnigiri, onigiriSize } from './onigiri.js';
 import { POSTAZIONE_SIZE, POSTAZIONI, SCORTE, postazioneKey, scortaKey } from './postazioni.js';
+import { CESTINO_SIZE, FUMO_SIZE, drawCestino, drawFumo, drawTakoyaki, takoyakiSize } from './takoyaki.js';
 import {
   CUORE_SIZE, MONETA_SIZE, NUVOLETTA, STELLA_SIZE, drawCuore, drawCuoreVuoto, drawMoneta, drawNuvoletta, drawStella, drawStellaVuota,
 } from './serata.js';
@@ -24,6 +25,13 @@ export const DISEGNI = {
   ...Object.fromEntries(Object.keys(POSE).map((posa) => [maurizioKey(posa), { ...MAURIZIO_SIZE, draw: (ctx, rng) => drawMaurizio(ctx, rng, posa) }])),
   onigiri: { ...onigiriSize(ONIGIRI_BANCONE), draw: (ctx, rng) => drawOnigiri(ctx, rng, ONIGIRI_BANCONE) },
   'onigiri-icona': { ...onigiriSize(ONIGIRI_ICONA), draw: (ctx, rng) => drawOnigiri(ctx, rng, ONIGIRI_ICONA) },
+  // Il takoyaki ha le stesse misure dell'onigiri (Bancone e icone scalano uguale), più la versione bruciata
+  // che sta sulla Postazione, il Fumo e il cestino (passo 4).
+  takoyaki: { ...takoyakiSize(ONIGIRI_BANCONE), draw: (ctx, rng) => drawTakoyaki(ctx, rng, ONIGIRI_BANCONE) },
+  'takoyaki-icona': { ...takoyakiSize(ONIGIRI_ICONA), draw: (ctx, rng) => drawTakoyaki(ctx, rng, ONIGIRI_ICONA) },
+  'takoyaki-bruciato-icona': { ...takoyakiSize(ONIGIRI_ICONA), draw: (ctx, rng) => drawTakoyaki(ctx, rng, ONIGIRI_ICONA, true) },
+  fumo: { ...FUMO_SIZE, draw: drawFumo },
+  cestino: { ...CESTINO_SIZE, draw: drawCestino },
   // Lo Yatai: una Postazione per Piatto. Il pavimento, il Bancone, il Posto e lo sfondo cambiano con
   // il Matsuri e si generano solo per quello in uso: sono in sfondi/index.js (disegniTema).
   ...Object.fromEntries(Object.entries(POSTAZIONI).map(([piatto, draw]) => [postazioneKey(piatto), { ...POSTAZIONE_SIZE, draw }])),
