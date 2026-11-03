@@ -20,15 +20,19 @@ import { createRng } from '../kit/rng.js';
 // i riscontri (monete, cuoricini, Maurizio che si anima). Con lo stesso seme e le stesse azioni
 // la Serata è sempre la stessa, quindi si prova senza browser.
 //
-// I Piatti con una `ricetta` (config.js, PIATTI) si fanno a tocchi: si tocca una Scorta per ogni
-// Ingrediente, nell'ordine della ricetta, e ognuno si paga quando lo si usa. Gli altri cuociono da
-// soli sulla Postazione. L'Incasso è il netto: Vendite meno Spesa (GAME_SPEC.md, "Ingredienti e Spreco").
+// Ogni Piatto ha una `ricetta` (config.js, PIATTI): una lista di passi. Un passo è un Ingrediente, che si
+// tocca dalla sua Scorta e si paga subito, oppure una cottura, che parte da sola quando il passo prima è
+// fatto e dura i suoi secondi (intanto le Scorte non fanno niente). Finiti tutti i passi il Piatto è pronto e
+// si prende. La logica non sa cosa sia un takoyaki: la cottura può stare dove la ricetta la mette (dopo il
+// polpo, dopo il ghiaccio). L'Incasso è il netto: Vendite meno Spesa (GAME_SPEC.md, "Ingredienti e Spreco").
 //
 // Gli eventi sono oggetti semplici con un campo `tipo`:
 //   clienteArrivato   { posto, cliente: { id, tipo, ordine } }
-//   cotturaIniziata   { postazione, piatto }
 //   ingrediente       { postazione, scorta, costo, fatti, di }   un Ingrediente è finito nel Piatto (e si è pagato)
-//   ingredienteRifiutato { scorta, motivo }   fuori ordine ('ordine') o con tutte le Postazioni piene ('occupato'): non costa niente
+//   cotturaIniziata   { postazione, piatto, durataMs }   finito un Ingrediente, il passo dopo è una cottura
+//   cotturaFinita     { postazione, piatto }   la cottura è finita ma il Piatto non è pronto: manca ancora un Ingrediente
+//   ingredienteRifiutato { scorta, motivo }   fuori ordine ('ordine'), con la Postazione che cuoce ('cuoce') o con tutte
+//                                              le Postazioni piene ('occupato'): non costa niente
 //   piattoPronto      { postazione, piatto }
 //   staPerBruciarsi   { postazione, piatto, traMs }   il Piatto pronto è negli ultimi secondi, una volta sola
 //   piattoBruciato    { postazione, piatto }   dimenticato troppo: resta sulla Postazione finché non si tocca
@@ -36,8 +40,7 @@ import { createRng } from '../kit/rng.js';
 //   postazioneNelFumo { postazione, restaMs }  si è toccata una Postazione che non si può usare
 //   fumoPassato       { postazione }           il Fumo è finito, la Postazione è di nuovo libera
 //   sulBancone        { postazione, piatto }
-//   postazioneOccupata { postazione }      il Piatto sta ancora cuocendo
-//   nienteDaPrendere  { postazione }       il Piatto a tocchi non è ancora finito
+//   nienteDaPrendere  { postazione }       il Piatto non è ancora finito (mancano Ingredienti o sta cuocendo)
 //   postazioneSconosciuta { postazione }
 //   banconePieno      { postazione }       il Piatto pronto resta sulla Postazione
 //   scuoteTesta       { posto, mancano }   sul Bancone manca qualcosa dell'Ordine
@@ -97,9 +100,21 @@ export function calcolaStelle(incasso, obiettivo) {
   return sogliePerStelle(obiettivo).filter((soglia) => incasso >= soglia).length;
 }
 
+// I passi della ricetta di un Piatto che sono Ingredienti (le cotture no): quelli che hanno una Scorta e
+// un'icona nella Ricetta mostrata sulla Postazione. Un Piatto senza ricetta non ne ha.
+export function ingredientiDi(piatto) {
+  return (PIATTI[piatto].ricetta ?? []).filter((passo) => passo.ingrediente !== undefined);
+}
+
 // Gli Yen di Ingredienti di un Piatto: la somma della sua ricetta (zero se non ne ha una).
 export function costoPiatto(piatto) {
-  return (PIATTI[piatto].ricetta ?? []).reduce((somma, { costo }) => somma + costo, 0);
+  return ingredientiDi(piatto).reduce((somma, { costo }) => somma + costo, 0);
+}
+
+// Quanti tocchi servono per fare un Piatto: uno per Ingrediente più uno per prenderlo. La cottura non è
+// un tocco. Il tetto è 4 (GAME_SPEC.md, "La cucina a tocchi").
+export function tocchiPerPiatto(piatto) {
+  return ingredientiDi(piatto).length + 1;
 }
 
 export class Serata {
@@ -136,18 +151,20 @@ export class Serata {
     this.spesaServita = 0;
     this.serviti = 0;
     this.persi = 0;
-    // I Piatti bruciati in questa Serata: poi diventeranno Spreco (ticket 33).
+    // I Piatti bruciati in questa Serata (per i Titoli e per i test). I loro Ingredienti sono già Spesa e non
+    // finiscono mai in un Piatto servito, quindi sono Spreco senza bisogno di altro (vedi spreco()).
     this.bruciati = 0;
     this.prossimoId = 1;
 
     this.posti = Array.from({ length: POSTI.quanti }, () => ({ cliente: null, liberoDaMs: 0 }));
     this.bancone = [];
-    // `fatti`: quanti Ingredienti ha già un Piatto a tocchi. Stati: libera | inPreparazione | cuoce | pronto.
+    // `passo`: l'indice del passo della ricetta che viene; `fatti`: quanti Ingredienti ha già il Piatto. Stati:
+    // libera | inPreparazione (aspetta un Ingrediente) | cuoce (è a un passo di cottura) | pronto | bruciato | fumo.
     this.postazioni = Object.entries(POSTAZIONI)
       .filter(([, { piatto }]) => piatti.includes(piatto))
-      .map(([id, { piatto }]) => ({ id, piatto, stato: 'libera', cottoMs: 0, fatti: 0, prontoMs: 0, avvisato: false, fumoMs: 0 }));
+      .map(([id, { piatto }]) => ({ id, piatto, stato: 'libera', passo: 0, fatti: 0, cottoMs: 0, prontoMs: 0, avvisato: false, fumoMs: 0 }));
     // Una Scorta per Ingrediente di ogni ricetta, nell'ordine della ricetta.
-    this.scorte = piatti.flatMap((piatto) => (PIATTI[piatto].ricetta ?? []).map(({ ingrediente }) => ({ id: ingrediente, piatto })));
+    this.scorte = piatti.flatMap((piatto) => ingredientiDi(piatto).map(({ ingrediente }) => ({ id: ingrediente, piatto })));
     this.prossimoArrivoMs = Math.round(CLIENTI.primoArrivoSec * SEC);
   }
 
@@ -190,15 +207,15 @@ export class Serata {
 
   // --- Postazioni ---
 
-  // Una Postazione avanza da sola: cuoce, poi (se il suo Piatto si brucia) aspetta di bruciarsi, poi
-  // il Fumo passa. Libera e bruciato non cambiano senza un tocco.
+  // Una Postazione avanza da sola: cuoce (un passo di cottura della ricetta), poi (se il suo Piatto si
+  // brucia) aspetta di bruciarsi, poi il Fumo passa. Libera, inPreparazione e bruciato non cambiano senza
+  // un tocco.
   cuoci(postazione, passoMs, eventi) {
     if (postazione.stato === 'cuoce') {
       postazione.cottoMs += passoMs;
-      if (postazione.cottoMs >= PIATTI[postazione.piatto].cookSec * SEC) {
-        postazione.stato = 'pronto';
-        postazione.prontoMs = 0;
-        eventi.push({ tipo: 'piattoPronto', postazione: postazione.id, piatto: postazione.piatto });
+      if (postazione.cottoMs >= this.cotturaMs(postazione)) {
+        eventi.push({ tipo: 'cotturaFinita', postazione: postazione.id, piatto: postazione.piatto });
+        this.passoFatto(postazione, eventi);
       }
     } else if (postazione.stato === 'pronto') {
       this.bruciaSeDimenticato(postazione, passoMs, eventi);
@@ -215,6 +232,48 @@ export class Serata {
   // Gli Yen di Ingredienti usati che non sono finiti in un Piatto servito (GLOSSARY.md, Spreco).
   spreco() {
     return this.spesa - this.spesaServita;
+  }
+
+  // Quanto dura il passo di cottura a cui è la Postazione (zero se il passo non è una cottura).
+  cotturaMs(postazione) {
+    return (PIATTI[postazione.piatto].ricetta[postazione.passo]?.cotturaSec ?? 0) * SEC;
+  }
+
+  // Un passo della ricetta è fatto (un Ingrediente o una cottura): la Postazione passa al successivo. Se non
+  // ce ne sono il Piatto è pronto e da lì parte la bruciatura; se è una cottura comincia da sola, senza un
+  // altro tocco; se è un Ingrediente la Postazione lo aspetta.
+  passoFatto(postazione, eventi) {
+    const { ricetta } = PIATTI[postazione.piatto];
+    postazione.passo += 1;
+    postazione.cottoMs = 0;
+    const prossimo = ricetta[postazione.passo];
+    if (!prossimo) {
+      postazione.stato = 'pronto';
+      postazione.prontoMs = 0;
+      postazione.avvisato = false;
+      eventi.push({ tipo: 'piattoPronto', postazione: postazione.id, piatto: postazione.piatto });
+    } else if (prossimo.cotturaSec !== undefined) {
+      postazione.stato = 'cuoce';
+      eventi.push({ tipo: 'cotturaIniziata', postazione: postazione.id, piatto: postazione.piatto, durataMs: prossimo.cotturaSec * SEC });
+    } else {
+      postazione.stato = 'inPreparazione';
+    }
+  }
+
+  // Il Piatto torna a zero: Postazione libera, ricetta da capo (dopo averlo preso, o dopo il cestino).
+  azzera(postazione) {
+    postazione.passo = 0;
+    postazione.fatti = 0;
+    postazione.cottoMs = 0;
+    postazione.prontoMs = 0;
+    postazione.avvisato = false;
+  }
+
+  // L'Ingrediente che la Postazione aspetta (o aspetterà, finita la cottura), o null se non ne mancano. Solo
+  // mentre il Piatto si sta facendo.
+  prossimoIngrediente(postazione) {
+    if (!['libera', 'inPreparazione', 'cuoce'].includes(postazione.stato)) return null;
+    return PIATTI[postazione.piatto].ricetta.slice(postazione.passo).find((passo) => passo.ingrediente !== undefined)?.ingrediente ?? null;
   }
 
   // Quanto manca prima che il Piatto pronto si bruci, o null se non si brucia mai (l'onigiri).
@@ -243,8 +302,7 @@ export class Serata {
   //   Postazione pronta       il Piatto passa sul Bancone
   //   Postazione bruciata     il Piatto va nel cestino e la Postazione resta nel Fumo
   //   Postazione nel Fumo     non succede niente: non si può usare finché il Fumo non passa
-  //   Postazione a tocchi     altrimenti non c'è niente da prendere
-  //   Postazione che cuoce    se è libera il Piatto comincia a cuocere, se sta cuocendo non succede niente
+  //   Postazione altrimenti   non c'è niente da prendere (il Piatto non è finito, o sta cuocendo)
   tocca(id) {
     if (this.finita) return [];
     const scorta = this.scorte.find((s) => s.id === id);
@@ -256,53 +314,45 @@ export class Serata {
       return [{ tipo: 'postazioneNelFumo', postazione: id, restaMs: FUMO_SEC * SEC - postazione.fumoMs }];
     }
     if (postazione.stato === 'bruciato') {
+      // Gli Ingredienti già pagati restano Spesa e non diventano mai Vendite: sono Spreco.
       postazione.stato = 'fumo';
       postazione.fumoMs = 0;
-      postazione.fatti = 0;
+      this.azzera(postazione);
       return [{ tipo: 'nelCestino', postazione: id, piatto: postazione.piatto }];
     }
-    if (PIATTI[postazione.piatto].ricetta) return [{ tipo: 'nienteDaPrendere', postazione: id }];
-    if (postazione.stato === 'cuoce') return [{ tipo: 'postazioneOccupata', postazione: id }];
-    postazione.stato = 'cuoce';
-    postazione.cottoMs = 0;
-    postazione.prontoMs = 0;
-    postazione.avvisato = false;
-    return [{ tipo: 'cotturaIniziata', postazione: id, piatto: postazione.piatto }];
+    return [{ tipo: 'nienteDaPrendere', postazione: id }];
   }
 
   alBancone(postazione) {
     if (this.bancone.length >= this.banconeCapienza) return [{ tipo: 'banconePieno', postazione: postazione.id }];
     this.bancone.push(postazione.piatto);
     postazione.stato = 'libera';
-    postazione.cottoMs = 0;
-    postazione.prontoMs = 0;
-    postazione.avvisato = false;
-    postazione.fatti = 0;
+    this.azzera(postazione);
     return [{ tipo: 'sulBancone', postazione: postazione.id, piatto: postazione.piatto }];
   }
 
   // Un Ingrediente va nella Postazione che lo aspetta: prima in quella già cominciata, poi in una
-  // libera (se è il primo della ricetta). Se nessuna lo aspetta (fuori ordine, o tutte con un Piatto
-  // pronto da prendere) il tocco non fa niente e non costa: sbagliare l'ordine non è mai un danno,
-  // al massimo si perde un tocco.
+  // libera (se è il primo della ricetta). Se nessuna lo aspetta (fuori ordine, con il Piatto che sta
+  // cuocendo o già pronto da prendere) il tocco non fa niente e non costa: sbagliare l'ordine non è mai
+  // un danno, al massimo si perde un tocco.
   usaScorta(scorta) {
     const { ricetta } = PIATTI[scorta.piatto];
     const delPiatto = this.postazioni.filter((p) => p.piatto === scorta.piatto);
     const puoRicevere = (p) => p.stato === 'libera' || p.stato === 'inPreparazione';
-    const aspetta = (p) => puoRicevere(p) && ricetta[p.fatti].ingrediente === scorta.id;
+    const aspetta = (p) => puoRicevere(p) && ricetta[p.passo].ingrediente === scorta.id;
     const scelta = delPiatto.filter(aspetta).sort((a, b) => b.fatti - a.fatti)[0];
     if (!scelta) {
-      const motivo = delPiatto.some(puoRicevere) ? 'ordine' : 'occupato';
+      let motivo = 'occupato';
+      if (delPiatto.some(puoRicevere)) motivo = 'ordine';
+      else if (delPiatto.some((p) => p.stato === 'cuoce')) motivo = 'cuoce';
       return [{ tipo: 'ingredienteRifiutato', scorta: scorta.id, motivo }];
     }
-    const { costo } = ricetta[scelta.fatti];
+    const { costo } = ricetta[scelta.passo];
     this.spesa += costo;
     this.incasso -= costo;
     scelta.fatti += 1;
-    const finito = scelta.fatti === ricetta.length;
-    scelta.stato = finito ? 'pronto' : 'inPreparazione';
-    const eventi = [{ tipo: 'ingrediente', postazione: scelta.id, scorta: scorta.id, costo, fatti: scelta.fatti, di: ricetta.length }];
-    if (finito) eventi.push({ tipo: 'piattoPronto', postazione: scelta.id, piatto: scelta.piatto });
+    const eventi = [{ tipo: 'ingrediente', postazione: scelta.id, scorta: scorta.id, costo, fatti: scelta.fatti, di: ingredientiDi(scelta.piatto).length }];
+    this.passoFatto(scelta, eventi);
     return eventi;
   }
 
@@ -448,19 +498,25 @@ export class Serata {
         },
       })),
       bancone: [...this.bancone],
-      // Il Piatto a tocchi aspetta `prossimo` (l'id della Scorta da toccare); null se è già finito.
+      // fatti: gli Ingredienti già nel Piatto. prossimo: l'id della Scorta che il Piatto aspetta, anche mentre
+      // cuoce (è quella da toccare appena finisce la cottura); null se non ne mancano. Mentre cuoce ('cuoce') le
+      // Scorte non fanno niente: restaMs dice quanto manca e cotturaMs quanto dura quella cottura.
       // bruciaTraMs: quanto manca a bruciarsi (solo un Piatto pronto che si brucia, altrimenti null).
       // fumoRestaMs: quanto manca alla fine del Fumo.
-      postazioni: this.postazioni.map(({ id, piatto, stato, cottoMs, fatti, prontoMs, fumoMs }) => ({
-        id,
-        piatto,
-        stato,
-        fatti,
-        prossimo: PIATTI[piatto].ricetta && ['libera', 'inPreparazione'].includes(stato) ? PIATTI[piatto].ricetta[fatti].ingrediente : null,
-        restaMs: stato === 'cuoce' ? PIATTI[piatto].cookSec * SEC - cottoMs : 0,
-        bruciaTraMs: stato === 'pronto' ? this.bruciaTraMs({ piatto, prontoMs }) : null,
-        fumoRestaMs: stato === 'fumo' ? FUMO_SEC * SEC - fumoMs : 0,
-      })),
+      postazioni: this.postazioni.map((postazione) => {
+        const { id, piatto, stato, cottoMs, fatti, prontoMs, fumoMs } = postazione;
+        return {
+          id,
+          piatto,
+          stato,
+          fatti,
+          prossimo: this.prossimoIngrediente(postazione),
+          cotturaMs: stato === 'cuoce' ? this.cotturaMs(postazione) : 0,
+          restaMs: stato === 'cuoce' ? this.cotturaMs(postazione) - cottoMs : 0,
+          bruciaTraMs: stato === 'pronto' ? this.bruciaTraMs({ piatto, prontoMs }) : null,
+          fumoRestaMs: stato === 'fumo' ? FUMO_SEC * SEC - fumoMs : 0,
+        };
+      }),
       scorte: this.scorte.map(({ id, piatto }) => ({ id, piatto, costo: PIATTI[piatto].ricetta.find((r) => r.ingrediente === id).costo })),
       // La fila vicino al pollice, da sinistra a destra: prima le Scorte, poi le Postazioni.
       fila: this.fila(),

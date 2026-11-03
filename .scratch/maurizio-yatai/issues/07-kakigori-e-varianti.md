@@ -2,7 +2,7 @@
 
 **What to build:** Il terzo Piatto, alla macchina del ghiaccio: non si brucia mai, ma ha tre varianti (fragola, melone, matcha). Con questo ticket arriva il modo di scegliere la variante. Con la cucina a tocchi (ticket 33) la variante è l'Ingrediente che distingue il Piatto (qui lo sciroppo: fragola, melone, matcha) e ha una **Scorta** per ciascuna: si tocca direttamente, senza menu (decisione del 2026-11-03, che sostituisce il menu "apri, poi scegli" deciso prima). La **Ricetta** è ghiaccio, [2 s], sciroppo, prendi: 3 tocchi, entro il tetto di 4. Nella nuvoletta dell'Ordine e sul Bancone la variante si riconosce dall'icona, non solo dal colore. Un Piatto della variante sbagliata non si serve. La regola delle Scorte per variante vale per tutti i Piatti con varianti, quindi anche per il ticket 08.
 
-**Blocked by:** 06 (Il takoyaki: cottura, bruciatura e Fumo)
+**Blocked by:** 06 (Il takoyaki: cottura, bruciatura e Fumo), 37 (Il takoyaki a tocchi: la cottura a metà della Ricetta)
 
 **Status:** ready-for-agent
 
@@ -29,3 +29,7 @@ Due punti che la mappa non chiudeva, **decisi con Giuseppe il 2026-11-03** e scr
 - **Cottura del kakigōri: resta.** I 2 s della tabella sono la macinatura, tra il ghiaccio e lo sciroppo. La regola 2 della spec ora elenca anche il kakigōri tra i Piatti con cottura.
 
 **Rischio di spazio, da risolvere nel ticket 08** (che ha tutte le Scorte): con una Scorta per variante, a fine gioco ce ne sono circa 15 (riso, alga, pastella, polpo, salsa, ghiaccio, tre sciroppi, ripieni, noodles, brodo, uovo, naruto) accanto a 5 Postazioni. Qui, con tre sciroppi, vanno già verificate a 360×640.
+
+### Dal ticket 37 (2026-11-03)
+
+Il 37 scrive la cottura come **passo della Ricetta** nei dati (`{ cotturaSec: N }` tra gli Ingredienti), con la logica già generale: qui basta `ricetta: [ghiaccio, { cotturaSec: 2 }, sciroppo]` per ogni variante, senza cambiare `Serata.js`. La cottura del kakigōri, dopo il ghiaccio, funziona come quella del takoyaki dopo il polpo.

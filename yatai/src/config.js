@@ -25,6 +25,10 @@ export const PALETTE = {
   salsa: { colore: '#7a4a2e', ombra: '#4f2f1d', luce: '#a2704f' },
   aonori: '#6fae6a',
   maionese: '#fff3d6',
+  // Gli Ingredienti del takoyaki che si toccano dalle Scorte: la pastella chiara, il polpo bollito (rosa
+  // scuro con le ventose bianche).
+  pastella: { colore: '#f7e6ae', ombra: '#dcc279', luce: '#fff6d8' },
+  polpo: { colore: '#e3858a', ombra: '#b4565f', luce: '#f6b9b9' },
   bruciato: { colore: '#4d3d37', ombra: '#2b211d', luce: '#76645c' },
   fumo: { colore: '#d9d4d8', ombra: '#a9a3aa', luce: '#f3f0f2' },
   // Gli accenti per pulsanti e pannelli, come i pulsanti di FarmPlush. Nuvola: i pannelli bianchi.
@@ -134,17 +138,34 @@ export const CHE_STILE_BONUS = 0.2;
 export const BRUCIATURA = { avvisoSec: 1.5 };
 
 // I Piatti stanno nell'ordine in cui si sbloccano (GAME_SPEC.md): le Postazioni sullo schermo li seguono.
-// cookSec: tempo di cottura. burnAfterSec: secondi in più prima che si bruci (null = mai).
-// ricetta: la cucina a tocchi (ticket 33). Al posto della cottura, gli Ingredienti si toccano nell'ordine
-// della ricetta e ognuno si paga quando lo si usa (GAME_SPEC.md, "Ingredienti e Spreco"): la sequenza
-// di questa lista è la ricetta del Ricettario. Il costo del Piatto è la somma, circa un terzo del prezzo.
+// burnAfterSec: secondi in più, da quando il Piatto è pronto (finito e da prendere), prima che si bruci
+// (null o assente = mai). cookSec: la cottura dei Piatti che non hanno ancora una ricetta (vedi sotto).
+// ricetta: la cucina a tocchi (ticket 33 e 37). Una lista di passi, nell'ordine in cui accadono. Un passo è
+//   { ingrediente, costo }   un tocco sulla Scorta di quell'Ingrediente, che si paga subito
+//   { cotturaSec }           la Postazione cuoce da sola per tanti secondi; intanto le Scorte non fanno niente
+// Dopo l'ultimo passo il Piatto è pronto e si prende (un tocco in più, mai nella lista). La cottura sta dove serve
+// alla Ricetta: nel takoyaki dopo il polpo, nel kakigōri (ticket 07) dopo il ghiaccio, e la logica è la stessa.
+// Il costo del Piatto è la somma dei costi, circa un terzo del prezzo (GAME_SPEC.md, "Ingredienti e Spreco").
+// La sequenza è anche la Ricetta mostrata in icone e quella del Ricettario.
+// Kakigōri, taiyaki e ramen non hanno ancora una ricetta né una Postazione: le avranno nei ticket 07 e 08.
 export const PIATTI = {
   onigiri: {
     ricetta: [{ ingrediente: 'riso', costo: 20 }, { ingrediente: 'alga', costo: 10 }],
     price: 100,
     varianti: [],
   },
-  takoyaki: { cookSec: 5, burnAfterSec: 4, price: 300, varianti: [] },
+  // 4 tocchi: pastella, polpo, [5 s], salsa, prendi. 100 Yen di Ingredienti su 300.
+  takoyaki: {
+    ricetta: [
+      { ingrediente: 'pastella', costo: 30 },
+      { ingrediente: 'polpo', costo: 50 },
+      { cotturaSec: 5 },
+      { ingrediente: 'salsa', costo: 20 },
+    ],
+    burnAfterSec: 4,
+    price: 300,
+    varianti: [],
+  },
   kakigori: { cookSec: 2, burnAfterSec: null, price: 250, varianti: ['fragola', 'melone', 'matcha'] },
   taiyaki: { cookSec: 8, burnAfterSec: 4, price: 200, varianti: ['fagioli', 'crema'] },
   ramen: { cookSec: 6, burnAfterSec: 5, price: 600, varianti: ['uovo', 'naruto'] },
@@ -169,15 +190,21 @@ export const YATAI = {
   posti: { iniziali: 3, massimo: 4, larghezzaMax: 190 },
   // Le Postazioni: una per Piatto, in fila vicino al pollice. `altezzaEtichetta` è lo spazio per il nome;
   // `barraDallaCima` e `piattoDallaCima` dicono a che altezza dalla cima del disegno stanno la barra della
-  // cottura e il Piatto pronto (la base dell'icona), in pixel del disegno. `barraBruciaDallaCima` è la barra
-  // che scende prima che il Piatto si bruci: negativa, perché sta sopra il Piatto (che copre la barra della
-  // cottura). `puntoDalCentro` è dove sta il "!" dell'allarme rispetto al Piatto, a destra e in alto.
+  // cottura e il Piatto pronto (la base dell'icona), in pixel del disegno. La barra della cottura sta sopra le
+  // icone della Ricetta (che occupano da 2 a 66 px dalla cima, RISCONTRI.passo): quindi è negativa. Anche
+  // `barraBruciaDallaCima`, la barra che scende prima che il Piatto si bruci, è negativa, perché sta sopra il
+  // Piatto pronto. `puntoDalCentro` è dove sta il "!" dell'allarme rispetto al Piatto, a destra e in alto.
+  //
+  // `massimo` è quante voci può avere la fila (Scorte e Postazioni insieme: nel Tanabata riso, alga, pastella,
+  // polpo, salsa, tagliere e piastra sono 7). `capacitaBase` è la larghezza di partenza: finché le voci sono
+  // meno, ognuna resta larga come se fossero 5 (così l'Hanami non cambia); oltre, si stringono per starci tutte.
   postazioni: {
-    massimo: 5,
+    massimo: 7,
+    capacitaBase: 5,
     larghezzaMax: 140,
     spazio: 6,
     altezzaEtichetta: 40,
-    barraDallaCima: 50,
+    barraDallaCima: -14,
     barraBruciaDallaCima: -26,
     piattoDallaCima: 80,
     puntoDalCentro: { x: 58, y: -44 },
@@ -244,14 +271,24 @@ export const SERATA_PRIMA = {
   piattiPerOrdine: { min: 1, max: 1 },
 };
 
-// La Serata del Tanabata (passo 4): arriva il takoyaki, il primo Piatto che si brucia, e con lui gli
-// Ordini da 2 Piatti (GAME_SPEC.md, tabella dei Matsuri). Il menù è quello dell'Hanami più il Piatto
-// nuovo. Obiettivo provvisorio fino al ticket 29. Il bot senza browser (test/bruciatura.test.js), che non
-// sbaglia mai una mossa, su 13 semi fa con un tocco ogni 1,4 s tra 3220 e 4770 Yen (★ a 3200), ogni 0,8 s
-// tra 6450 e 7530 e ogni 0,3 s tra 9370 e 10910. ★★★ (5120) è quindi alla portata del bot attento: un
-// umano, che si distrae e brucia qualcosa, sta sotto. Da stringere nel ticket 29.
+// La Serata del Tanabata (passi 4 e 4-bis): arriva il takoyaki, il primo Piatto che si brucia e il primo con la
+// cottura a metà della Ricetta, e con lui gli Ordini da 2 Piatti (GAME_SPEC.md, tabella dei Matsuri). Il menù
+// è quello dell'Hanami più il Piatto nuovo.
+//
+// Obiettivo provvisorio fino al ticket 29, sul netto (Vendite meno Spesa). Il bot senza browser
+// (test/bruciatura.test.js) non sbaglia mai una mossa; la bravura è il tempo tra un tocco e l'altro (come
+// BRAVURA in test/serata.test.js). Media di 6 semi, Incasso netto, dopo il ticket 37 (takoyaki a tocchi,
+// 100 Yen di Ingredienti):
+//   un tocco ogni 1,4 s (lento)    2565 Yen (da 2130 a 2870)    ★
+//   un tocco ogni 1,0 s (attento)  3652 Yen (da 3350 a 4010)    ★★
+//   un tocco ogni 0,6 s (rapido)   5927 Yen (da 5560 a 6300)    ★★★
+//   un tocco ogni 0,3 s            circa 7900 Yen
+// Con obiettivo 2400 le soglie sono ★ 2400, ★★ 3120, ★★★ 3840: il lento ha ★ con il 7% di margine, l'attento ★★
+// con il 5% di margine verso ★★★. Chi dimentica un takoyaki lo brucia e perde 100 Yen di Spesa più la vendita.
+// Prima del 37 (takoyaki con un solo tocco, senza Spesa) l'obiettivo era 3200 sulle Vendite: il bot attento
+// faceva 6450–7530 e arrivava a ★★★ senza sforzo, perché cucinare il takoyaki costava un tocco.
 export const SERATA_TANABATA = {
-  obiettivo: 3200,
+  obiettivo: 2400,
   piatti: ['onigiri', 'takoyaki'],
   piattiPerOrdine: { min: 1, max: 2 },
 };
@@ -267,16 +304,15 @@ export const SERATE = {
 // I tempi sono in millisecondi, le distanze in pixel di gioco.
 
 export const COMANDI = {
-  // I tasti rapidi (GAME_SPEC.md, "Comandi e accessibilità"): 1–5 per le Postazioni, Q/W/E/R per i
-  // Posti. Sono codici fisici (KeyboardEvent.code): restano nello stesso punto su ogni tastiera.
-  postazioni: ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'],
+  // I tasti rapidi (GAME_SPEC.md, "Comandi e accessibilità"): i numeri per la fila vicino al pollice (da sinistra,
+  // Scorte e Postazioni insieme: sono 7 nel Tanabata, quindi 1–7), Q/W/E/R per i Posti. Sono codici fisici
+  // (KeyboardEvent.code): restano nello stesso punto su ogni tastiera. I tasti definitivi per le Scorte li decide
+  // il ticket 26.
+  postazioni: ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7'],
   posti: ['KeyQ', 'KeyW', 'KeyE', 'KeyR'],
-  // Anche il tastierino numerico fa le Postazioni.
-  postazioniTastierino: ['Numpad1', 'Numpad2', 'Numpad3', 'Numpad4', 'Numpad5'],
+  // Anche il tastierino numerico fa la fila.
+  postazioniTastierino: ['Numpad1', 'Numpad2', 'Numpad3', 'Numpad4', 'Numpad5', 'Numpad6', 'Numpad7'],
   rigioca: ['Enter', 'Space'],
-  // Un tocco sulla Postazione un attimo prima che il Piatto sia pronto non va perso: se manca
-  // meno di così, il tocco si ricorda e scatta appena il Piatto è pronto.
-  anticipoMs: 250,
 };
 
 export const RISCONTRI = {
@@ -317,10 +353,12 @@ export const RISCONTRI = {
   },
   // Il "−20" piccolo che scende sotto l'Incasso a ogni Ingrediente (la Spesa).
   spesa: { durata: 750, discesa: 34 },
-  // La ricetta sul tagliere: un'icona per Ingrediente, piccola (frazione del disegno della Postazione),
-  // `spazio` pixel dell'una dall'altra e `altezza` pixel dalla cima del disegno alla base dell'icona
-  // (misure del disegno, non dello schermo). Spenta (`passoSpento`) finché l'Ingrediente non è nel Piatto.
-  passo: { scala: 0.42, spazio: 62, altezza: 66 },
+  // La ricetta sulla Postazione: un'icona per Ingrediente (la cottura non ha icona: ha la sua barra), piccola
+  // (frazione del disegno della Postazione), `spazio` pixel dell'una dall'altra e `altezza` pixel dalla cima del
+  // disegno alla base dell'icona (misure del disegno, non dello schermo). Se le icone sono tante e non ci stanno,
+  // si avvicinano: la fila non occupa mai più di `larghezzaFila` volte la larghezza della Postazione, così non
+  // finisce sopra la voce accanto. Spenta (`passoSpento`) finché l'Ingrediente non è nel Piatto.
+  passo: { scala: 0.42, spazio: 62, altezza: 66, larghezzaFila: 0.96 },
   passoSpento: 0.28,
   // L'alone giallo dietro la Scorta che aspetta il Piatto (il prossimo Ingrediente): `durata` del
   // respiro, misure come frazione della larghezza della Scorta, `dallaCima` in pixel del disegno.

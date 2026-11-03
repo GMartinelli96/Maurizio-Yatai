@@ -12,6 +12,9 @@ export default {
   // Le Scorte: la chiave è ingrediente_ più l'id dell'Ingrediente in config.js (PIATTI, ricetta).
   ingrediente_riso: 'Riso',
   ingrediente_alga: 'Alga',
+  ingrediente_pastella: 'Pastella',
+  ingrediente_polpo: 'Polpo',
+  ingrediente_salsa: 'Salsa',
 
 
   // Fine Serata

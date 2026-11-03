@@ -9,6 +9,9 @@ export default {
   piatto_ramen: 'Ramen',
   ingrediente_riso: 'Rice',
   ingrediente_alga: 'Nori',
+  ingrediente_pastella: 'Batter',
+  ingrediente_polpo: 'Octopus',
+  ingrediente_salsa: 'Sauce',
 
 
   // Fine Serata

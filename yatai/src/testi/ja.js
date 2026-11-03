@@ -10,6 +10,9 @@ export default {
   piatto_ramen: 'ラーメン',
   ingrediente_riso: 'ごはん',
   ingrediente_alga: 'のり',
+  ingrediente_pastella: '生地',
+  ingrediente_polpo: 'たこ',
+  ingrediente_salsa: 'ソース',
 
 
   // Fine Serata

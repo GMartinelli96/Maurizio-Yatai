@@ -39,8 +39,9 @@ test('i disegni della Serata sono nel catalogo: nuvoletta, cuoricini, Yen, stell
 });
 
 test('ogni Ingrediente di una ricetta ha la sua Scorta disegnata, nella misura delle Postazioni, e il suo nome nelle tre lingue', () => {
-  const ingredienti = Object.values(PIATTI).flatMap((piatto) => (piatto.ricetta ?? []).map((passo) => passo.ingrediente));
-  assert.ok(ingredienti.length >= 2, 'l’onigiri ha almeno riso e alga');
+  // I passi di cottura non hanno una Scorta: contano solo gli Ingredienti.
+  const ingredienti = Object.values(PIATTI).flatMap((piatto) => (piatto.ricetta ?? []).map((passo) => passo.ingrediente).filter(Boolean));
+  assert.ok(ingredienti.length >= 5, 'riso, alga, pastella, polpo e salsa');
   assert.deepEqual(Object.keys(SCORTE).sort(), [...new Set(ingredienti)].sort(), 'le Scorte disegnate e gli Ingredienti delle ricette discordano');
   for (const ingrediente of ingredienti) {
     const entry = DISEGNI[scortaKey(ingrediente)];
