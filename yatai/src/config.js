@@ -166,3 +166,46 @@ export const MAURIZIO = {
     servi: { posa: 'evviva', salto: 30, schiaccia: 0.09, durata: 170, tienePosa: 560 },
   },
 };
+
+// --- La logica della Serata (src/serata/Serata.js) ---
+
+// Il motore avanza a passi fissi: lo stesso seme e le stesse azioni danno sempre la stessa Serata,
+// qualunque sia la durata dei singoli update().
+export const SERATA_MOTORE = {
+  passoMs: 10,
+};
+
+// Quanto vale la prima Serata (onigiri). L'obiettivo di Incasso è in Yen; con le soglie di SERATA
+// diventa 1200 per ★, 1560 per ★★, 1920 per ★★★. Dal passo 8 ogni Serata avrà il suo obiettivo.
+export const SERATA_PRIMA = {
+  obiettivo: 1200,
+  piatti: ['onigiri'],
+  // Quanti Piatti ha un Ordine (da uno a tre; nell'Hanami è sempre uno).
+  piattiPerOrdine: { min: 1, max: 1 },
+};
+
+export const POSTI = {
+  quanti: 3,
+  // Dopo che un Cliente se n'è andato il Posto resta libero per un attimo, così la scena ha il tempo
+  // di mostrare la partenza prima che ne arrivi un altro.
+  ricambioSec: 1,
+};
+
+export const CLIENTI = {
+  // Il primo Cliente arriva presto, i successivi ogni tanto. Se i Posti sono pieni il prossimo
+  // aspetta che se ne liberi uno.
+  primoArrivoSec: 1.5,
+  arrivoSec: { min: 5, max: 9 },
+  // I Clienti di passaggio: nessun Vizio.
+  passaggio: ['tanuki', 'kitsune', 'manekineko'],
+};
+
+export const BANCONE = {
+  // Quanti Piatti pronti stanno sul Bancone. Se è pieno, il Piatto resta sulla Postazione.
+  capienza: 6,
+};
+
+// Le Postazioni: l'id è quello che si tocca; piatto è il Piatto che preparano.
+export const POSTAZIONI = {
+  tagliere: { piatto: 'onigiri' },
+};

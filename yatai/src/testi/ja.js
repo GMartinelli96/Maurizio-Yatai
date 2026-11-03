@@ -7,4 +7,11 @@ export default {
   piatto_kakigori: 'かき氷',
   piatto_taiyaki: 'たい焼き',
   piatto_ramen: 'ラーメン',
+
+
+  // Fine Serata
+  endTitle: '今夜はおしまい！',
+  endIncasso: 'うりあげ',
+  endObiettivo: 'もくひょう',
+  endRigioca: 'もういちど',
 };

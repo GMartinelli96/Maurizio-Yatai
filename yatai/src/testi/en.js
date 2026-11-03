@@ -6,4 +6,11 @@ export default {
   piatto_kakigori: 'Kakigori',
   piatto_taiyaki: 'Taiyaki',
   piatto_ramen: 'Ramen',
+
+
+  // Fine Serata
+  endTitle: 'Evening over!',
+  endIncasso: 'Takings',
+  endObiettivo: 'Goal',
+  endRigioca: 'Play again',
 };
