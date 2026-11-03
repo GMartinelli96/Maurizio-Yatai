@@ -216,6 +216,25 @@ export const YATAI = {
   ],
   // I Posti: 3 all'inizio, 4 con il Potenziamento. Lo spazio c'è già per tutti e 4.
   posti: { iniziali: 3, massimo: 4, larghezzaMax: 190 },
+  // Le Scorte quando la fila (Scorte e Postazioni insieme) ha più di `postazioni.massimo` voci, cioè dall'Hanabi
+  // (9 Scorte e 3 Postazioni): in una fila sola ogni voce sarebbe larga 25 px a 360×640, e le dita ne vogliono 44.
+  // Allora le Scorte escono dalla fila e stanno sugli scaffali ai lati di Maurizio, nello spazio vuoto della fascia
+  // della cucina, mentre le Postazioni restano da sole vicino al pollice. (Provato anche in file sopra le
+  // Postazioni, ticket 07 passo 3: toglieva altezza ai Clienti e a Maurizio e accalcava le icone della Ricetta.)
+  // Su ogni lato ci sono `colonne` colonne e tante righe quante servono, dall'alto; `centro` è la larghezza lasciata
+  // a Maurizio; la cella è alta quanto larga per `proporzione` ma non più di `cellaMax` di larghezza; il lato destro
+  // lascia `riservaCestino` in basso al cestino, quindi lì stanno meno righe. `cellaMin` è l'altezza sotto cui una
+  // cella non scende (44 px CSS a 360×640): con 2 colonne e il cestino stanno 12 Scorte a 360×640 (8 a sinistra e 4 a
+  // destra; con 9, come nell'Hanabi, 5 e 4). Oltre (il ramen del ticket 08 porta il totale a circa 15) la misura va
+  // rivista lì.
+  scorte: {
+    colonne: 2,
+    centro: 280,
+    proporzione: 1.1,
+    cellaMax: 120,
+    riservaCestino: 130,
+    cellaMin: 88,
+  },
   // Le Postazioni: una per Piatto, in fila vicino al pollice. `altezzaEtichetta` è lo spazio per il nome;
   // `barraDallaCima` e `piattoDallaCima` dicono a che altezza dalla cima del disegno stanno la barra della
   // cottura e il Piatto pronto (la base dell'icona), in pixel del disegno. La barra della cottura sta sopra le
@@ -321,11 +340,21 @@ export const SERATA_TANABATA = {
   piattiPerOrdine: { min: 1, max: 2 },
 };
 
+// La Serata dell'Hanabi (ticket 07): arriva il kakigōri, il Piatto con le varianti (fragola, melone, matcha) che non
+// si brucia mai. Il menù è quello del Tanabata più il Piatto nuovo; con le formiche e il resto dell'Hanabi
+// (ticket 11 e 14) arriveranno dopo. Obiettivo provvisorio, da calibrare col bot (passo 4 del ticket 07) e poi nel 29.
+export const SERATA_HANABI = {
+  obiettivo: 3000,
+  piatti: ['onigiri', 'takoyaki', 'kakigori'],
+  piattiPerOrdine: { min: 1, max: 2 },
+};
+
 // Come è fatta la Serata di ogni Matsuri. Dal passo 8 ogni Serata avrà la sua; per ora ne ha una il
 // Matsuri, e chi manca gioca quella dell'Hanami.
 export const SERATE = {
   hanami: SERATA_PRIMA,
   tanabata: SERATA_TANABATA,
+  hanabi: SERATA_HANABI,
 };
 
 // --- La scena della Serata (src/scenes/SerataScene.js): comandi e riscontri ---

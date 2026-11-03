@@ -44,6 +44,8 @@ export default class YataiScene extends Phaser.Scene {
     this.matsuri = data?.matsuri in TEMI ? data.matsuri : MATSURI_PREDEFINITO;
     this.seats = data?.posti ?? YATAI.posti.iniziali;
     this.stations = data?.postazioni ?? YATAI.postazioni.massimo;
+    // Quante delle voci della fila sono Scorte (le prime): se sono troppe per una fila stanno fuori (layoutYatai).
+    this.scorte = data?.scorte ?? 0;
     this.demo = data?.demo ?? true;
     this.lastTouch = null;
     this.impronte = null;
@@ -120,7 +122,7 @@ export default class YataiScene extends Phaser.Scene {
   // Mette ogni cosa dove dice il layout. Si richiama a ogni cambio di misura dello schermo.
   relayout() {
     const { frame, safe } = screenOf(this);
-    const layout = layoutYatai({ frame, safe, seats: this.seats, stations: this.stations });
+    const layout = layoutYatai({ frame, safe, seats: this.seats, stations: this.stations, scorte: this.scorte });
     this.layout = layout;
     const cx = frame.width / 2;
 
@@ -157,13 +159,14 @@ export default class YataiScene extends Phaser.Scene {
     const fit = placeMaurizio(layout.maurizio, MAURIZIO_SIZE.w, MAURIZIO_SIZE.h);
     this.maurizio.place(fit.x, fit.y, fit.scale);
 
-    const labelHeight = YATAI.postazioni.altezzaEtichetta;
     layout.postazioni.forEach((rect, i) => {
       const view = this.stationViews[i];
+      // Una Scorta fuori fila (sugli scaffali) non ha il nome: il disegno riempie la cella.
+      const labelHeight = rect.scaffale ? 0 : YATAI.postazioni.altezzaEtichetta;
       const drawing = fitIn({ ...rect, h: rect.h - labelHeight }, POSTAZIONE_SIZE.w, POSTAZIONE_SIZE.h);
       view.image.setPosition(drawing.x, drawing.y).setScale(drawing.scale);
       // Il nome sotto la Postazione, ristretto se è più largo del suo posto.
-      view.label.setScale(1).setPosition(center(rect).x, rect.y + rect.h);
+      view.label.setVisible(!rect.scaffale).setScale(1).setPosition(center(rect).x, rect.y + rect.h);
       if (view.label.width > rect.w) view.label.setScale(rect.w / view.label.width);
       view.zone.setPosition(rect.x, rect.y).setSize(rect.w, rect.h);
     });
@@ -195,7 +198,8 @@ export default class YataiScene extends Phaser.Scene {
         ...rectState(layout.bancone.rect),
         piatti: layout.bancone.piatti.map((r, i) => ({ i, pronto: this.dishViews[i].image.visible, ...rectState(r) })),
       },
-      postazioni: layout.postazioni.map((r, i) => ({ i, piatto: this.stationViews[i].piatto, ...rectState(r) })),
+      // `scaffale`: una Scorta fuori dalla fila (ai lati di Maurizio o in file sopra), senza nome.
+      postazioni: layout.postazioni.map((r, i) => ({ i, piatto: this.stationViews[i].piatto, ...rectState(r), scaffale: Boolean(r.scaffale) })),
       maurizio: { ...this.maurizio.getTextState(), fascia: rectState(layout.maurizio) },
       hud: rectState(layout.zone.hud),
       ultimoTocco: this.lastTouch,

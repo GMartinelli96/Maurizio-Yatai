@@ -616,10 +616,13 @@ test('il takoyaki ha il nome nelle tre lingue', () => {
 test('ogni Piatto in menù ha i suoi disegni: sul Bancone, come icona e (se brucia) bruciato, nella stessa misura dell’onigiri', () => {
   for (const [matsuri, serata] of Object.entries(SERATE)) {
     for (const piatto of serata.piatti) {
-      for (const chiave of [piatto, `${piatto}-icona`]) {
+      // Un Piatto con varianti (il kakigōri) ha un disegno per ogni variante, non uno solo.
+      const ids = PIATTI[piatto].varianti.length ? PIATTI[piatto].varianti.map((v) => `${piatto}-${v}`) : [piatto];
+      for (const chiave of ids.flatMap((id) => [id, `${id}-icona`])) {
+        const riferimento = chiave.endsWith('-icona') ? 'onigiri-icona' : 'onigiri';
         assert.ok(DISEGNI[chiave], `${matsuri}: manca la texture ${chiave}`);
-        assert.equal(DISEGNI[chiave].w, DISEGNI[chiave.replace(piatto, 'onigiri')].w, `${chiave} ha una larghezza diversa dall'onigiri`);
-        assert.equal(DISEGNI[chiave].h, DISEGNI[chiave.replace(piatto, 'onigiri')].h, `${chiave} ha un'altezza diversa dall'onigiri`);
+        assert.equal(DISEGNI[chiave].w, DISEGNI[riferimento].w, `${chiave} ha una larghezza diversa dall'onigiri`);
+        assert.equal(DISEGNI[chiave].h, DISEGNI[riferimento].h, `${chiave} ha un'altezza diversa dall'onigiri`);
       }
       if ((PIATTI[piatto].burnAfterSec ?? null) !== null) assert.ok(DISEGNI[`${piatto}-bruciato-icona`], `${matsuri}: manca ${piatto}-bruciato-icona`);
     }

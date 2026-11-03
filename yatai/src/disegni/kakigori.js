@@ -130,14 +130,6 @@ export function drawKakigori(ctx, rng, size, variante) {
   CIMA[variante](ctx, rng, at, size, linea);
 }
 
-// I sei disegni dei Piatti, con la chiave delle texture: `kakigori-fragola` (Bancone) e `kakigori-fragola-icona` (Ordine).
-export const DISEGNI_KAKIGORI = Object.fromEntries(
-  PIATTI.kakigori.varianti.flatMap((variante) => [
-    [`kakigori-${variante}`, { ...onigiriSize(BANCONE), draw: (ctx, rng) => drawKakigori(ctx, rng, BANCONE, variante) }],
-    [`kakigori-${variante}-icona`, { ...onigiriSize(ICONA), draw: (ctx, rng) => drawKakigori(ctx, rng, ICONA, variante) }],
-  ]),
-);
-
 // ---------------------------------------------------------------------------------------------
 // Le Scorte: il ghiaccio e i tre sciroppi. Chiave: l'id dell'Ingrediente (config.js, PIATTI.kakigori.ricetta).
 
@@ -205,9 +197,43 @@ function drawScortaMatcha(ctx, rng) {
   fogliaDiTe(ctx, rng, 84, 124, 44, -2.1);
 }
 
+// Il passo "uno degli sciroppi" nella Ricetta in icone, finché non si è scelto: tre gocce, una per variante (la
+// fragola media, il melone chiaro, il matcha scuro). Nel riquadro delle Scorte, per scalare come le altre icone.
+function goccia(ctx, rng, cx, cy, r, swatch) {
+  const forma = smoothCurve([
+    { x: cx, y: cy - r * 1.3 }, { x: cx + r * 0.5, y: cy - r * 0.35 }, { x: cx + r * 0.85, y: cy + r * 0.3 },
+    { x: cx, y: cy + r }, { x: cx - r * 0.85, y: cy + r * 0.3 }, { x: cx - r * 0.5, y: cy - r * 0.35 },
+  ]);
+  part(ctx, rng, forma, swatch);
+  pencilLine(ctx, smoothCurve([{ x: cx - r * 0.45, y: cy + r * 0.15 }, { x: cx - r * 0.35, y: cy - r * 0.2 }], { closed: false }), rng, {
+    closed: false, width: 3, color: swatch.luce, amount: 0.2, alpha: 0.9,
+  });
+}
+
+function drawPassoSciroppo(ctx, rng) {
+  restingShadow(ctx, 66, 138, 52, 9);
+  goccia(ctx, rng, 38, 104, 25, C.fragola);
+  goccia(ctx, rng, 94, 104, 25, C.matcha);
+  goccia(ctx, rng, 66, 82, 28, C.melone);
+}
+
+export const PASSO_SCIROPPO = { w: 132, h: 152, draw: drawPassoSciroppo };
+
 export const SCORTE_KAKIGORI = {
   ghiaccio: drawScortaGhiaccio,
   fragola: drawScortaFragola,
   melone: drawScortaMelone,
   matcha: drawScortaMatcha,
+};
+
+// I disegni del catalogo (catalogo.js): i sei Piatti, con la chiave delle texture `kakigori-fragola` (Bancone) e
+// `kakigori-fragola-icona` (Ordine), e l'icona del passo a scelta nella Ricetta (`passo-sciroppo`).
+export const DISEGNI_KAKIGORI = {
+  ...Object.fromEntries(
+    PIATTI.kakigori.varianti.flatMap((variante) => [
+      [`kakigori-${variante}`, { ...onigiriSize(BANCONE), draw: (ctx, rng) => drawKakigori(ctx, rng, BANCONE, variante) }],
+      [`kakigori-${variante}-icona`, { ...onigiriSize(ICONA), draw: (ctx, rng) => drawKakigori(ctx, rng, ICONA, variante) }],
+    ]),
+  ),
+  'passo-sciroppo': PASSO_SCIROPPO,
 };

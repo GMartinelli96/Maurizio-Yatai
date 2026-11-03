@@ -347,3 +347,75 @@ test('la larghezza di un Piatto sul Bancone basta a farlo vedere bene', () => {
   const { layout } = layoutFor(SCHERMI[0]);
   assert.ok(layout.bancone.piatti[0].w >= 120, `Piatto largo ${layout.bancone.piatti[0].w}`);
 });
+
+// ---------------------------------------------------------------------------------------------
+// Le Scorte sugli scaffali (ticket 07): oltre le voci di una fila le Scorte stanno ai lati di Maurizio
+
+// Il cestino come lo mette SerataScene: appoggiato in basso a destra nella fascia della cucina.
+const cestinoDi = (cucina) => {
+  const { dalBordo, dalFondo, larghezza } = YATAI.cestino;
+  const altezza = (larghezza * 116) / 96; // CESTINO_SIZE
+  return { x: cucina.x + cucina.w - dalBordo - larghezza / 2, y: cucina.y + cucina.h - dalFondo - altezza, w: larghezza, h: altezza };
+};
+
+test('con una fila che sta in una riga le Scorte restano in fila: Hanami e Tanabata non cambiano', () => {
+  for (const [stations, scorte] of [[3, 2], [7, 5]]) {
+    const { layout } = layoutFor(SCHERMI[0], { stations, scorte });
+    const { layout: senza } = layoutFor(SCHERMI[0], { stations });
+    assert.deepEqual(layout.postazioni, senza.postazioni, `${stations} voci: la fila è cambiata`);
+    assert.ok(layout.postazioni.every((r) => !r.scaffale));
+    assert.equal(layout.scorteFuori, 0);
+  }
+});
+
+test('l’Hanabi (9 Scorte e 3 Postazioni): le Scorte vanno sugli scaffali e le Postazioni restano in fila, grandi come prima', () => {
+  for (const schermo of SCHERMI) {
+    const { layout, canvas } = layoutFor(schermo, { stations: 12, scorte: 9 });
+    assert.equal(layout.postazioni.length, 12);
+    assert.equal(layout.scorteFuori, 9);
+    layout.postazioni.forEach((r, i) => assert.equal(Boolean(r.scaffale), i < 9, `${schermo.nome}: voce ${i}`));
+    // Le tre Postazioni sono larghe come quando la fila ne ha 5 (l'Hanami): non si stringono.
+    const { layout: hanami } = layoutFor(schermo, { stations: 3 });
+    near(layout.postazioni[9].w, hanami.postazioni[0].w, `${schermo.nome}: le Postazioni cambiano misura`);
+    for (const r of layout.postazioni.slice(9)) inside(r, layout.zone.postazioni, `${schermo.nome}: Postazione`);
+    if (schermo.dito !== false) {
+      for (const [i, r] of layout.postazioni.entries()) {
+        assert.ok(r.w * canvas.scale >= 44, `${schermo.nome}: la voce ${i} è larga ${(r.w * canvas.scale).toFixed(1)} px`);
+        assert.ok(r.h * canvas.scale >= 44, `${schermo.nome}: la voce ${i} è alta ${(r.h * canvas.scale).toFixed(1)} px`);
+      }
+    }
+  }
+});
+
+test('gli scaffali stanno nella fascia della cucina, mai sopra Maurizio, il cestino o altre Scorte, e le Scorte sono in ordine', () => {
+  for (const schermo of SCHERMI) {
+    for (const [scorte, stations] of [[2, 12 - 7], [9, 12], [12, 15]]) {
+      if (stations <= YATAI.postazioni.massimo) continue;
+      const { layout, canvas } = layoutFor(schermo, { stations, scorte });
+      const { cucina } = layout.zone;
+      const celle = layout.postazioni.slice(0, scorte);
+      const centro = { x: cucina.x + (cucina.w - YATAI.scorte.centro) / 2, y: cucina.y, w: YATAI.scorte.centro, h: cucina.h };
+      celle.forEach((cella, i) => {
+        const nome = `${schermo.nome}, ${scorte} Scorte, cella ${i}`;
+        inside(cella, cucina, nome);
+        assert.ok(!overlap(cella, centro), `${nome}: sopra Maurizio`);
+        assert.ok(!overlap(cella, cestinoDi(cucina)), `${nome}: sopra il cestino`);
+        celle.slice(0, i).forEach((altra, j) => assert.ok(!overlap(cella, altra), `${nome}: sopra la cella ${j}`));
+        if (schermo.dito !== false) {
+          assert.ok(cella.w * canvas.scale >= 44 && cella.h * canvas.scale >= 44, `${nome}: ${(cella.w * canvas.scale).toFixed(1)}×${(cella.h * canvas.scale).toFixed(1)} px`);
+        }
+      });
+      // Le prime a sinistra di Maurizio, almeno la metà, e il resto a destra, nell'ordine della fila.
+      const aSinistra = celle.map((cella) => center(cella).x < center(centro).x);
+      const quante = aSinistra.filter(Boolean).length;
+      assert.ok(quante >= Math.ceil(scorte / 2), `${schermo.nome}, ${scorte} Scorte: solo ${quante} a sinistra`);
+      aSinistra.forEach((sinistra, i) => assert.equal(sinistra, i < quante, `${schermo.nome}: la cella ${i} è dal lato sbagliato`));
+    }
+  }
+});
+
+test('le Postazioni della Serata dell’Hanabi sono sopra il pavimento della fila e non sotto Maurizio', () => {
+  const { layout } = layoutFor(SCHERMI[0], { stations: 12, scorte: 9 });
+  for (const r of layout.postazioni.slice(9)) assert.ok(r.y > layout.maurizio.y + layout.maurizio.h - 1e-6 || r.y >= layout.zone.postazioni.y - 1e-6);
+  assert.throws(() => layoutFor(SCHERMI[0], { stations: 12 }), RangeError, 'una fila di 12 voci senza Scorte da spostare non sta');
+});

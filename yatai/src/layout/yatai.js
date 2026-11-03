@@ -130,12 +130,46 @@ export function contentArea(frame, safe) {
   };
 }
 
-// L'impaginazione completa. seats: i Posti (da 1 a YATAI.posti.massimo); stations: le Postazioni
-// (da 1 a YATAI.postazioni.massimo: nella Serata sono tutta la fila, Scorte comprese). Quando i Posti
+// Quante voci della fila (Scorte e Postazioni insieme) non stanno in una fila sola: allora le Scorte escono.
+export const scorteFuoriFila = (stations, scorte) => (scorte > 0 && stations > YATAI.postazioni.massimo ? scorte : 0);
+
+// Le Scorte ai lati di Maurizio, dentro la fascia della cucina, in `colonne` colonne e da quante righe servono, a
+// partire da in alto. A destra in basso resta lo spazio del cestino, quindi lì entrano meno righe: la metà (la prima,
+// per arrotondamento) va a sinistra e il resto a destra, ma a destra non più di quante ne entrano con celle di
+// almeno `cellaMin` di altezza. Le celle sono alte quanto larghe per `proporzione`, mai più grandi di `cellaMax` e mai
+// così alte da non starci. Ritorna le celle nell'ordine della fila: prima quelle di sinistra, poi quelle di destra.
+function scaffali(cucina, n) {
+  const S = YATAI.scorte;
+  const lato = (cucina.w - S.centro) / 2;
+  const entranoADestra = Math.max(0, Math.floor((cucina.h - S.riservaCestino) / S.cellaMin)) * S.colonne;
+  const sinistra = Math.max(Math.ceil(n / 2), n - entranoADestra);
+  const destra = n - sinistra;
+  const righe = (voci) => Math.ceil(voci / S.colonne);
+  const w = Math.min(S.cellaMax, lato / S.colonne);
+  const h = Math.min(
+    w * S.proporzione,
+    cucina.h / Math.max(1, righe(sinistra)),
+    destra ? (cucina.h - S.riservaCestino) / righe(destra) : Infinity,
+  );
+  const griglia = (voci, x0, versoDestra) => Array.from({ length: voci }, (_, i) => {
+    const colonna = i % S.colonne;
+    const x = versoDestra ? x0 - (S.colonne - colonna) * w : x0 + colonna * w;
+    return { x, y: cucina.y + Math.floor(i / S.colonne) * h, w, h, scaffale: true };
+  });
+  return [...griglia(sinistra, cucina.x, false), ...griglia(destra, cucina.x + cucina.w, true)];
+}
+
+// L'impaginazione completa. seats: i Posti (da 1 a YATAI.posti.massimo); stations: le voci della fila vicino al
+// pollice (Postazioni, e nella Serata anche le Scorte: da 1 a YATAI.postazioni.massimo). `scorte` dice quante delle
+// `stations` sono Scorte (le prime): se la fila è troppo lunga (scorteFuoriFila) le Scorte stanno fuori dalla fila,
+// ai lati di Maurizio (YATAI.scorte) e in fila restano le Postazioni. `postazioni` è sempre nell'ordine
+// della fila (prima le Scorte, poi le Postazioni), e un rettangolo fuori fila ha `scaffale: true`. Quando i Posti
 // passano da 3 a 4 cambiano solo i Posti.
-export function layoutYatai({ frame, safe, seats = YATAI.posti.iniziali, stations = YATAI.postazioni.massimo }) {
+export function layoutYatai({ frame, safe, seats = YATAI.posti.iniziali, stations = YATAI.postazioni.massimo, scorte = 0 }) {
   if (!Number.isInteger(seats) || seats < 1 || seats > YATAI.posti.massimo) throw new RangeError(`Posti: ${seats}`);
-  if (!Number.isInteger(stations) || stations < 1 || stations > YATAI.postazioni.massimo) throw new RangeError(`Postazioni: ${stations}`);
+  const fuori = scorteFuoriFila(stations, scorte);
+  const inFila = stations - fuori;
+  if (!Number.isInteger(stations) || stations < 1 || inFila < 1 || inFila > YATAI.postazioni.massimo) throw new RangeError(`Postazioni: ${stations} (Scorte ${scorte})`);
 
   const area = contentArea(frame, safe);
   const fasce = stack(area, YATAI.fasce);
@@ -152,11 +186,13 @@ export function layoutYatai({ frame, safe, seats = YATAI.posti.iniziali, station
 
   // Le Postazioni: la fila con sotto lo spazio per il nome. Larghe come se fossero almeno `capacitaBase`,
   // così con poche voci non cambiano misura; con più voci si stringono per starci tutte.
-  const postazioni = row(zone.postazioni, stations, {
+  const fila = row(zone.postazioni, inFila, {
     maxSlot: YATAI.postazioni.larghezzaMax,
     gap: YATAI.postazioni.spazio,
-    capacity: Math.max(YATAI.postazioni.capacitaBase, stations),
+    capacity: Math.max(YATAI.postazioni.capacitaBase, inFila),
   });
+  const sciolte = fuori === 0 ? [] : scaffali(zone.cucina, fuori);
+  const postazioni = [...sciolte, ...fila];
 
-  return { frame, safe, area, zone, posti, bancone: { rect: zone.bancone, superficie, piatti }, postazioni, maurizio: zone.cucina };
+  return { frame, safe, area, zone, posti, bancone: { rect: zone.bancone, superficie, piatti }, postazioni, maurizio: zone.cucina, scorteFuori: fuori };
 }

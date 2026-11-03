@@ -347,3 +347,11 @@ test('il ghiaccio, gli sciroppi e le tre varianti hanno il nome in italiano, ing
   }
   assert.equal(new Set(VARIANTI.map((v) => TESTI.it[`ingrediente_${v}`])).size, 3);
 });
+
+test('l’icona del passo a scelta (le tre gocce) ha la misura delle Scorte e un disegno suo', () => {
+  const entry = DISEGNI['passo-sciroppo'];
+  assert.ok(entry, 'manca la texture passo-sciroppo');
+  assert.deepEqual([entry.w, entry.h], [POSTAZIONE_SIZE.w, POSTAZIONE_SIZE.h]);
+  const altri = ['ghiaccio', ...VARIANTI].map((i) => registra(scortaKey(i)));
+  assert.ok(!altri.includes(registra('passo-sciroppo')), 'uguale a una Scorta');
+});
