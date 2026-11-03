@@ -1,7 +1,9 @@
 // Dal kit a matita alle texture di Phaser. Le texture restano nella cache del gioco, quindi
 // ogni scena le usa per nome con this.add.image(x, y, 'maurizio').
 
+import { MATSURI } from '../config.js';
 import { DISEGNI, drawEntry, panelDrawing, panelKey } from '../disegni/catalogo.js';
+import { chiaviTema, disegniTema } from '../disegni/sfondi/index.js';
 import { hashString } from './rng.js';
 
 // Crea la texture `key` dal disegno `entry` ({ w, h, draw }), se non c'è già.
@@ -16,6 +18,29 @@ export function ensureTexture(scene, key, entry) {
 // Genera tutte le texture del catalogo: si chiama una volta, all'avvio.
 export function generateTextures(scene) {
   for (const [key, entry] of Object.entries(DISEGNI)) ensureTexture(scene, key, entry);
+}
+
+// Genera le texture del Matsuri in uso (sfondo, pavimento, tendina, cuscino) e butta via quelle degli
+// altri Matsuri: ne serve uno solo alla volta, e gli altri costerebbero memoria e tempo di avvio.
+// Ritorna le chiavi, i millisecondi spesi in tutto e per ogni texture, e quante sono nate (zero se
+// c'erano già). Il tempo di ogni texture comprende il passaggio al canvas di Phaser (refresh).
+export function generateTheme(scene, matsuri) {
+  const chiavi = chiaviTema(matsuri);
+  for (const altro of MATSURI) {
+    if (altro === matsuri) continue;
+    for (const key of Object.values(chiaviTema(altro))) if (scene.textures.exists(key)) scene.textures.remove(key);
+  }
+  const inizio = performance.now();
+  const dettaglio = {};
+  let nuove = 0;
+  for (const [key, entry] of Object.entries(disegniTema(matsuri))) {
+    if (scene.textures.exists(key)) continue;
+    const da = performance.now();
+    ensureTexture(scene, key, entry);
+    dettaglio[key.replace(`-${matsuri}`, '').replace('sfondo-', '')] = Math.round(performance.now() - da);
+    nuove += 1;
+  }
+  return { matsuri, chiavi, ms: Math.round(performance.now() - inizio), dettaglio, nuove };
 }
 
 // Un pannello o pulsante w×h nel colore `swatchName` di PALETTE (rosa, menta, giallo...).

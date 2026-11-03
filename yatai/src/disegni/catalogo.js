@@ -12,7 +12,6 @@ import { POSTAZIONE_SIZE, POSTAZIONI, postazioneKey } from './postazioni.js';
 import {
   CUORE_SIZE, MONETA_SIZE, NUVOLETTA, STELLA_SIZE, drawCuore, drawCuoreVuoto, drawMoneta, drawNuvoletta, drawStella, drawStellaVuota,
 } from './serata.js';
-import { BANCONE_SIZE, PAVIMENTO_SIZE, POSTO_SIZE, drawBancone, drawPavimento, drawPosto } from './yatai.js';
 
 export const ONIGIRI_BANCONE = 150;
 export const ONIGIRI_ICONA = 64;
@@ -25,10 +24,8 @@ export const DISEGNI = {
   ...Object.fromEntries(Object.keys(POSE).map((posa) => [maurizioKey(posa), { ...MAURIZIO_SIZE, draw: (ctx, rng) => drawMaurizio(ctx, rng, posa) }])),
   onigiri: { ...onigiriSize(ONIGIRI_BANCONE), draw: (ctx, rng) => drawOnigiri(ctx, rng, ONIGIRI_BANCONE) },
   'onigiri-icona': { ...onigiriSize(ONIGIRI_ICONA), draw: (ctx, rng) => drawOnigiri(ctx, rng, ONIGIRI_ICONA) },
-  // Lo Yatai: il pavimento, il Bancone, il Posto e una Postazione per Piatto.
-  pavimento: { ...PAVIMENTO_SIZE, draw: drawPavimento },
-  bancone: { ...BANCONE_SIZE, draw: drawBancone },
-  posto: { ...POSTO_SIZE, draw: drawPosto },
+  // Lo Yatai: una Postazione per Piatto. Il pavimento, il Bancone, il Posto e lo sfondo cambiano con
+  // il Matsuri e si generano solo per quello in uso: sono in sfondi/index.js (disegniTema).
   ...Object.fromEntries(Object.entries(POSTAZIONI).map(([piatto, draw]) => [postazioneKey(piatto), { ...POSTAZIONE_SIZE, draw }])),
   // I Clienti di passaggio: tre per tre espressioni.
   ...DISEGNI_CLIENTI,
@@ -59,5 +56,5 @@ export const panelKey = (width, height, swatchName) => `pannello-${swatchName}-$
 export function drawEntry(ctx, key, entry) {
   const rng = createRng(`${STILE.seme}:${key}`);
   entry.draw(ctx, rng);
-  if (entry.grain !== false) grain(ctx, entry.w, entry.h, rng);
+  if (entry.grain !== false) grain(ctx, entry.w, entry.h, rng, entry.grainDensity);
 }

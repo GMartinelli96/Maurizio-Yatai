@@ -20,9 +20,10 @@ export function addButton(scene, x, y, width, height, label, swatchName, onTap) 
 
 // La carta ruvida su tutto lo schermo di gioco, anche quando l'altezza cambia (telefoni lunghi,
 // finestre ridimensionate). Sta ferma rispetto alla camera e sotto ogni altra cosa.
-export function addPaper(scene) {
+// `tinta` è il tono del Matsuri (TEMI[...].carta): bianco lascia la carta com'è.
+export function addPaper(scene, tinta = '#ffffff') {
   const paper = scene.add.tileSprite(0, 0, scene.scale.width, scene.scale.height, 'carta')
-    .setOrigin(0).setScrollFactor(0).setDepth(-1000);
+    .setOrigin(0).setScrollFactor(0).setDepth(-1000).setTint(Number.parseInt(tinta.slice(1), 16));
   const fit = () => paper.setSize(scene.scale.width, scene.scale.height);
   scene.scale.on('resize', fit);
   scene.events.once('shutdown', () => scene.scale.off('resize', fit));

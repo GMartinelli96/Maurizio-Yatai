@@ -1,13 +1,15 @@
 import Phaser from 'phaser';
-import { PIATTI, YATAI } from '../config.js';
+import { ETICHETTA, MATSURI_PREDEFINITO, PIATTI, TEMI, YATAI } from '../config.js';
 import { DISEGNI } from '../disegni/catalogo.js';
 import { MAURIZIO_SIZE } from '../disegni/maurizio.js';
 import { POSTAZIONE_SIZE, postazioneKey } from '../disegni/postazioni.js';
+import { chiaviTema } from '../disegni/sfondi/index.js';
 import { POSTO_SIZE } from '../disegni/yatai.js';
 import { t } from '../i18n.js';
 import { textStyle } from '../kit/font.js';
-import { textureFingerprint } from '../kit/texture.js';
+import { generateTheme, textureFingerprint } from '../kit/texture.js';
 import { addPaper } from '../kit/ui.js';
+import { layoutSfondo } from '../layout/sfondo.js';
 import { center, fitIn, layoutYatai, placeMaurizio } from '../layout/yatai.js';
 import { screenOf } from '../schermo.js';
 import MaurizioActor from '../yatai/MaurizioActor.js';
@@ -29,8 +31,9 @@ const rectState = (r) => ({ x: round(center(r).x), y: round(center(r).y), w: rou
 // impagina da sola a ogni schermo e dice cosa è stato toccato con l'evento `tocco`
 // ({ tipo: 'posto' | 'postazione' | 'bancone', indice }), che il gioco ascolterà.
 //
-// Dati di avvio, tutti facoltativi: posti (3 o 4), postazioni (da 1 a 5), demo (se mettere due
-// Piatti di prova sul Bancone).
+// Dati di avvio, tutti facoltativi: matsuri (hanami, tanabata, hanabi, aki o yuki: il tema dello
+// sfondo, del pavimento, della tendina e dei cuscini), posti (3 o 4), postazioni (da 1 a 5), demo
+// (se mettere due Piatti di prova sul Bancone).
 export default class YataiScene extends Phaser.Scene {
   // `key` serve a SerataScene, che è lo stesso Yatai con la Serata dentro.
   constructor(key = 'yatai') {
@@ -38,22 +41,31 @@ export default class YataiScene extends Phaser.Scene {
   }
 
   init(data) {
+    this.matsuri = data?.matsuri in TEMI ? data.matsuri : MATSURI_PREDEFINITO;
     this.seats = data?.posti ?? YATAI.posti.iniziali;
     this.stations = data?.postazioni ?? YATAI.postazioni.massimo;
     this.demo = data?.demo ?? true;
     this.lastTouch = null;
+    this.impronte = null;
     this.layout = null;
   }
 
-  // Gli oggetti si disegnano nell'ordine in cui nascono: pavimento, Posti, Bancone, Piatti,
-    this.impronte = null;
-  // Maurizio, Postazioni.
+  // Gli oggetti si disegnano nell'ordine in cui nascono: lo sfondo del Matsuri (cielo, terra, lati,
+  // alto), il pavimento, i Posti, il Bancone, i Piatti, Maurizio, le Postazioni.
   create() {
-    addPaper(this);
-    this.floor = this.add.image(0, 0, 'pavimento').setOrigin(0.5, 0);
+    const tema = TEMI[this.matsuri];
+    // Si genera solo il tema in uso: i tempi finiscono in render_game_to_text().
+    this.generation = generateTheme(this, this.matsuri);
+    const chiavi = this.generation.chiavi;
+    addPaper(this, tema.carta);
+    this.sky = this.add.image(0, 0, chiavi.cielo).setOrigin(0);
+    this.ground = this.add.image(0, 0, chiavi.terra).setOrigin(0);
+    this.sides = [this.add.image(0, 0, chiavi.latoSx).setOrigin(0), this.add.image(0, 0, chiavi.latoDx).setOrigin(0)];
+    this.top = this.add.image(0, 0, chiavi.alto).setOrigin(0);
+    this.floor = this.add.image(0, 0, chiavi.pavimento).setOrigin(0.5, 0);
 
-    this.seatViews = Array.from({ length: this.seats }, (_, i) => this.touchable('posto', i, 'posto'));
-    this.counter = this.add.image(0, 0, 'bancone').setOrigin(0.5, 0);
+    this.seatViews = Array.from({ length: this.seats }, (_, i) => this.touchable('posto', i, chiavi.posto));
+    this.counter = this.add.image(0, 0, chiavi.bancone).setOrigin(0.5, 0);
     this.dishViews = Array.from({ length: YATAI.bancone.capacita }, (_, i) => {
       // L'ombra va creata prima del Piatto, per stargli sotto.
       const shadow = this.add.image(0, 0, 'ombra');
@@ -70,7 +82,7 @@ export default class YataiScene extends Phaser.Scene {
     this.stationViews = Array.from({ length: this.stations }, (_, i) => {
       const view = this.touchable('postazione', i, postazioneKey(dishes[i]));
       view.piatto = dishes[i];
-      view.label = this.add.text(0, 0, t(`piatto_${dishes[i]}`), textStyle(26, { bold: true, outline: 5 })).setOrigin(0.5, 1);
+      view.label = this.add.text(0, 0, t(`piatto_${dishes[i]}`), textStyle(26, { bold: true, outline: 5, color: ETICHETTA.testo, outlineColor: ETICHETTA.contorno })).setOrigin(0.5, 1);
       return view;
     });
 
@@ -109,8 +121,18 @@ export default class YataiScene extends Phaser.Scene {
     this.layout = layout;
     const cx = frame.width / 2;
 
+    // Lo sfondo del Matsuri si àncora al layout (src/layout/sfondo.js): il cielo sopra l'orizzonte, la
+    // terra sotto, i rami appesi al bordo in alto, i lati poggiati dietro il Bancone.
+    const sfondo = layoutSfondo(layout);
+    this.backdrop = sfondo;
+    this.sky.setPosition(sfondo.cielo.x, sfondo.cielo.y);
+    this.ground.setPosition(sfondo.terra.x, sfondo.terra.y);
+    this.top.setPosition(sfondo.alto.x, sfondo.alto.y);
+    this.sides[0].setPosition(sfondo.latoSx.x, sfondo.latoSx.y);
+    this.sides[1].setPosition(sfondo.latoDx.x, sfondo.latoDx.y);
+
     // Il pavimento comincia dietro la tendina del Bancone e arriva in fondo.
-    this.floor.setPosition(cx, layout.bancone.rect.y + 120);
+    this.floor.setPosition(cx, sfondo.pavimentoY);
 
     layout.posti.forEach((rect, i) => {
       const view = this.seatViews[i];
@@ -149,7 +171,9 @@ export default class YataiScene extends Phaser.Scene {
   getTextState() {
     const { layout } = this;
     const { frame, view, canvas, safe } = screenOf(this);
-    const textureKeys = ['pavimento', 'bancone', 'posto', 'maurizio', 'maurizio-lavora', 'maurizio-evviva', ...Object.keys(PIATTI).map(postazioneKey)];
+    const chiavi = chiaviTema(this.matsuri);
+    const textureKeys = [...Object.values(chiavi), 'maurizio', 'maurizio-lavora', 'maurizio-evviva', ...Object.keys(PIATTI).map(postazioneKey)];
+    const { orizzonte, pavimentoY, ...pezzi } = this.backdrop;
     return {
       schermo: {
         finestra: { w: view.w, h: view.h },
@@ -158,6 +182,11 @@ export default class YataiScene extends Phaser.Scene {
         areaSicura: Object.fromEntries(Object.entries(safe).map(([k, v]) => [k, round(v)])),
       },
       // Dove toccare, in coordinate di gioco: x e y sono il centro del rettangolo.
+      matsuri: this.matsuri,
+      // Lo sfondo: dove cadono l'orizzonte e il pavimento e i rettangoli dei pezzi, in coordinate di gioco.
+      sfondo: { orizzonte: round(orizzonte), pavimento: round(pavimentoY), ...Object.fromEntries(Object.entries(pezzi).map(([k, r]) => [k, { x: round(r.x), y: round(r.y), w: round(r.w), h: round(r.h) }])) },
+      // Quanto è costato generare le texture del Matsuri (cambia da un computer all'altro).
+      generazione: { ms: this.generation.ms, nuove: this.generation.nuove, dettaglio: this.generation.dettaglio },
       posti: layout.posti.map((r, i) => ({ i, ...rectState(r) })),
       bancone: {
         ...rectState(layout.bancone.rect),

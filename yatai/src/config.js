@@ -193,9 +193,11 @@ export const SERATA_MOTORE = {
 };
 
 // Quanto vale la prima Serata (onigiri). L'obiettivo di Incasso è in Yen; con le soglie di SERATA
-// diventa 1200 per ★, 1560 per ★★, 1920 per ★★★. Dal passo 8 ogni Serata avrà il suo obiettivo.
+// diventa 3100 per ★, 4030 per ★★, 4960 per ★★★. Dal passo 8 ogni Serata avrà il suo obiettivo.
+// Con l'arrivo dei Clienti ogni 2,5-4,5 s un giocatore lento (un tocco ogni 1,4 s) fa circa 3750 Yen,
+// uno attento (0,8 s) circa 4900, uno velocissimo (0,3 s) circa 5050: provvisorio fino al ticket 29.
 export const SERATA_PRIMA = {
-  obiettivo: 1200,
+  obiettivo: 3100,
   piatti: ['onigiri'],
   // Quanti Piatti ha un Ordine (da uno a tre; nell'Hanami è sempre uno).
   piattiPerOrdine: { min: 1, max: 1 },
@@ -255,8 +257,10 @@ export const POSTI = {
 export const CLIENTI = {
   // Il primo Cliente arriva presto, i successivi ogni tanto. Se i Posti sono pieni il prossimo
   // aspetta che se ne liberi uno.
+  // Ogni 2,5-4,5 s (era 5-9 s dopo la prima prova, ticket 05): con i Clienti più lenti di chi
+  // cucina, l'Incasso non dipendeva dalla bravura del giocatore ma solo da quanti ne arrivavano.
   primoArrivoSec: 1.5,
-  arrivoSec: { min: 5, max: 9 },
+  arrivoSec: { min: 2.5, max: 4.5 },
   // I Clienti di passaggio: nessun Vizio.
   passaggio: ['tanuki', 'kitsune', 'maneki-neko'],
 };
@@ -271,4 +275,103 @@ export const BANCONE = {
 // Le Postazioni: l'id è quello che si tocca; piatto è il Piatto che preparano.
 export const POSTAZIONI = {
   tagliere: { piatto: 'onigiri' },
+};
+
+// --- I temi dei Matsuri (src/disegni/sfondi/, src/layout/sfondo.js) ---
+
+// I colori di ogni Matsuri, per ruolo. Ogni colore ha la sua ombra e la sua luce, come in PALETTE.
+// Cambiano solo lo sfondo, il pavimento, la tendina del Bancone e i cuscini dei Posti: le
+// Postazioni, i Piatti e Maurizio hanno sempre i loro colori, e devono staccarsi da ogni tema.
+//   cielo        dal basso (luce, vicino all'orizzonte) all'alto (ombra)
+//   lontananza   le sagome lontane sull'orizzonte: colline, castello, bancarelle, santuario
+//   terra        il suolo dietro i Posti (prato, riva del fiume, neve): poco contrasto
+//   pavimento    il legno dello Yatai
+//   tendina      le due strisce davanti al Bancone
+//   cuscino      il cuscino dei Posti
+//   accento      il colore dei particolari (petali, lanterne, foglie...)
+//   carta        il tono con cui si colora la carta sotto a tutto (bianco = carta com'è)
+const colore = (c, o, l) => ({ colore: c, ombra: o, luce: l });
+
+export const TEMI = {
+  // Primavera, giorno: azzurro pallido, rosa ciliegio, bianco e verde tenero.
+  hanami: {
+    cielo: colore('#b9e1f4', '#8cc6ea', '#e9f6fb'),
+    lontananza: colore('#d9e2ec', '#b3c3d6', '#f1f5f9'),
+    terra: colore('#bfe6a4', '#93c97b', '#e2f6cb'),
+    pavimento: colore('#f0d2b0', '#cfa57d', '#fbe9d6'),
+    tendina: [colore('#f7a8c4', '#d9708f', '#fde0ea'), colore('#fffdf8', '#cdbfa9', '#ffffff')],
+    cuscino: colore('#f7a8c4', '#d9708f', '#fde0ea'),
+    accento: colore('#f9c4d6', '#e58db1', '#fde9f0'),
+    carta: '#ffffff',
+  },
+  // Inizio estate, crepuscolo: indaco e blu notte morbido, con le stelle gialle.
+  tanabata: {
+    cielo: colore('#4b4fa0', '#2c2f72', '#a99ad8'),
+    lontananza: colore('#4a4a96', '#383a80', '#6e6bb4'),
+    terra: colore('#3d4a8f', '#2c386f', '#5a6aae'),
+    pavimento: colore('#dfc3ae', '#bc9a83', '#f1e1d3'),
+    tendina: [colore('#7fa6ee', '#5278c8', '#bcd2f8'), colore('#fbefc0', '#d9c37c', '#fff9e0')],
+    cuscino: colore('#b3a2ea', '#8a76cc', '#dcd2f7'),
+    accento: colore('#fbe28a', '#e0b94e', '#fff3c4'),
+    carta: '#b8bde8',
+  },
+  // Piena estate, notte: blu e viola, il fiume e i fuochi in pastelli vari.
+  hanabi: {
+    cielo: colore('#2c2a6e', '#1a1c4b', '#5a3f91'),
+    lontananza: colore('#3b2f78', '#2a2260', '#5a4a9a'),
+    terra: colore('#2e3f86', '#1f2c68', '#4d63b0'),
+    pavimento: colore('#dcb396', '#c39c84', '#f0d6c2'),
+    tendina: [colore('#a897e8', '#7f6dc8', '#d3c9f6'), colore('#f7b9d8', '#d980ab', '#fcdfee')],
+    cuscino: colore('#8fb6f0', '#5f86c8', '#c6daf9'),
+    accento: colore('#f7d26a', '#d1a33a', '#fdedb8'),
+    carta: '#9aa0d8',
+  },
+  // Autunno, tramonto: ocra, arancio, rosso mattone e verde bosco.
+  aki: {
+    cielo: colore('#f5b27b', '#e2825a', '#fce1a8'),
+    lontananza: colore('#9fb08a', '#7f9770', '#c4d1ac'),
+    terra: colore('#b9c07c', '#98a25c', '#d9deac'),
+    pavimento: colore('#e8c08a', '#c99a5f', '#f6dcb4'),
+    tendina: [colore('#e4875e', '#c0603c', '#f2b496'), colore('#f5dcae', '#d1b27a', '#fdf0d4')],
+    cuscino: colore('#e4875e', '#c0603c', '#f2b496'),
+    accento: colore('#d9593f', '#a93a28', '#ee8f78'),
+    carta: '#fff0d8',
+  },
+  // Inverno, sera: azzurro ghiaccio, bianco e blu profondo, con i lampioni caldi.
+  yuki: {
+    cielo: colore('#5b7cc0', '#33498f', '#b8d4f2'),
+    lontananza: colore('#d6e4f5', '#aac2e2', '#f2f8ff'),
+    terra: colore('#cfe0f3', '#a2bde0', '#f4f9ff'),
+    pavimento: colore('#e6cfb4', '#bda486', '#f5e8d6'),
+    tendina: [colore('#5e8fd6', '#3d68b0', '#a5c3ee'), colore('#fffdf8', '#cdbfa9', '#ffffff')],
+    cuscino: colore('#8fb8ea', '#5f8ac4', '#c8dcf6'),
+    accento: colore('#f9c66a', '#d99a3a', '#fde6a8'),
+    carta: '#dfe9fb',
+  },
+};
+
+// I ruoli che ogni tema deve avere (un test lo controlla). `tendina` ne ha due, `carta` è un solo colore.
+export const RUOLI_TEMA = ['cielo', 'lontananza', 'terra', 'pavimento', 'tendina', 'cuscino', 'accento', 'carta'];
+export const MATSURI = Object.keys(TEMI);
+export const MATSURI_PREDEFINITO = 'hanami';
+
+// Il nome di ogni Postazione sotto il Bancone: testo scuro con il bordo chiaro, su ogni tema.
+export const ETICHETTA = { testo: PALETTE.inchiostro, contorno: PALETTE.bianco };
+
+// Come lo sfondo si ancora al layout dello Yatai (src/layout/sfondo.js). Le misure sono in pixel di
+// gioco. Lo sfondo ha quattro pezzi, tutti disegnati più grandi del necessario e ancorati così:
+//   cielo   sta sopra l'orizzonte (l'estremità in alto sparisce fuori schermo);
+//   terra   scende dall'orizzonte fino dietro il pavimento;
+//   alto    appeso al bordo in alto dello schermo (rami, lanterne, festoni);
+//   lati    due colonne ai bordi, poggiate dietro il Bancone (alberi, bambù, lampioni).
+export const SFONDO = {
+  // L'orizzonte cade a questa quota della fascia `clienti` (0 in cima, 1 in fondo).
+  orizzonte: 0.5,
+  // Il pavimento comincia questi pixel sotto la cima del Bancone (dove inizia la tendina).
+  attaccoPavimento: 120,
+  // Le texture: `sotto` è quanto scende oltre l'orizzonte, nascosto dalla terra.
+  cielo: { h: 560, sotto: 48 },
+  terra: { h: 480 },
+  alto: { h: 260 },
+  lato: { w: 190, h: 920, sotto: 44 },
 };

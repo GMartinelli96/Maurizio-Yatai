@@ -8,7 +8,11 @@ import { addButton, addPaper, centerDesign } from '../kit/ui.js';
 // vede nessun giocatore.
 const VOCI = [
   { label: 'Tavola di prova', scene: 'tavola', swatch: 'rosa' },
-  { label: 'Lo Yatai', scene: 'yatai', swatch: 'giallo' },
+  { label: 'Yatai: Hanami', scene: 'yatai', data: { matsuri: 'hanami' }, swatch: 'rosa' },
+  { label: 'Yatai: Tanabata', scene: 'yatai', data: { matsuri: 'tanabata' }, swatch: 'celeste' },
+  { label: 'Yatai: Hanabi', scene: 'yatai', data: { matsuri: 'hanabi' }, swatch: 'menta' },
+  { label: 'Yatai: Aki Matsuri', scene: 'yatai', data: { matsuri: 'aki' }, swatch: 'giallo' },
+  { label: 'Yatai: Yuki Matsuri', scene: 'yatai', data: { matsuri: 'yuki' }, swatch: 'nuvola' },
   { label: 'Lo Yatai, 4 Posti', scene: 'yatai', data: { posti: 4 }, swatch: 'giallo' },
   { label: 'Clienti di passaggio', scene: 'clienti', swatch: 'giallo' },
   { label: 'Il gioco', scene: 'title', swatch: 'menta' },
@@ -27,7 +31,7 @@ export default class SviluppoScene extends Phaser.Scene {
     this.add.text(cx, 232, 'le tavole di prova del kit', textStyle(30)).setOrigin(0.5);
 
     this.buttons = VOCI.map((voce, i) => addButton(
-      this, cx, 380 + i * 130, 420, 100, voce.label, voce.swatch, () => this.scene.start(voce.scene, voce.data),
+      this, cx, 330 + i * 102, 420, 84, voce.label, voce.swatch, () => this.scene.start(voce.scene, voce.data),
     ));
   }
 

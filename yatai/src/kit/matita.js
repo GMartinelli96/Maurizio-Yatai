@@ -320,9 +320,10 @@ export function fur(ctx, points, rng, swatch, { keep = () => true } = {}) {
 }
 
 // La grana della matita: toglie puntini a caso da tutto il disegno, linee e colori.
-export function grain(ctx, width, height, rng) {
+// `densita` è facoltativa: gli sfondi grandi ne hanno meno (costa un'operazione per puntino).
+export function grain(ctx, width, height, rng, densita = STILE.grana.densita) {
   const G = STILE.grana;
-  const count = Math.round(width * height * G.densita);
+  const count = Math.round(width * height * densita);
   ctx.save();
   ctx.globalCompositeOperation = 'destination-out';
   ctx.fillStyle = '#000';
