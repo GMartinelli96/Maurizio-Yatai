@@ -6,6 +6,7 @@ import BootScene from './scenes/BootScene.js';
 import TitleScene from './scenes/TitleScene.js';
 import SviluppoScene from './scenes/SviluppoScene.js';
 import TavolaScene from './scenes/TavolaScene.js';
+import ClientiScene from './scenes/ClientiScene.js';
 
 initLanguage();
 
@@ -17,7 +18,7 @@ const game = new Phaser.Game({
   backgroundColor: VIEW.background,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   // Le scene di sviluppo non entrano nella versione pubblicata.
-  scene: [BootScene, TitleScene, ...(import.meta.env.DEV ? [SviluppoScene, TavolaScene] : [])],
+  scene: [BootScene, TitleScene, ...(import.meta.env.DEV ? [SviluppoScene, TavolaScene, ClientiScene] : [])],
 });
 
 installTestHooks(game);

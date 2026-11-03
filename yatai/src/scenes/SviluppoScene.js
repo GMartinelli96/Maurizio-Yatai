@@ -8,6 +8,7 @@ import { addButton } from '../kit/ui.js';
 // vede nessun giocatore.
 const VOCI = [
   { label: 'Tavola di prova', scene: 'tavola', swatch: 'rosa' },
+  { label: 'Clienti di passaggio', scene: 'clienti', swatch: 'giallo' },
   { label: 'Il gioco', scene: 'title', swatch: 'menta' },
 ];
 

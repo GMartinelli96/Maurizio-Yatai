@@ -12,7 +12,10 @@ export default class BootScene extends Phaser.Scene {
 
   create() {
     generateTextures(this);
-    const dev = import.meta.env.DEV && new URLSearchParams(window.location.search).has('sviluppo');
-    loadFonts().then(() => this.scene.start(dev ? 'sviluppo' : 'title'));
+    const params = new URLSearchParams(window.location.search);
+    const dev = import.meta.env.DEV && params.has('sviluppo');
+    // ?scena=<chiave> apre direttamente una scena di sviluppo (per esempio ?scena=clienti).
+    const scena = import.meta.env.DEV ? params.get('scena') : null;
+    loadFonts().then(() => this.scene.start(scena ?? (dev ? 'sviluppo' : 'title')));
   }
 }

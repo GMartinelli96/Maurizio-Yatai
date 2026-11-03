@@ -1,0 +1,9 @@
+[
+  { "goto": "?scena=clienti" },
+  { "advance": 100 },
+  { "shot": "clienti" },
+  { "goto": "?scena=clienti" },
+  { "advance": 100 },
+  { "shot": "clienti-ricaricata" },
+  { "same": ["clienti", "clienti-ricaricata"], "field": "textures" }
+]
