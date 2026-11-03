@@ -141,15 +141,19 @@ export const BRUCIATURA = { avvisoSec: 1.5 };
 
 // I Piatti stanno nell'ordine in cui si sbloccano (GAME_SPEC.md): le Postazioni sullo schermo li seguono.
 // burnAfterSec: secondi in più, da quando il Piatto è pronto (finito e da prendere), prima che si bruci
-// (null o assente = mai). cookSec: la cottura dei Piatti che non hanno ancora una ricetta (vedi sotto).
+// (null o assente = mai). cookSec: la cottura dei Piatti che non hanno ancora una ricetta (taiyaki e ramen, ticket 08).
 // ricetta: la cucina a tocchi (ticket 33 e 37). Una lista di passi, nell'ordine in cui accadono. Un passo è
 //   { ingrediente, costo }   un tocco sulla Scorta di quell'Ingrediente, che si paga subito
 //   { cotturaSec }           la Postazione cuoce da sola per tanti secondi; intanto le Scorte non fanno niente
+//   { unoDi: [ ... ] }       un tocco su una di più Scorte (ticket 07): ogni voce è { ingrediente, costo, variante }
+//                            e la variante scelta resta nel Piatto, che sul Bancone e negli Ordini si chiama
+//                            `piatto-variante` (kakigori-fragola). Le voci di uno stesso passo costano uguale.
 // Dopo l'ultimo passo il Piatto è pronto e si prende (un tocco in più, mai nella lista). La cottura sta dove serve
-// alla Ricetta: nel takoyaki dopo il polpo, nel kakigōri (ticket 07) dopo il ghiaccio, e la logica è la stessa.
+// alla Ricetta: nel takoyaki dopo il polpo, nel kakigōri dopo il ghiaccio, e la logica è la stessa.
+// varianti: gli id delle varianti, nell'ordine in cui compaiono; uguali a quelli del passo unoDi (lo controlla un test).
 // Il costo del Piatto è la somma dei costi, circa un terzo del prezzo (GAME_SPEC.md, "Ingredienti e Spreco").
 // La sequenza è anche la Ricetta mostrata in icone e quella del Ricettario.
-// Kakigōri, taiyaki e ramen non hanno ancora una ricetta né una Postazione: le avranno nei ticket 07 e 08.
+// Taiyaki e ramen non hanno ancora una ricetta né una Postazione: le avranno nel ticket 08.
 export const PIATTI = {
   onigiri: {
     ricetta: [{ ingrediente: 'riso', costo: 20 }, { ingrediente: 'alga', costo: 10 }],
@@ -168,7 +172,23 @@ export const PIATTI = {
     price: 300,
     varianti: [],
   },
-  kakigori: { cookSec: 2, burnAfterSec: null, price: 250, varianti: ['fragola', 'melone', 'matcha'] },
+  // 3 tocchi: ghiaccio, sciroppo (uno dei tre), prendi. I 2 s sono la macinatura. Non si brucia mai.
+  // 80 Yen di Ingredienti su 250 (circa un terzo, GAME_SPEC.md).
+  kakigori: {
+    ricetta: [
+      { ingrediente: 'ghiaccio', costo: 20 },
+      { cotturaSec: 2 },
+      {
+        unoDi: [
+          { ingrediente: 'fragola', costo: 60, variante: 'fragola' },
+          { ingrediente: 'melone', costo: 60, variante: 'melone' },
+          { ingrediente: 'matcha', costo: 60, variante: 'matcha' },
+        ],
+      },
+    ],
+    price: 250,
+    varianti: ['fragola', 'melone', 'matcha'],
+  },
   taiyaki: { cookSec: 8, burnAfterSec: 4, price: 200, varianti: ['fagioli', 'crema'] },
   ramen: { cookSec: 6, burnAfterSec: 5, price: 600, varianti: ['uovo', 'naruto'] },
 };
@@ -435,6 +455,7 @@ export const BANCONE = {
 export const POSTAZIONI = {
   tagliere: { piatto: 'onigiri' },
   piastra: { piatto: 'takoyaki' },
+  macchina: { piatto: 'kakigori' },
 };
 
 // Le Scorte (GLOSSARY.md) non hanno numeri propri: sono una per Ingrediente di ogni ricetta (PIATTI),

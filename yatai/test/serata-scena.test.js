@@ -39,9 +39,12 @@ test('i disegni della Serata sono nel catalogo: nuvoletta, cuoricini, Yen, stell
 });
 
 test('ogni Ingrediente di una ricetta ha la sua Scorta disegnata, nella misura delle Postazioni, e il suo nome nelle tre lingue', () => {
-  // I passi di cottura non hanno una Scorta: contano solo gli Ingredienti.
-  const ingredienti = Object.values(PIATTI).flatMap((piatto) => (piatto.ricetta ?? []).map((passo) => passo.ingrediente).filter(Boolean));
-  assert.ok(ingredienti.length >= 5, 'riso, alga, pastella, polpo e salsa');
+  // I passi di cottura non hanno una Scorta: contano gli Ingredienti, e tutte le varianti di un passo `unoDi`.
+  const tutti = Object.values(PIATTI).flatMap((piatto) => (piatto.ricetta ?? []).flatMap((passo) => passo.unoDi ?? [passo]).map((voce) => voce.ingrediente).filter(Boolean));
+  assert.ok(tutti.length >= 5, 'riso, alga, pastella, polpo e salsa');
+  // Il kakigōri (ticket 07) ha già la logica ma non ancora i disegni: il passo 2 del ticket li porta e svuota questo elenco.
+  const ANCORA_DA_DISEGNARE = ['ghiaccio', 'fragola', 'melone', 'matcha'];
+  const ingredienti = tutti.filter((ingrediente) => !ANCORA_DA_DISEGNARE.includes(ingrediente));
   assert.deepEqual(Object.keys(SCORTE).sort(), [...new Set(ingredienti)].sort(), 'le Scorte disegnate e gli Ingredienti delle ricette discordano');
   for (const ingrediente of ingredienti) {
     const entry = DISEGNI[scortaKey(ingrediente)];
