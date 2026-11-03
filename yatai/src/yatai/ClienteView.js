@@ -369,6 +369,8 @@ export default class ClienteView {
       stato: this.stato,
       tipo: this.cliente?.tipo ?? null,
       espressione: this.stato === 'vuoto' ? null : this.espressione,
+      // Il segno del Lamento che si vede adesso: 'goccia' (2 cuoricini), 'sbuffo' (1, e quando se ne va) o null.
+      segno: this.segnoImg.visible ? this.segno : null,
       cuori: this.stato === 'attesa' ? this.nCuori : 0,
       ordine: this.cliente ? [...this.cliente.ordine] : [],
       x: round(centro.x),
