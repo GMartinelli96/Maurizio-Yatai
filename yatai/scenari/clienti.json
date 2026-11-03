@@ -1,0 +1,9 @@
+[
+  { "goto": "?sviluppo=clienti" },
+  { "advance": 100 },
+  { "shot": "clienti" },
+  { "goto": "?sviluppo=clienti" },
+  { "advance": 100 },
+  { "shot": "clienti-ricaricata" },
+  { "same": ["clienti", "clienti-ricaricata"], "field": "textures" }
+]

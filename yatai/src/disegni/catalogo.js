@@ -6,6 +6,7 @@ import { PALETTE, STILE } from '../config.js';
 import { grain, panel, paper, restingShadow } from '../kit/matita.js';
 import { createRng } from '../kit/rng.js';
 import { MAURIZIO_SIZE, POSE, drawMaurizio, maurizioKey } from './maurizio.js';
+import { DISEGNI_CLIENTI } from './clienti.js';
 import { drawOnigiri, onigiriSize } from './onigiri.js';
 import { POSTAZIONE_SIZE, POSTAZIONI, postazioneKey } from './postazioni.js';
 import { BANCONE_SIZE, PAVIMENTO_SIZE, POSTO_SIZE, drawBancone, drawPavimento, drawPosto } from './yatai.js';
@@ -26,6 +27,8 @@ export const DISEGNI = {
   bancone: { ...BANCONE_SIZE, draw: drawBancone },
   posto: { ...POSTO_SIZE, draw: drawPosto },
   ...Object.fromEntries(Object.entries(POSTAZIONI).map(([piatto, draw]) => [postazioneKey(piatto), { ...POSTAZIONE_SIZE, draw }])),
+  // I Clienti di passaggio: tre per tre espressioni.
+  ...DISEGNI_CLIENTI,
 };
 
 // I pannelli e i pulsanti cambiano misura da una schermata all'altra: si disegnano su richiesta.

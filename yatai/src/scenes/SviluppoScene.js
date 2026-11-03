@@ -10,6 +10,7 @@ const VOCI = [
   { label: 'Tavola di prova', scene: 'tavola', swatch: 'rosa' },
   { label: 'Lo Yatai', scene: 'yatai', swatch: 'giallo' },
   { label: 'Lo Yatai, 4 Posti', scene: 'yatai', data: { posti: 4 }, swatch: 'giallo' },
+  { label: 'Clienti di passaggio', scene: 'clienti', swatch: 'giallo' },
   { label: 'Il gioco', scene: 'title', swatch: 'menta' },
 ];
 
