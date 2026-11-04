@@ -1,0 +1,24 @@
+[
+  { "resize": "360x640" },
+  { "goto": "?sviluppo=serata&seme=prova&matsuri=yuki" },
+  { "advance": 100 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "matsuri", "equals": "yuki" },
+  { "expect": "serata.perPiatto.0.piatto", "equals": "onigiri" },
+  { "expect": "serata.perPiatto.4.piatto", "equals": "ramen" },
+
+  { "gioca": {} },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "advance": 3500 },
+  { "expect": "fine.perPiatto.0.piatto", "equals": "onigiri" },
+  { "expect": "fine.perPiatto.1.piatto", "equals": "takoyaki" },
+  { "expect": "fine.perPiatto.2.piatto", "equals": "kakigori" },
+  { "expect": "fine.perPiatto.3.piatto", "equals": "taiyaki" },
+  { "expect": "fine.perPiatto.4.piatto", "equals": "ramen" },
+  { "expect": "fine.perPiatto.0.serviti", "atLeast": 1 },
+  { "shot": "recap-1-tabella-360x640" },
+
+  { "resize": "390x844" },
+  { "advance": 200 },
+  { "shot": "recap-2-tabella-390x844" }
+]

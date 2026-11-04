@@ -24,10 +24,10 @@ const prezzo = (id, livello) => POTENZIAMENTI[id].livelli[livello - 1].prezzo;
 
 // --- Comprare ---
 
-test('la Bottega mostra i due Potenziamenti con livello e prezzo del prossimo', () => {
+test('la Bottega mostra i tre Potenziamenti con livello e prezzo del prossimo', () => {
   const voci = vociDellaBottega(conYen(0));
-  assert.deepEqual(voci.map((v) => v.id), ['postoInPiu', 'ventaglio']);
-  assert.deepEqual(voci.map((v) => [v.livello, v.livelloMax, v.prezzo]), [[0, 1, prezzo('postoInPiu', 1)], [0, 3, prezzo('ventaglio', 1)]]);
+  assert.deepEqual(voci.map((v) => v.id), ['postoInPiu', 'ventaglio', 'piastraPiuVeloce']);
+  assert.deepEqual(voci.map((v) => [v.livello, v.livelloMax, v.prezzo]), [[0, 1, prezzo('postoInPiu', 1)], [0, 3, prezzo('ventaglio', 1)], [0, 3, prezzo('piastraPiuVeloce', 1)]]);
   assert.ok(voci.every((v) => !v.comprabile), 'senza Yen non si compra niente');
 });
 
@@ -136,7 +136,7 @@ test('ogni Potenziamento ha la sua icona disegnata, nella misura che la Bottega 
 // --- Cambiare la Serata ---
 
 test('senza Potenziamenti la Serata è quella di sempre: 3 Posti e Pazienza normale', () => {
-  assert.deepEqual(opzioniSerata(conYen(0)), { posti: POSTI.quanti, cuori: PAZIENZA.hearts, pazienzaMoltiplicatore: 1 });
+  assert.deepEqual(opzioniSerata(conYen(0)), { posti: POSTI.quanti, cuori: PAZIENZA.hearts, pazienzaMoltiplicatore: 1, cotturaMoltiplicatori: {} });
 });
 
 test('il Posto in più dà il quarto Posto e il sesto cuoricino', () => {
@@ -242,7 +242,7 @@ test('comprati e ricaricati, i Potenziamenti cambiano la Serata che parte dopo: 
   for (let i = 0; i < 3; i++) compra(prima, 'ventaglio');
   // Un'altra sessione dello stesso dispositivo: legge dal salvataggio.
   const opzioni = opzioniSerata(new Salvataggio(storage));
-  assert.deepEqual(opzioni, { posti: 4, cuori: 6, pazienzaMoltiplicatore: 1.4 });
+  assert.deepEqual(opzioni, { posti: 4, cuori: 6, pazienzaMoltiplicatore: 1.4, cotturaMoltiplicatori: {} });
   const stato = new Serata({ seed: 'a', ...opzioni }).stato();
   assert.deepEqual([stato.posti.length, stato.cuoriMax, stato.pazienzaMoltiplicatore], [4, 6, 1.4]);
   // 25 s in calma × 6/5 × 1,4 = 42 s; 15 s in ondata × 6/5 × 1,4 = 25,2 s.

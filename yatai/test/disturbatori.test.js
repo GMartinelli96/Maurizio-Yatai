@@ -334,6 +334,9 @@ test('un Piatto rubato o rovinato è Spreco, non Vendita, e la Serie non si spez
     assert.equal(serata.vendite, 0);
     assert.equal(serata.spreco(), costo, `${chi}: il Piatto sparito non si rimborsa`);
     assert.equal(serata.incasso, -costo);
+    // E nel recap per Piatto (ticket 06) il Piatto sparito è fatto, non servito e tutto sprecato.
+    const riga = serata.perPiatto().find((r) => r.piatto === piatto);
+    assert.deepEqual([riga.fatti, riga.serviti, riga.sprecati, riga.vendite], [1, 0, costo, 0], `${chi}: la riga del recap`);
     assert.equal(serata.serie, 3, `${chi}: la Serie non si spezza`);
     assert.deepEqual(log.filter((e) => e.tempoMs === colpo.tempoMs && e.tipo === 'serieSpezzata'), []);
   }

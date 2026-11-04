@@ -13,8 +13,9 @@ import { salvataggio } from '../salvataggio.js';
 // Potenziamenti: l'Arredo e i Vestiti arrivano con i ticket 18 e 19. Il conto sta in src/bottega.js.
 //
 // Disegnata a posizioni fisse su 720×1280 e tenuta al centro dello schermo (centerDesign), come il titolo. Ogni
-// bersaglio da toccare è alto almeno 110 px di gioco, cioè 55 px su un telefono da 360 di larghezza.
-const CARTA = { w: 640, h: 300, primoY: 470, passo: 325 };
+// bersaglio da toccare è alto almeno 110 px di gioco, cioè 55 px su un telefono da 360 di larghezza. Le carte sono tre
+// (ticket 06) e stanno tra il titolo e il pulsante in fondo: `primoY` è il centro della prima, `passo` la distanza.
+const CARTA = { w: 640, h: 215, primoY: 425, passo: 230 };
 const BOTTONE = { w: 230, h: 110 };
 
 export default class BottegaScene extends Phaser.Scene {
@@ -75,12 +76,12 @@ export default class BottegaScene extends Phaser.Scene {
     this.bersagli.indietro = indietro;
 
     if (!salvato.salvato) {
-      c.add(this.add.text(cx, 1010, t('bottegaNonSalvato'), { ...textStyle(26), align: 'center', wordWrap: { width: 600 } }).setOrigin(0.5));
+      c.add(this.add.text(cx, 1032, t('bottegaNonSalvato'), { ...textStyle(26), align: 'center', wordWrap: { width: 600 } }).setOrigin(0.5));
     }
   }
 
   // Un Potenziamento: l'icona e il nome in alto, sotto cosa fa e i tondi del livello e, a destra, il pulsante col prezzo
-  // del prossimo livello.
+  // del prossimo livello. Le misure verticali sono dal centro della carta.
   carta(c, voce, y) {
     const cx = VIEW.width / 2;
     const sinistra = cx - CARTA.w / 2;
@@ -88,20 +89,20 @@ export default class BottegaScene extends Phaser.Scene {
     pannello.setOrigin(0.5, (PANEL_MARGIN + CARTA.h / 2) / pannello.height);
     c.add(pannello);
 
-    c.add(this.add.image(sinistra + 34 + 54, y - 66, `icona-${voce.id}`).setScale(0.9));
-    c.add(this.add.text(sinistra + 160, y - 66, t(`potenziamento_${voce.id}`), { ...textStyle(38, { bold: true }), wordWrap: { width: CARTA.w - 160 - 34 } }).setOrigin(0, 0.5));
-    c.add(this.add.text(sinistra + 34, y + 22, `${t(`potenziamentoDesc_${voce.id}`)}${this.effetto(voce)}`, { ...textStyle(30), wordWrap: { width: 340 } }).setOrigin(0, 0.5));
+    c.add(this.add.image(sinistra + 34 + 44, y - 50, `icona-${voce.id}`).setScale(0.74));
+    c.add(this.add.text(sinistra + 150, y - 50, t(`potenziamento_${voce.id}`), { ...textStyle(38, { bold: true }), wordWrap: { width: CARTA.w - 150 - 34 } }).setOrigin(0, 0.5));
+    c.add(this.add.text(sinistra + 34, y + 30, `${t(`potenziamentoDesc_${voce.id}`)}${this.effetto(voce)}`, { ...textStyle(30), wordWrap: { width: 340 } }).setOrigin(0, 0.5));
 
     // I livelli: un tondo ciascuno, pieno se comprato.
     for (let n = 0; n < voce.livelloMax; n++) {
       const comprato = n < voce.livello;
-      const tondo = this.add.circle(sinistra + 52 + n * 50, y + 116, 17, comprato ? 0xf7d26a : 0xfffdf8);
+      const tondo = this.add.circle(sinistra + 52 + n * 50, y + 84, 17, comprato ? 0xf7d26a : 0xfffdf8);
       tondo.setStrokeStyle(5, comprato ? 0xd1a33a : 0xcdbfa9);
       c.add(tondo);
     }
 
     const bx = cx + CARTA.w / 2 - 34 - BOTTONE.w / 2;
-    const by = y + 55;
+    const by = y + 38;
     if (voce.prezzo === null) {
       c.add(this.add.text(bx, by, t('bottegaAlMassimo'), textStyle(36, { bold: true })).setOrigin(0.5));
       this.bersagli.compra.push(null);
@@ -117,11 +118,13 @@ export default class BottegaScene extends Phaser.Scene {
   }
 
   // L'effetto del livello che si sta per comprare (o dell'ultimo, se è al massimo), come testo corto: il ventaglio dice
-  // di quanto allunga la Pazienza.
+  // di quanto allunga la Pazienza, la piastra di quanto accorcia la cottura.
   effetto(voce) {
-    if (voce.id !== 'ventaglio') return '';
     const livello = Math.max(1, Math.min(voce.livello + 1, voce.livelloMax));
-    return ` +${Math.round((POTENZIAMENTI.ventaglio.livelli[livello - 1].pazienza - 1) * 100)}%`;
+    const { pazienza, cottura } = POTENZIAMENTI[voce.id].livelli[livello - 1];
+    if (pazienza !== undefined) return ` +${Math.round((pazienza - 1) * 100)}%`;
+    if (cottura !== undefined) return ` -${Math.round((1 - cottura) * 100)}%`;
+    return '';
   }
 
   acquista(id) {

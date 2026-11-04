@@ -1,4 +1,4 @@
-import { BRUCIATURA, DISTURBATORI, FUMO_SEC, MATSURI_PREDEFINITO, PALETTE, PIATTI, RISCONTRI, SERATE, SERATA_PRIMA, SERATA_PROVA_DISTURBATORI, TEMI, YATAI } from '../config.js';
+import { BRUCIATURA, DISTURBATORI, FUMO_SEC, MATSURI_PREDEFINITO, PALETTE, PIATTI, RECAP, RISCONTRI, SERATE, SERATA_PRIMA, SERATA_PROVA_DISTURBATORI, TEMI, YATAI } from '../config.js';
 import { DISEGNI, PANEL_MARGIN } from '../disegni/catalogo.js';
 import { PASSO_SCELTA, POSTAZIONE_SIZE, postazioneKey, scortaKey } from '../disegni/postazioni.js';
 import { CESTINO_SIZE } from '../disegni/takoyaki.js';
@@ -1129,24 +1129,24 @@ export default class SerataScene extends YataiScene {
     const r = this.risultato;
     const { width: W, height: H } = this.scale;
     const cx = W / 2;
-    const cima = Math.max(40, (H - 980) / 2);
+    const cima = Math.max(30, (H - RECAP.pannello.h) / 2);
     const contenitore = this.add.container(0, 0).setDepth(PROFONDITA.fine);
     const oggetti = [];
 
     const velo = this.add.rectangle(0, 0, W, H, 0x3a2f2b, 0.5).setOrigin(0).setInteractive();
     oggetti.push(velo);
-    oggetti.push(this.pannello(cx, cima + 490, 600, 980, 'nuvola'));
-    oggetti.push(this.add.text(cx, cima + 84, t('endTitle'), textStyle(58, { bold: true, outline: 10 })).setOrigin(0.5));
+    oggetti.push(this.pannello(cx, cima + RECAP.pannello.h / 2, RECAP.pannello.w, RECAP.pannello.h, 'nuvola'));
+    oggetti.push(this.add.text(cx, cima + 70, t('endTitle'), textStyle(58, { bold: true, outline: 10 })).setOrigin(0.5));
 
-    const stelle = [0, 1, 2].map((i) => this.add.image(cx + (i - 1) * 170, cima + 245, 'stella-vuota').setScale(2.1));
+    const stelle = [0, 1, 2].map((i) => this.add.image(cx + (i - 1) * 170, cima + 200, 'stella-vuota').setScale(2.1));
     oggetti.push(...stelle);
     // Con l'Incasso in rosso il commento è gentile e spiega cosa è successo (GAME_SPEC.md, "Ingredienti e Spreco").
     const commento = r.incasso < 0 ? t('endRosso') : t(`endVoto${r.stelle}`);
-    oggetti.push(this.add.text(cx, cima + 372, commento, { ...textStyle(34, { bold: true, outline: 6 }), align: 'center', wordWrap: { width: 540 } }).setOrigin(0.5));
+    oggetti.push(this.add.text(cx, cima + 316, commento, { ...textStyle(34, { bold: true, outline: 6 }), align: 'center', wordWrap: { width: 540 } }).setOrigin(0.5));
 
-    oggetti.push(this.add.text(cx, cima + 445, t('endIncasso'), textStyle(36, { bold: true, outline: 6 })).setOrigin(0.5));
-    const moneta = this.add.image(cx - 100, cima + 520, 'moneta').setScale(1.3);
-    const incasso = this.add.text(cx - 50, cima + 520, String(r.incasso), textStyle(88, { bold: true, outline: 12 })).setOrigin(0, 0.5);
+    oggetti.push(this.add.text(cx, cima + 392, t('endIncasso'), textStyle(36, { bold: true, outline: 6 })).setOrigin(0.5));
+    const moneta = this.add.image(cx - 100, cima + 458, 'moneta').setScale(1.3);
+    const incasso = this.add.text(cx - 50, cima + 458, String(r.incasso), textStyle(88, { bold: true, outline: 12 })).setOrigin(0, 0.5);
     // La moneta e il numero stanno centrati insieme, misurati sul numero finale: mentre sale resta fermo.
     const larghezza = 78 + 22 + incasso.width;
     if (!subito) incasso.setText('0');
@@ -1163,13 +1163,15 @@ export default class SerataScene extends YataiScene {
       ['endServiti', r.serviti],
       ['endPersi', r.persi],
     ].forEach(([chiave, valore], i) => {
-      oggetti.push(this.add.text(cx, cima + 590 + i * 38, `${t(chiave)}: ${valore}`, textStyle(30, { outline: 5 })).setOrigin(0.5));
+      oggetti.push(this.add.text(cx, cima + 528 + i * 36, `${t(chiave)}: ${valore}`, textStyle(30, { outline: 5 })).setOrigin(0.5));
     });
+
+    oggetti.push(...this.tabellaPerPiatto(cx, cima, r.perPiatto));
 
     // Gli Yen in tasca (l'Incasso di questa Serata è già dentro, vedi perFine): servono alla Bottega, qui accanto.
     const yenInTasca = salvataggio().yen;
-    const tasca = this.add.text(0, cima + 826, `${t('endInTasca')}: ${yenInTasca}`, textStyle(34, { bold: true, outline: 6 })).setOrigin(0, 0.5);
-    const monetaTasca = this.add.image(0, cima + 826, 'moneta').setScale(0.62);
+    const tasca = this.add.text(0, cima + 1032, `${t('endInTasca')}: ${yenInTasca}`, textStyle(34, { bold: true, outline: 6 })).setOrigin(0, 0.5);
+    const monetaTasca = this.add.image(0, cima + 1032, 'moneta').setScale(0.62);
     const larghezzaTasca = 40 + 12 + tasca.width;
     monetaTasca.setX(cx - larghezzaTasca / 2 + 20);
     tasca.setX(cx - larghezzaTasca / 2 + 52);
@@ -1178,7 +1180,7 @@ export default class SerataScene extends YataiScene {
     // Due pulsanti affiancati: rigiocare (il primo, quello di sempre) e la Bottega.
     const BW = 270;
     const BH = 100;
-    const by = cima + 904;
+    const by = cima + 1116;
     const dx = BW / 2 + 8;
     const pulsante = addButton(this, cx - dx, by, BW, BH, t('endRigioca'), 'menta', () => this.rigioca());
     const pulsanteBottega = addButton(this, cx + dx, by, BW, BH, t('bottega'), 'giallo', () => this.vaiAllaBottega());
@@ -1215,6 +1217,37 @@ export default class SerataScene extends YataiScene {
       onComplete: () => incasso.setText(String(r.incasso)),
     });
     for (let i = 0; i < r.stelle; i++) this.time.delayedCall(RISCONTRI.fine.conta * 0.4 + i * RISCONTRI.fine.stella, () => this.fineUI && accendi(i));
+  }
+
+  // La tabella per Piatto del recap (RECAP.tabella): un'intestazione e una riga per ogni Piatto del menù, con i Piatti
+  // fatti e serviti e gli Yen di costo, sprecati e vendite. Restituisce gli oggetti da mettere nel pannello.
+  tabellaPerPiatto(cx, cima, righe) {
+    const { cima: dall, passo, margine, nomeLarghezza, colonne, corpo, corpoIntestazione, colorePerdita } = RECAP.tabella;
+    const sinistra = cx - RECAP.pannello.w / 2 + margine;
+    const oggetti = [];
+    // Una cella di numeri centrata sulla colonna, rimpicciolita se è più larga del posto che ha.
+    const cella = (colonna, y, testo, stile) => {
+      const cellaTesto = this.add.text(cx + colonne[colonna], y, testo, stile).setOrigin(0.5);
+      const posto = colonne[1] - colonne[0] - 4;
+      if (cellaTesto.width > posto) cellaTesto.setScale(posto / cellaTesto.width);
+      oggetti.push(cellaTesto);
+    };
+    const intestazioni = ['endTabellaFatti', 'endTabellaServiti', 'endTabellaSprecati', 'endTabellaCosto', 'endTabellaVendite'];
+    intestazioni.forEach((chiave, i) => cella(i, cima + dall, t(chiave), textStyle(corpoIntestazione, { bold: true, outline: 4 })));
+    oggetti.push(this.add.rectangle(cx, cima + dall + passo / 2, RECAP.pannello.w - 2 * margine, 3, 0xcdbfa9).setOrigin(0.5));
+    righe.forEach((riga, n) => {
+      const y = cima + dall + passo * (n + 1) + passo / 4;
+      const nome = this.add.text(sinistra, y, t(`piatto_${riga.piatto}`), textStyle(corpo, { bold: true, outline: 4 })).setOrigin(0, 0.5);
+      if (nome.width > nomeLarghezza) nome.setScale(nomeLarghezza / nome.width);
+      oggetti.push(nome);
+      const stile = textStyle(corpo, { outline: 4 });
+      cella(0, y, String(riga.fatti), stile);
+      cella(1, y, String(riga.serviti), stile);
+      cella(2, y, String(riga.sprecati), riga.sprecati > 0 ? textStyle(corpo, { color: colorePerdita, outline: 4 }) : stile);
+      cella(3, y, String(riga.costo), stile);
+      cella(4, y, String(riga.vendite), stile);
+    });
+    return oggetti;
   }
 
   rigioca() {
@@ -1308,7 +1341,7 @@ export default class SerataScene extends YataiScene {
       eventi: { contati: this.contatori, ultimi: this.registro },
       trascinamento: this.trascina ? { dalloSlot: this.trascina.indice, sopraAlPosto: this.trascina.sopra } : null,
       // `x`, `y`, `w`, `h` sono il pulsante per rigiocare; `bottega` è quello della Bottega; `yenInTasca` gli Yen che si vedono.
-      fine: this.fineUI ? { ...this.fineUI.rigioca, bottega: this.fineUI.bottega, yenInTasca: this.fineUI.yenInTasca, stelleAccese: this.fineUI.stelleAccese, incasso: this.risultato.incasso, stelle: this.risultato.stelle } : null,
+      fine: this.fineUI ? { ...this.fineUI.rigioca, bottega: this.fineUI.bottega, yenInTasca: this.fineUI.yenInTasca, stelleAccese: this.fineUI.stelleAccese, incasso: this.risultato.incasso, stelle: this.risultato.stelle, perPiatto: this.risultato.perPiatto } : null,
     };
   }
 }

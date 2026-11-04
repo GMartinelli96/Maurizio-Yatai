@@ -14,6 +14,8 @@ export default {
   potenziamentoDesc_postoInPiu: 'Un quarto Posto per i Clienti.',
   potenziamento_ventaglio: 'Ventaglio di Maurizio',
   potenziamentoDesc_ventaglio: 'I Clienti aspettano di più:',
+  potenziamento_piastraPiuVeloce: 'Piastra più veloce',
+  potenziamentoDesc_piastraPiuVeloce: 'Il takoyaki cuoce prima:',
   // I nomi dei Piatti: la chiave è piatto_ più quella di PIATTI in config.js.
   piatto_onigiri: 'Onigiri',
   piatto_takoyaki: 'Takoyaki',
@@ -60,6 +62,12 @@ export default {
   endInTasca: 'In tasca',
   endServiti: 'Clienti serviti',
   endPersi: 'Andati via',
+  // La tabella per Piatto del recap: sprecati, costo e vendite sono in Yen, fatti e serviti sono Piatti.
+  endTabellaFatti: 'Fatti',
+  endTabellaServiti: 'Serviti',
+  endTabellaSprecati: 'Sprecati',
+  endTabellaCosto: 'Costo',
+  endTabellaVendite: 'Vendite',
   // Il commento di Maurizio, secondo le stelle (da 0 a 3).
   endVoto0: 'Domani andrà meglio!',
   endVoto1: 'Bella serata!',
