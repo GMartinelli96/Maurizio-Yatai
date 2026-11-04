@@ -4,18 +4,44 @@
 
 **Blocked by:** 05 ([con te] La prima prova: è divertente?), 33 (La cucina a tocchi), 34 (Una Serata che cambia), 35 (Un assaggio di Potenziamenti), 36 (I Clienti si lamentano)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] I 7 peluche del cast sono disegnati e si distinguono a colpo d'occhio anche a 360×640, anche con la faccia `perplessa`.
-- [ ] Ogni peluche del cast ha anche la `perplessa` (le quattro espressioni dello schema del ticket 36, con lo stesso seme del corpo), e usa lo stesso Lamento dei Clienti di passaggio: nessun Lamento proprio.
-- [ ] L'arrivo dei Clienti è descritto nei dati (quanti del cast, quanto spesso) e ha un test ripetibile.
-- [ ] I Vizi di Carlotta, Balosso e Nella hanno ciascuno il suo test.
-- [ ] Ogni Vizio si capisce guardando: per esempio lo Yen d'oro di Nella si vede cadere.
-- [ ] I numeri nuovi sono nel file di configurazione e i testi nuovi sono in tutte e tre le lingue.
-- [ ] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero, lo stato nuovo compare in `window.render_game_to_text()` e la console non ha errori.
+- [x] I 7 peluche del cast sono disegnati e si distinguono a colpo d'occhio anche a 360×640, anche con la faccia `perplessa`.
+- [x] Ogni peluche del cast ha anche la `perplessa` (le quattro espressioni dello schema del ticket 36, con lo stesso seme del corpo), e usa lo stesso Lamento dei Clienti di passaggio: nessun Lamento proprio.
+- [x] L'arrivo dei Clienti è descritto nei dati (quanti del cast, quanto spesso) e ha un test ripetibile.
+- [x] I Vizi di Carlotta, Balosso e Nella hanno ciascuno il suo test.
+- [x] Ogni Vizio si capisce guardando: per esempio lo Yen d'oro di Nella si vede cadere.
+- [x] I numeri nuovi sono nel file di configurazione e i testi nuovi sono in tutte e tre le lingue.
+- [x] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero, lo stato nuovo compare in `window.render_game_to_text()` e la console non ha errori.
 
 ## Comments
 
 ### Dalla mappa yatai-economia-e-cucina (2026-11-03)
 
 Ricaduta del ticket 03 della mappa (Lamento). Cambiato: il bloccante 36, il criterio sul riconoscerli a colpo d'occhio (vale anche con la `perplessa`) e il criterio nuovo sulle quattro espressioni. Le espressioni legate a un Vizio (per esempio Ebi Furai spaventato) restano nei loro ticket (10). L'espressione segue i cuoricini, quindi Carlotta, Balosso ed Ebi Furai, che cambiano la velocità della Pazienza, la seguono da soli.
+
+### Passi 1-5 e chiusura (2026-11-04)
+
+Costruito a passi, ognuno committato su `main` e fermato per il parere di Giuseppe: passo 1 `61a35a1` (i sette peluche), passo 2 `44c5d9f` (l'arrivo), passo 3 `ea56aed` (i Vizi), passo 4 `c90a7eb` (i riscontri), passo 5 `0c75472` (numeri in `config.js`). Il ticket dice "bloccato da 35" ma non l'ho aspettato né usato: il cast non usa la Bottega (il 35 è nel ramo `ticket-35` e i Vizi si combinano con `pazienzaMoltiplicatore`, che c'è già).
+
+Look dei sette (scelto da me e approvato da Giuseppe il 2026-11-04, non c'era nei documenti; si ritocca in `src/disegni/cast.js`): Marcella coniglia rosa col papillon giallo, Carlotta barboncina lilla con perle e borsetta d'oro, Balosso ippopotamo azzurro con la cuffia da notte, Nella ape gialla con le ali, Filippo orso bianco con sciarpa e sedano (dal gioco "Filippo mangia il sedano"), Pasquale castoro con l'elmetto e la chiave inglese, Ebi Furai gambero fritto corallo con la coda rossa arricciata in su.
+
+**Criteri, uno per uno, con la prova**
+- **I 7 peluche si distinguono a colpo d'occhio a 360×640, anche con la `perplessa`**: vero. Tavola `?sviluppo=cast` e Posti a misura reale (`scenari/cast.json`, screenshot guardati a 360×640 e 1280×720), poi in una Serata vera (`serata-cast-arrivo`, `serata-cast`). Giuseppe ha approvato i disegni dopo il passo 1 e i riscontri dopo il passo 4: il giudizio "si distinguono" è suo. La prima versione di Ebi Furai sembrava un hamburger con le antenne, e la seconda uno scarafaggio (da evitare per le ricerche): ridisegnato come gambero.
+- **Ogni peluche ha la `perplessa` (quattro espressioni, stesso seme del corpo) e lo stesso Lamento**: vero. `test/cast-disegni.test.js`: 28 disegni, quattro espressioni diverse, corpo identico fino alla faccia, impronte fissate, nessun `Math.random`; `espressioneDa` e `segnoDa` prendono solo i cuoricini e il cast non ha altro Lamento. In Serata (`serata-cast-arrivo`) Marcella ed Ebi Furai imbronciati con lo sbuffo, la kitsune perplessa con la goccia.
+- **L'arrivo è nei dati (quanti del cast, quanto spesso) e ha un test ripetibile**: vero. `CLIENTI.cast` (`membri`, `quota` 0,25, `maxAiPosti` 2) e la regola `scegliDelCast` in `src/serata/cast.js`, con un generatore a parte (`seme/cast`): arrivi, Posti e Ordini dei semi di prima non cambiano. `test/cast-arrivo.test.js`: ripetibile, mai due uguali né più di due ai Posti né lo stesso di seguito, quota misurata 24% su 80 semi (il test ne usa 40), tutti e sette presenti. Due prove di mutazione scoprono un cast che usa il generatore degli arrivi o dimentica il "di seguito". `game-ai` solo qui: è una scelta pesata con vincoli, non una FSM.
+- **I Vizi di Carlotta, Balosso e Nella hanno ciascuno il suo test**: vero. `test/vizi.test.js` (9 test): Carlotta paga il doppio (prezzo e Mancia, non la Spesa) e ha la Pazienza a 0,6 (Lamento e uscita in proporzione); con Balosso la Pazienza di tutti, lui compreso, scende a 0,6 e poi torna normale; Nella lascia lo Yen d'oro (35%, Mancia tripla, non conta come Serie, stesso seme stesso esito); un controllo su ogni Ordine servito di 30 Serate. I test non leggono solo i numeri dai dati: una prova di mutazione ha mostrato che 4 alterazioni su 5 passavano, e ho aggiunto un test che fissa il significato (il doppio è 2, il triplo è 3, "più piano" è meno di 1, "a volte" tra 0,1 e 0,6): ora le scoprono tutte.
+- **Ogni Vizio si capisce guardando**: vero, con un limite. Yen d'oro di Nella: moneta grande che cade sul cuscino con i rimbalzi e luccica. Balosso: un'ovale chiara con il contorno azzurro dietro ai cuoricini di tutti finché è seduto. Carlotta: le monete escono dalla sua borsetta d'oro e sono il doppio. Giuseppe ha guardato gli screenshot (`serata-cast`, `serata-vizi`) e ha detto ok. **Limite**: l'impazienza di Carlotta si vede solo nei cuoricini che calano più in fretta; un segno in più non c'è (proposto, non chiesto).
+- **I numeri nuovi sono in `config.js` e i testi in tutte e tre le lingue**: vero. Numeri in `CLIENTI.cast`, `VIZI` e `RISCONTRI.vizi` (al passo 5 ho spostato in `RISCONTRI.vizi.yenDOro` quelli rimasti nel codice della scena). Restano fuori dal file le posizioni dentro i disegni (`CAST_SEGNI_POS`, `CAST_PUNTI`, la geometria dell'ovale), come `SEGNI_POS` dei Clienti di passaggio. **Testi nuovi: nessuno**, deciso con Giuseppe: in Serata non c'è nessuna parola, come nel Lamento; i nomi dei sette arriveranno nelle tre lingue solo con il Ricettario o il recap, se servono.
+- **Verificato come dice PIANO.md**: vero. Si è partiti dalla skill `router` (Phaser 4.2.1) e `game-ai` solo per l'arrivo. `npm test` 308 su 308. Scenari uno alla volta in primo piano, tutti senza errori in console (`errori.json` vuoto): `cast`, `serata-cast-arrivo`, `serata-vizi`, `serata-cast` a 360×640, 1280×720 e (i due di Serata) in `ja-JP`; più `serata-lamento`, `-ondate`, `-serie`, `-serie-riscontri`, `-completa`, `-tutti`, `-ramen`, `-taiyaki`, `-kakigori`, `-takoyaki`, `-azioni` a 360×640. Gli input sono tocchi e trascinamenti con `tapPath`/`dragPath`, il tempo avanza con `advanceTime`, gli screenshot sono guardati e lo stato nuovo è in `render_game_to_text()`: `vizi`, `serata.ritmoPazienza`, per Cliente `vizio` e `calma`, `generazioneCast`.
+
+**Cosa è cambiato in test e scenari che c'erano già** (nessuno indebolito): `serata-lamento` (nel seme `prova` il secondo Cliente è Carlotta, 15 s di Pazienza: a 22 s ha 1 cuoricino e i Lamenti sono 5, non 3); due test di `serata.test.js` sulla Pazienza (ora cercano il Cliente 1 e moltiplicano per il Vizio); il test degli arrivi di prima vale per i semi senza Carlotta e Balosso.
+
+**Cosa resta, e dove**
+- **Ticket 10**: gli altri quattro Vizi. `vizio` si imposta da solo per chi ha una voce in `VIZI`: basta aggiungerla (Marcella, Filippo, Pasquale, Ebi Furai oggi arrivano con `vizio: null`). Ebi Furai ("scende il doppio più in fretta") ha bisogno di un ritmo per Cliente oltre a quello comune `Serata.ritmoPazienza()`: in `aspetta()` il calo è `passoMs * this.ritmo`. Il test "Carlotta, Balosso e Nella arrivano con il loro Vizio" (`cast-arrivo.test.js`) elenca i tre e va aggiornato; i semi di `ARRIVI_DI_PRIMA` devono restare senza Vizi che spostano la Pazienza.
+- **Ticket 12**: oggi arrivano tutti e sette fin dalla prima Serata; le regole per Matsuri (per esempio Filippo nello Yuki Matsuri) sono sue.
+- **Ticket 13 (prestazioni)**: le 28 texture del cast si generano entrando in Serata, non all'avvio: circa 1,5-2 s in questo browser la prima volta (`generazioneCast.ms`), di più su un telefono medio.
+- **Ticket 22**: le Vendite per Piatto del recap non possono essere "prezzo del Piatto × serviti": Carlotta paga il doppio, serve `servito.prezzo`.
+- **Ticket 23**: il suono dello Yen d'oro si aggancia a `case 'yenDOro'` in `SerataScene.perEvento`; nessun suono per la calma.
+- **Ticket 26**: "riduci movimento" spegne `SerataScene.animaYenDOro` e `ClienteView.animaCalma` (i soli due punti in cui si muovono i riscontri dei Vizi).
+- **Ticket 29**: ribilanciare. Carlotta (×2 sul prezzo) e Nella (Mancia ×3) alzano gli Incassi: nel ramo del ticket 35 la Mancia della Serie col massimo dei Potenziamenti è già al 15,2% dell'Incasso del rapido (prima sotto il 15%). I numeri di `VIZI` e la quota del cast (25%) sono valori di partenza.
