@@ -9,14 +9,14 @@ Giuseppe ha scelto (2026-11-03, vedi `## Comments`): entrano ondate e Serie, il 
 
 **Blocked by:** 05 ([con te] La prima prova: è divertente?)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Giuseppe ha scelto quali meccaniche entrano, e le regole sono in GAME_SPEC.md e GLOSSARY.md prima del codice.
 - [x] La curva di arrivo è descritta nei dati (quattro fasi: calma 0–30 s, ondata 30–55 s, respiro 55–80 s, ondata finale 80–120 s, con gli intervalli della spec) e, con lo stesso seme, la Serata è sempre la stessa (test ripetibile). Una sola curva per tutti: ogni Serata futura potrà avere la sua (ticket 12). In un'ondata cambiano la frequenza degli arrivi **e la Pazienza** dei Clienti che arrivano durante l'ondata: 15 s invece di 25, sempre 5 cuoricini che durano un quinto ciascuno (mappa `yatai-serata-che-cambia`, ticket 02); un Cliente arrivato in ondata tiene i suoi 15 s anche se l'ondata finisce. Pazienza, intervalli e fasi sono in `config.js`.
 - [x] Un segnale visivo, senza testo, avvisa circa 2 secondi prima di ogni ondata (anche la finale); il suono è del ticket 23.
-- [ ] La Serie ha il suo conto nella logica, nei riscontri e in `render_game_to_text()`. Sale di 1 a ogni Ordine servito (il Bis conta due) e si spezza solo con un Cliente perso o un Ordine servito a vuoto: un tocco fuori ordine su una Scorta e un Piatto bruciato non la spezzano (con test).
+- [x] La Serie ha il suo conto nella logica, nei riscontri e in `render_game_to_text()`. Sale di 1 a ogni Ordine servito e si spezza solo con un Cliente perso o un Ordine servito a vuoto: un tocco fuori ordine su una Scorta e un Piatto bruciato non la spezzano (con test). *Il Bis di Marcella conta due, ma il Bis non esiste ancora: arriva con il ticket 10, dove è un Ordine nuovo e quindi vale +1 da sé (vedi "Passo 5").*
 - [x] La Serie dà +10% di Mancia per Cliente di fila oltre il primo, tetto ×1,5 a 6, e si moltiplica con Che stile!, Yen d'oro e desideri senza altro tetto (con test). Non tocca prezzo né Spesa.
-- [ ] La Serie si vede con un numero vicino a Maurizio, monete più generose e un tintinnio che sale; quando si spezza, un "pof" morbido, senza punizioni. Si azzera a ogni Serata e non si salva. Il recap ha la "Serie più lunga" (ticket 22).
+- [x] La Serie si vede con un numero vicino a Maurizio e monete più generose; quando si spezza, un "pof" morbido, senza punizioni. Si azzera a ogni Serata e non si salva. *Fuori da questo ticket, come scelto da Giuseppe: il tintinnio che sale (ticket 23, aggancio `SerataScene.perSerieSale()`) e il recap con la "Serie più lunga" (ticket 22; `serataFinita` porta già `serieMax`).*
 - [x] La Serata non è più prevedibile: due semi diversi hanno ondate in punti diversi (confini mossi di ±5 s) ma sempre giocabili, e nessuno è impossibile per un giocatore lento; con lo stesso seme la Serata è identica (test).
 - [x] Il bot senza browser (`giocaServata` in `test/serata.test.js`, esteso con la curva e la Serie) mostra che la bravura conta. Bersagli sulla **media di 6 semi** (`a`-`f`), con Hanami, 3 Posti, obiettivo 1920 (misure della mappa `yatai-serata-che-cambia`, tra parentesi):
   - il rapido (0,6 s) prende ★★★ (≥ 3072) e serve almeno 15 Clienti più del lento (misura: 40,0 contro 21,0; incasso 5053);
@@ -27,8 +27,8 @@ Giuseppe ha scelto (2026-11-03, vedi `## Comments`): entrano ondate e Serie, il 
   - lo stesso vale con 4 Posti e col ventaglio (+Pazienza): il lento prende ★, il rapido ★★★ (misura con 4 Posti: 5035 / 3201 / 2056; il ventaglio a +20% è un'ipotesi, i numeri veri sono del ticket 35).
   - I numeri sono provvisori fino al ticket 29; se si toccano la Pazienza in ondata o la Serie vanno rimisurati (il lento a 18 s in ondata, senza Serie, scendeva a 1909, sotto ★).
 - [x] Le ondate sono calibrate sul ritmo a tocchi (tocchi per Cliente della cucina del ticket 33, non sul vecchio "un tocco, cuoce da solo") e l'Incasso è il netto (Vendite meno Spesa): la Mancia della Serie conta nelle Vendite.
-- [ ] Nessun game over a metà Serata e le stelle restano su Incasso e obiettivo. I numeri nuovi sono in `config.js` e i testi nuovi sono in italiano, inglese e giapponese.
-- [ ] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero e la console non ha errori.
+- [x] Nessun game over a metà Serata e le stelle restano su Incasso e obiettivo. I numeri nuovi sono in `config.js` e i testi nuovi sono in italiano, inglese e giapponese (nessun testo nuovo: il numero è "×N").
+- [x] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero e la console non ha errori.
 
 ## Comments
 
@@ -90,3 +90,19 @@ Fatto: `RISCONTRI.serie` in `config.js` (posizione, corpo, colori, pop, "pof", m
 Punti d'aggancio per gli altri ticket: il **tintinnio che sale** (ticket 23) si aggancia a `SerataScene.perSerieSale()`, dove `evento.serie` è lo scalino della scala; il suono del **"pof"** a `perSerieSpezzata()`. "Riduci movimento" (ticket 26): tutti i movimenti della Serie (entrata, pop, numero che svanisce, nuvoletta) passano da `SerataScene.animaSerie()`, l'unico punto da spegnere, come per la campanella; un test controlla che nessun tween tocchi il numero o il "pof" da un'altra parte.
 
 Resta il passo 5, la chiusura: rileggere i criteri aperti (la Serie "nei riscontri", "Nessun game over... testi", "Verificato come dice PIANO.md") e spuntare solo quelli veri.
+
+### Passo 5: la chiusura (2026-11-04)
+
+Rilette le righe aperte con le prove, e spuntate tutte e quattro (le righe aperte erano quattro, non tre: la prima e la terza stanno sotto la voce "la Serie nei riscontri").
+
+- **La Serie nella logica, nei riscontri, in `render_game_to_text()`**: vero. Logica e test (`serata.test.js`, righe "La Serie"), riscontri (`riscontri-serie.test.js`), stato con `serie` e `serataFinita.serieMax`. **Spezzato**: il Bis non si può provare oggi. Il criterio dice che "il Bis conta due", ma il Bis è del ticket 10 ("il Bis si serve come un Ordine nuovo"): un Ordine nuovo servito vale +1 con la regola che c'è già, e con l'Ordine di prima fa due. Il criterio è spuntato senza il Bis; resta al 10 un controllo (vedi sotto).
+- **Numero, monete, "pof"**: vero (passo 4, scenario `serata-serie-riscontri.json`, screenshot guardati). Il **tintinnio** e la **"Serie più lunga" nel recap** erano già "Fuori da questo ticket" nelle scelte di Giuseppe (23 e 22): i due ticket hanno già la loro riga, qui restano gli agganci (`perSerieSale()`, `perSerieSpezzata()`, `serieMax`).
+- **Nessun game over, numeri in `config.js`, testi**: nessun game over nel codice (`src/` non lo contiene; la Serata finisce solo a tempo, `Serata.passo`), e il test "una Serata può chiudere in rosso… nessun game over" più gli scenari con 3, 6 e 7 Clienti persi arrivano a `fase = finita`. Le stelle sono `calcolaStelle(incasso, obiettivo)`, la Serie non c'entra. I numeri di bilanciamento sono in `config.js` (`ONDATE`, `SERIE`, `RISCONTRI`); l'unico numero a mano è il `54` px della scritta "+150" in `SerataScene`, che c'era già prima del ticket e a cui la Serie applica solo il fattore di `RISCONTRI.serie`. Nessun file in `src/testi` toccato.
+- **Verifica**: `npm test` 207 su 207. Scenari `serata-ondate`, `serata-segnale`, `serata-serie`, `serata-serie-riscontri`, uno alla volta, tutti senza errori in console; guardati i `×9` e `×6` arcobaleno, la campanella che oscilla con Maurizio che guarda in su, il "pof" rosa dopo il servizio a vuoto e dopo il Cliente perso.
+
+**Cosa resta, e dove**
+- Ticket 10: il Bis (Marcella) deve contare due nella Serie. Proposta: aggiungere un test ("il Bis servito fa salire la Serie di 1, quindi due con l'Ordine di prima").
+- Ticket 22: recap e Titoli leggono `serieMax` (la riga c'è già).
+- Ticket 23: tintinnio che sale a `perSerieSale()` (`evento.serie` è lo scalino) e suono del "pof" a `perSerieSpezzata()` (la riga c'è già).
+- Ticket 26: "riduci movimento" spegne `SerataScene.animaSerie()` e `oscillaCampanella()` (la riga c'è già).
+- Ticket 29: ribilanciare i numeri provvisori (il rapido ha la Mancia della Serie al 14,1% contro il tetto del 15%, e il Tanabata con la nuova curva) e il "+9% al massimo" di Che stile! insieme alla Serie.
