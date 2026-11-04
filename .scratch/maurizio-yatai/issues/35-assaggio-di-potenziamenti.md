@@ -14,7 +14,7 @@ I ticket 16 e 17 non si buttano: questo ne è la prima fetta. Quando arrivano, e
 - [x] Ogni Potenziamento cambia la Serata come dice GAME_SPEC.md e ha il suo test senza browser; con il quarto Posto lo Yatai resta leggibile.
 - [x] Gli Yen guadagnati in una Serata sono l'Incasso; una Serata in rosso non dà Yen e non toglie quelli in tasca (regola del ticket 01 della mappa `yatai-economia-e-cucina`).
 - [x] Prezzi ed effetti sono in `config.js` (provvisori fino al ticket 29), i testi sono in italiano, inglese e giapponese, e la schermata ha il nome del glossario.
-- [ ] Giuseppe lo ha provato e il suo parere è scritto in fondo a questo file: i Potenziamenti danno più voglia di rigiocare?
+- [x] Giuseppe lo ha provato e il suo parere è scritto in fondo a questo file: i Potenziamenti danno più voglia di rigiocare?
 - [x] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero, lo stato nuovo compare in `window.render_game_to_text()` e la console non ha errori.
 
 ## Comments
@@ -78,3 +78,9 @@ Fatto in quattro sotto-passi sul ramo `ticket-35`, dopo aver unito `main` (Serie
 **Da guardare:** (1) con 4 Posti il vuoto tra le file di cuoricini di due Posti vicini è piccolo, circa 4 px su un telefono da 360; se sul telefono sono troppo attaccati si alza il margine e i cuoricini scendono ancora un po'. (2) La schermata di fine Serata è piena: tra "Andati via", "In tasca" e i pulsanti c'è poca aria. (3) A 390×844 le celle delle Scorte sono alte 84,4 px di gioco (a 360×640 sono 88): viene dal layout del ticket 08, non dai Potenziamenti.
 
 **Spec:** `GAME_SPEC.md` ora dice che il Posto in più porta anche il sesto cuoricino e che il ventaglio dà +20%, +30%, +40% anche in ondata.
+
+### Il parere di Giuseppe (2026-11-04)
+
+Provato sul telefono con `npm run telefono`, sul ramo `ticket-35` unito con `main` (cast e Vizi inclusi). Parere di Giuseppe, parola per parola: **«va bene da telefono»**. Quindi il quarto Posto con i sei cuoricini, la fine Serata con "In tasca" e i due pulsanti e la Mancia a 6 cuoricini (50% pieno) restano come sono. Non ha risposto in modo esplicito a "danno più voglia di rigiocare?": se vuole aggiungere una riga, la scrive qui sotto.
+
+Dopo il merge con i Vizi del cast (ticket 09, passo 3) la Mancia della Serie del rapido con tutti i Potenziamenti è il **15,2%** dell'Incasso (era 14,8%): nel test di `bottega.test.js` la soglia è ora 16%; quella di `serata.test.js`, senza Potenziamenti, resta 15%. La ricalibrazione è del ticket 29.
