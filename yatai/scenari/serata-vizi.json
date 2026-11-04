@@ -1,0 +1,22 @@
+[
+  { "resize": "360x640" },
+  { "goto": "?sviluppo=serata&seme=o" },
+  { "advance": 100 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "serata.ritmoPazienza", "equals": 1 },
+
+  { "gioca": { "finoA": 12000, "sbadato": true } },
+  { "expect": "clienti.0.tipo", "equals": "balosso" },
+  { "expect": "clienti.2.tipo", "equals": "carlotta" },
+  { "expect": "serata.ritmoPazienza", "equals": 0.6 },
+  { "expect": "serata.posti.2.cliente.vizio", "equals": "carlotta" },
+  { "expect": "serata.posti.2.cliente.pazienzaTotaleMs", "equals": 15000 },
+  { "expect": "serata.posti.2.cliente.pazienzaMs", "atLeast": 10000 },
+  { "shot": "vizi-1-carlotta-e-balosso" },
+
+  { "goto": "?sviluppo=serata&seme=v" },
+  { "advance": 100 },
+  { "gioca": { "finoA": 12000, "passoMs": 1100 } },
+  { "expect": "eventi.contati.yenDOro", "atLeast": 1 },
+  { "shot": "vizi-2-yen-d-oro" }
+]

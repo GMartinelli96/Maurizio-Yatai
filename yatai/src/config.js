@@ -607,6 +607,20 @@ export const CLIENTI = {
   },
 };
 
+// I Vizi del cast che non dipendono dalla cucina (GLOSSARY.md, Vizio; GAME_SPEC.md, "Clienti e Disturbatori"; ticket 09).
+// La chiave è il peluche del cast (CLIENTI.cast): chi non ha una voce qui arriva senza Vizio (gli altri quattro, finché
+// non c'è il ticket 10). Valori di partenza, da ritoccare nel ticket 29.
+//   carlotta  paga `prezzoX` volte il prezzo dell'Ordine (la Mancia segue il prezzo) ma è impaziente: la sua Pazienza
+//             dura `pazienzaX` di quella normale, in calma e in ondata (i cuoricini sono sempre 5, ognuno più corto)
+//   balosso   finché è a un Posto la Pazienza di tutti, lui compreso, scende a `ritmoPazienza` della velocità normale
+//   nella     a ogni Ordine servito lascia lo Yen d'oro con probabilità `yenDOro`: la sua Mancia vale `manciaX` volte
+//             (si moltiplica con la Serie e con gli altri moltiplicatori, senza un tetto in più)
+export const VIZI = {
+  carlotta: { prezzoX: 2, pazienzaX: 0.6 },
+  balosso: { ritmoPazienza: 0.6 },
+  nella: { yenDOro: 0.35, manciaX: 3 },
+};
+
 // Le Ondate (GAME_SPEC.md, "La Serata"; ticket 34): la Serata ha un andamento invece di un solo intervallo di
 // arrivo. Una curva comune a tutti i Matsuri, in quattro fasi nell'ordine in cui accadono; le curve per Serata
 // sono del ticket 12 e del 29. Valori di partenza.

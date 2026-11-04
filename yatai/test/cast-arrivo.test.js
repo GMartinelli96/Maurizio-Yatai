@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { CLIENTI, POSTI } from '../src/config.js';
+import { CLIENTI, POSTI, VIZI } from '../src/config.js';
 import { CAST } from '../src/disegni/cast.js';
 import { eDelCast, scegliDelCast } from '../src/serata/cast.js';
 import { Serata } from '../src/serata/Serata.js';
@@ -107,33 +107,49 @@ test('un Cliente ogni quattro è del cast, e tutti e sette si vedono, senza che 
   }
 });
 
-// Gli arrivi (quando, a che Posto, con che Ordine) dei semi `prova` e `a` come erano prima del cast, registrati sul
-// codice senza di lui. Il cast ha il suo generatore e cambia solo chi si siede, quindi devono restare questi.
-// Vale finché i Vizi non cambiano la Pazienza (passo 3 del ticket 09): un Cliente che se ne va prima libera il Posto
-// prima e sposta gli arrivi successivi. Allora il test si riscrive su ciò che resta fermo.
-const ARRIVI_DI_PRIMA = { prova: [18, '5d8937baa44e'], a: [17, 'a62a27b439a7'] };
+// Gli arrivi (quando, a che Posto, con che Ordine) di alcuni semi come erano prima del cast, registrati sul codice senza
+// di lui (impronte SHA-1, 10 caratteri). Il cast ha il suo generatore e cambia solo chi si siede, quindi devono restare
+// questi. Sono solo semi in cui non arrivano né Carlotta né Balosso: i loro Vizi cambiano la Pazienza, e un Cliente che
+// se ne va prima libera il Posto prima e sposta gli arrivi successivi (è voluto). Nella e gli altri quattro non toccano
+// niente, e il test lo prova; per gli altri semi vale il test dei Vizi (test/vizi.test.js).
+const ARRIVI_DI_PRIMA = {
+  a: [17, 'a62a27b439a7'],
+  'cast-2': [16, '7577aed82a'],
+  'cast-3': [15, 'ec0f3aa294'],
+  'cast-6': [17, 'bbc4f97ac6'],
+  'cast-9': [18, '108318059a'],
+  'cast-12': [18, 'b9145636dc'],
+  'cast-14': [18, 'd4e332c03a'],
+  'cast-17': [17, '0543f98ee0'],
+  'cast-18': [18, 'bca5e94da1'],
+  'cast-27': [17, 'a874cd7794'],
+  'cast-28': [17, '0da3fdab60'],
+};
 
-test('il cast non sposta gli arrivi né gli Ordini dei semi di prima', () => {
+test('il cast senza Carlotta e Balosso non sposta gli arrivi né gli Ordini dei semi di prima', () => {
   for (const [seed, [quanti, impronta]] of Object.entries(ARRIVI_DI_PRIMA)) {
-    const lista = arrivi(seed).map(({ tempoMs, posto, cliente }) => [tempoMs, posto, cliente.ordine.join('+')]);
+    const trovati = arrivi(seed);
+    assert.ok(!trovati.some(({ cliente }) => ['carlotta', 'balosso'].includes(cliente.tipo)), `${seed}: ora c'è Carlotta o Balosso, scegliere un altro seme`);
+    const lista = trovati.map(({ tempoMs, posto, cliente }) => [tempoMs, posto, cliente.ordine.join('+')]);
     assert.equal(lista.length, quanti, `${seed}: cambia il numero di arrivi`);
-    assert.equal(createHash('sha1').update(JSON.stringify(lista)).digest('hex').slice(0, 12), impronta, `${seed}: cambiano i tempi, i Posti o gli Ordini`);
+    assert.equal(createHash('sha1').update(JSON.stringify(lista)).digest('hex').slice(0, impronta.length), impronta, `${seed}: cambiano i tempi, i Posti o gli Ordini`);
   }
 });
 
-test('finché i Vizi non ci sono (passo 3) nessun Cliente ne ha uno, e i quattro senza Vizio non ne avranno mai', () => {
-  const senzaVizio = new Set(['marcella', 'filippo', 'pasquale', 'ebi-furai']);
-  let visti = 0;
+test('Carlotta, Balosso e Nella arrivano con il loro Vizio; gli altri quattro del cast e i Clienti di passaggio senza', () => {
+  const conVizio = new Set(Object.keys(VIZI));
+  assert.deepEqual([...conVizio].sort(), ['balosso', 'carlotta', 'nella']);
+  const visti = new Set();
   for (const seed of SEMI) {
     for (const { cliente, seduti } of arrivi(seed)) {
-      assert.equal(cliente.vizio, null, `${cliente.tipo} ha un Vizio che non c'è`);
-      if (senzaVizio.has(cliente.tipo)) visti += 1;
+      assert.equal(cliente.vizio, conVizio.has(cliente.tipo) ? cliente.tipo : null, `${cliente.tipo}: Vizio sbagliato`);
+      visti.add(cliente.tipo);
       assert.ok(seduti.includes(cliente.tipo));
     }
   }
-  assert.ok(visti > 0, 'nessuno dei quattro senza Vizio è arrivato');
+  for (const id of ['marcella', 'filippo', 'pasquale', 'ebi-furai']) assert.ok(visti.has(id), `${id} non è mai arrivato`);
   // Anche nello stato che legge la scena (e il bot dei test): il campo c'è, per tutti.
   const serata = new Serata({ seed: 'cast-1' });
   while (!serata.stato().posti.some(({ cliente }) => cliente)) serata.update(100);
-  for (const { cliente } of serata.stato().posti) if (cliente) assert.equal(cliente.vizio, null);
+  for (const { cliente } of serata.stato().posti) if (cliente) assert.equal(cliente.vizio, conVizio.has(cliente.tipo) ? cliente.tipo : null);
 });
