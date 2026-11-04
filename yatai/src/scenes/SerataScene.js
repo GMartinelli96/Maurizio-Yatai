@@ -7,6 +7,7 @@ import { textStyle } from '../kit/font.js';
 import { panelTexture } from '../kit/texture.js';
 import { addButton } from '../kit/ui.js';
 import { center, fitIn, layoutHud } from '../layout/yatai.js';
+import { opzioniSerata } from '../bottega.js';
 import { salvataggio } from '../salvataggio.js';
 import { azioneDaTasto } from '../serata/comandi.js';
 import { corpoSerie, moneteDelPagamento, scalaSomma, serieAlTetto, serieVisibile, testoSerie } from '../serata/riscontriSerie.js';
@@ -56,7 +57,8 @@ export default class SerataScene extends YataiScene {
   init(data) {
     this.seme = data?.seme ?? nuovoSeme();
     const matsuri = data?.matsuri in TEMI ? data.matsuri : MATSURI_PREDEFINITO;
-    this.serata = new Serata({ seed: this.seme, ...(SERATE[matsuri] ?? SERATA_PRIMA) });
+    // I Potenziamenti comprati nella Bottega (il Posto in più, il ventaglio) cambiano la Serata (ticket 35).
+    this.serata = new Serata({ seed: this.seme, ...(SERATE[matsuri] ?? SERATA_PRIMA), ...opzioniSerata(salvataggio()) });
     // Il cestino serve solo se in menù c'è un Piatto che si brucia.
     this.haCestino = this.serata.postazioni.some(({ piatto }) => (PIATTI[piatto].burnAfterSec ?? null) !== null);
     super.init({
@@ -123,7 +125,7 @@ export default class SerataScene extends YataiScene {
     this.cestino = this.add.image(0, 0, 'cestino').setOrigin(0.5, 1).setDepth(PROFONDITA.hud - 5).setVisible(this.haCestino);
     this.dishViews.forEach((view, i) => view.zone.on('pointerdown', (pointer) => this.iniziaTrascinamento(i, pointer)));
 
-    this.clienti = this.serata.posti.map((_, i) => new ClienteView(this, i));
+    this.clienti = this.serata.posti.map((_, i) => new ClienteView(this, i, this.serata.cuoriMax));
     // La campanella dello Yatai, appesa sotto la tendina del Bancone: oscilla prima di un'ondata (ticket 34). Il perno
     // è il cordino, in cima al disegno.
     this.campanella = this.add.image(0, 0, 'campanella').setOrigin(0.5, 0).setDepth(1);

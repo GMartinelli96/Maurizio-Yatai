@@ -25,9 +25,11 @@ const round = (n) => Math.round(n * 10) / 10;
 // Stati: vuoto → attesa → (servito | imbronciato) → vuoto. L'uscita dura meno di POSTI.ricambioSec
 // (un test lo controlla): il Posto è libero per tutto il tempo in cui si vede il Cliente che parte.
 export default class ClienteView {
-  constructor(scene, indice) {
+  // `cuoriN`: quanti cuoricini ha la Pazienza dei Clienti di questa Serata (5, 6 con il Posto in più).
+  constructor(scene, indice, cuoriN = PAZIENZA.hearts) {
     this.scene = scene;
     this.indice = indice;
+    this.cuoriN = cuoriN;
     this.stato = 'vuoto';
     this.cliente = null;
     this.espressione = null;
@@ -39,7 +41,7 @@ export default class ClienteView {
     this.sprite = scene.add.image(0, 0, clienteKey('tanuki', 'neutra')).setOrigin(0.5, 1).setVisible(false);
     this.nuvoletta = scene.add.image(0, 0, 'nuvoletta').setOrigin(0.5, 1).setVisible(false);
     this.icone = Array.from({ length: ICONE_MASSIME }, () => scene.add.image(0, 0, 'onigiri-icona').setVisible(false));
-    this.cuoriViste = Array.from({ length: PAZIENZA.hearts }, () => scene.add.image(0, 0, 'cuore').setVisible(false));
+    this.cuoriViste = Array.from({ length: cuoriN }, () => scene.add.image(0, 0, 'cuore').setVisible(false));
     // Il segno del Lamento, sopra tutto il resto del Posto. `segnoMoto` è il suo movimento a parte
     // (entrata, discesa, sbuffo), in pixel del disegno del Cliente: segui() lo somma alla posizione.
     this.segnoImg = scene.add.image(0, 0, 'segno-goccia').setVisible(false);
@@ -54,7 +56,7 @@ export default class ClienteView {
   // Mette ogni pezzo dove dice il layout del Posto. Si richiama a ogni cambio di misura dello schermo.
   place(rect) {
     this.rect = rect;
-    this.geom = placeCliente(rect, CLIENTE_SIZE, CLIENTE_FEET);
+    this.geom = placeCliente(rect, CLIENTE_SIZE, CLIENTE_FEET, this.cuoriN);
     this.applicaBase();
   }
 
@@ -147,7 +149,7 @@ export default class ClienteView {
     this.fermaTutto();
     this.cliente = cliente;
     this.stato = 'attesa';
-    this.nCuori = PAZIENZA.hearts;
+    this.nCuori = this.cuoriN;
     this.segno = null;
     this.imposta('neutra');
     this.icone.forEach((icona, i) => icona.setTexture(`${cliente.ordine[i] ?? cliente.ordine[0]}-icona`));

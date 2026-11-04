@@ -69,8 +69,9 @@ export function placeMaurizio(zone, w, h) {
 // Si parte dal basso: i piedi poggiano sul cuscino (YATAI.cliente.sedutoDalFondo dal fondo) e il
 // Cliente si ingrandisce fin dove lo lasciano la larghezza del Posto e lo spazio che resta sotto
 // nuvoletta e cuoricini. Così i tre pezzi non si sovrappongono a nessuna altezza di schermo.
-// Il punto del Cliente è il centro in basso del disegno (origine 0.5, 1).
-export function placeCliente(rect, size, feet) {
+// Il punto del Cliente è il centro in basso del disegno (origine 0.5, 1). `cuoriN` sono i cuoricini di Pazienza: 5, o 6 con
+// il Posto in più (ticket 35); la fila si restringe per starci nel Posto.
+export function placeCliente(rect, size, feet, cuoriN = PAZIENZA.hearts) {
   const C = YATAI.cliente;
   const cx = rect.x + rect.w / 2;
   const piediY = rect.y + rect.h - C.sedutoDalFondo;
@@ -79,17 +80,17 @@ export function placeCliente(rect, size, feet) {
   const nuvolettaW = Math.min(rect.w, C.nuvoletta.larghezzaMax);
   const nuvoletta = { x: cx - nuvolettaW / 2, y: rect.y, w: nuvolettaW, h: nuvolettaH };
 
-  const lato = Math.min(C.cuori.lato, (rect.w - 4 * C.cuori.spazio) / PAZIENZA.hearts);
+  const lato = Math.min(C.cuori.lato, (rect.w - 2 * C.cuori.margine - (cuoriN - 1) * C.cuori.spazio) / cuoriN);
   const budget = piediY - (nuvoletta.y + nuvolettaH + lato + 2 * C.vuoto);
   const scale = Math.max(0.1, Math.min(rect.w / size.w, budget / feet.y));
   const testa = piediY - feet.y * scale;
 
-  const cuoriW = PAZIENZA.hearts * lato + (PAZIENZA.hearts - 1) * C.cuori.spazio;
+  const cuoriW = cuoriN * lato + (cuoriN - 1) * C.cuori.spazio;
   const cuoriY = testa - C.vuoto - lato;
   const cuori = {
     rect: { x: cx - cuoriW / 2, y: cuoriY, w: cuoriW, h: lato },
     lato,
-    centri: Array.from({ length: PAZIENZA.hearts }, (_, i) => ({ x: cx - cuoriW / 2 + lato / 2 + i * (lato + C.cuori.spazio), y: cuoriY + lato / 2 })),
+    centri: Array.from({ length: cuoriN }, (_, i) => ({ x: cx - cuoriW / 2 + lato / 2 + i * (lato + C.cuori.spazio), y: cuoriY + lato / 2 })),
   };
 
   return {

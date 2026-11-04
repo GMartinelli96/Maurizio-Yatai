@@ -231,12 +231,13 @@ export const YATAI = {
   //   sedutoDalFondo: quanto sta in alto il punto dove poggiano i piedi, dal fondo della fascia (lo
   //                   sgabello è alto 100 px e il cuscino è a 35 px dal suo bordo alto)
   //   nuvoletta: altezza come frazione della fascia, mai sotto `min`, larghezza al massimo `larghezzaMax`
-  //   cuori: misura di ogni cuoricino; `spazio` tra uno e l'altro
+  //   cuori: misura di ogni cuoricino; `spazio` tra uno e l'altro; `margine` tra la fila e il bordo del Posto, così
+  //          le file di due Posti vicini non si toccano (con 6 cuoricini in 168 px il cuoricino scende a 25 px)
   //   vuoto: aria tra un pezzo e l'altro
   cliente: {
     sedutoDalFondo: 68,
     nuvoletta: { altezza: 0.24, min: 64, larghezzaMax: 176 },
-    cuori: { lato: 30, spazio: 2 },
+    cuori: { lato: 30, spazio: 2, margine: 4 },
     vuoto: 6,
   },
   // La fascia in alto durante la Serata: l'Incasso e il tempo sopra, la barra delle stelle sotto.

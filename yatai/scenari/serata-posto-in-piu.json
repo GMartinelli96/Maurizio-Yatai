@@ -1,0 +1,31 @@
+[
+  { "resize": "360x640" },
+  { "goto": "?sviluppo=bottega&yen=3000" },
+  { "advance": 300 },
+  { "expect": "scene", "equals": "bottega" },
+  { "expect": "voci.0.id", "equals": "postoInPiu" },
+  { "expect": "voci.0.comprabile", "equals": true },
+  { "tapPath": "voci.0.compra" },
+  { "advance": 400 },
+  { "expect": "voci.0.livello", "equals": 1 },
+  { "expect": "yen", "equals": 0 },
+
+  { "goto": "?sviluppo=serata&seme=prova" },
+  { "advance": 100 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "serata.posti.length", "equals": 4 },
+  { "expect": "serata.cuoriMax", "equals": 6 },
+  { "expect": "posti.length", "equals": 4 },
+
+  { "gioca": { "finoA": 2500, "sbadato": true } },
+  { "expect": "clienti.0.stato", "equals": "attesa" },
+  { "expect": "clienti.0.cuori", "equals": 6 },
+  { "expect": "serata.posti.0.cliente.pazienzaTotaleMs", "atLeast": 30000 },
+  { "shot": "posto-in-piu-1-primo-cliente" },
+
+  { "gioca": { "finoA": 16000, "sbadato": true } },
+  { "expect": "clienti.0.stato", "equals": "attesa" },
+  { "expect": "clienti.2.cuori", "equals": 6 },
+  { "expect": "clienti.3.stato", "equals": "attesa" },
+  { "shot": "posto-in-piu-2-quattro-posti" }
+]

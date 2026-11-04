@@ -65,6 +65,28 @@ test('ci sono cinque cuoricini, in fila, centrati sul Posto e mai più larghi de
   }
 });
 
+test('con il Posto in più i cuoricini sono sei: in fila dentro il Posto, e le file di due Posti vicini non si toccano', () => {
+  for (const schermo of SCHERMI) {
+    const posti = layoutFor(schermo, { seats: 4 }).posti;
+    const file = posti.map((rect) => placeCliente(rect, CLIENTE_SIZE, CLIENTE_FEET, 6).cuori);
+    file.forEach((cuori, i) => {
+      assert.equal(cuori.centri.length, 6);
+      for (let k = 1; k < 6; k++) assert.ok(cuori.centri[k].x > cuori.centri[k - 1].x);
+      dentro(cuori.rect, posti[i], `${schermo.nome}: i sei cuoricini del Posto ${i}`);
+      if (i > 0) {
+        const vuoto = cuori.rect.x - (file[i - 1].rect.x + file[i - 1].rect.w);
+        assert.ok(vuoto >= YATAI.cliente.cuori.margine, `${schermo.nome}: le file dei Posti ${i - 1} e ${i} distano ${vuoto}`);
+      }
+      assert.ok(cuori.lato >= 18, `${schermo.nome}: i cuoricini sono larghi ${cuori.lato}`);
+    });
+  }
+});
+
+test('con 5 cuoricini e 3 Posti i cuoricini restano grandi come prima', () => {
+  const [rect] = layoutFor(SCHERMI[0]).posti;
+  assert.equal(placeCliente(rect, CLIENTE_SIZE, CLIENTE_FEET).cuori.lato, YATAI.cliente.cuori.lato);
+});
+
 test('la nuvoletta ha la forma del disegno e l’icona di un Ordine da tre ci sta', () => {
   const [rect] = layoutFor(SCHERMI[0], { seats: 4 }).posti;
   const { nuvoletta } = placeCliente(rect, CLIENTE_SIZE, CLIENTE_FEET);
