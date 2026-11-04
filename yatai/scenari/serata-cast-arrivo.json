@@ -1,0 +1,17 @@
+[
+  { "resize": "360x640" },
+  { "goto": "?sviluppo=serata&seme=festa" },
+  { "advance": 100 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "generazioneCast.nuove", "equals": 28 },
+
+  { "gioca": { "finoA": 12000, "sbadato": true } },
+  { "expect": "clienti.0.tipo", "equals": "marcella" },
+  { "expect": "clienti.1.tipo", "equals": "ebi-furai" },
+  { "expect": "clienti.2.tipo", "equals": "kitsune" },
+  { "expect": "serata.posti.0.cliente.vizio", "equals": null },
+  { "shot": "cast-arrivo-1" },
+
+  { "gioca": { "finoA": 27000, "sbadato": true } },
+  { "shot": "cast-arrivo-2" }
+]

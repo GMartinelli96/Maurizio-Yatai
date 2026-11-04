@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { CLIENTI, MAURIZIO, PIATTI, YATAI } from '../src/config.js';
 import { DISEGNI } from '../src/disegni/catalogo.js';
+import { CAST, DISEGNI_CAST } from '../src/disegni/cast.js';
 import { POSTAZIONE_SIZE, SCORTE, scortaKey } from '../src/disegni/postazioni.js';
 import { CLIENTI as TIPI_DISEGNATI, ESPRESSIONI, clienteKey } from '../src/disegni/clienti.js';
 import { TESTI } from '../src/i18n.js';
@@ -29,6 +30,11 @@ test('i Clienti della logica hanno tutti i disegni, nelle quattro espressioni', 
   assert.deepEqual([...CLIENTI.passaggio].sort(), [...TIPI_DISEGNATI].sort(), 'i tipi della logica e quelli disegnati discordano');
   for (const tipo of CLIENTI.passaggio) {
     for (const espressione of ESPRESSIONI) assert.ok(DISEGNI[clienteKey(tipo, espressione)], `manca ${clienteKey(tipo, espressione)}`);
+  }
+  // Il cast (ticket 09) ha i suoi disegni, che non stanno nel catalogo dell'avvio: la Serata li genera entrando.
+  assert.deepEqual([...CLIENTI.cast.membri].sort(), [...CAST].sort(), 'i peluche del cast della logica e quelli disegnati discordano');
+  for (const tipo of CLIENTI.cast.membri) {
+    for (const espressione of ESPRESSIONI) assert.ok(DISEGNI_CAST[clienteKey(tipo, espressione)], `manca ${clienteKey(tipo, espressione)}`);
   }
 });
 

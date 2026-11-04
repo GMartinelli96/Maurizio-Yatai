@@ -15,6 +15,7 @@ import {
   SERIE,
 } from '../config.js';
 import { createRng } from '../kit/rng.js';
+import { scegliDelCast } from './cast.js';
 
 // La logica di una Serata: Posti, Clienti, Ordini, Pazienza, Bancone, Scorte, Postazioni, Mancia,
 // Spesa, Incasso e stelle. Niente Phaser e niente tempo reale: la scena chiama update(dtMs) a ogni
@@ -29,7 +30,7 @@ import { createRng } from '../kit/rng.js';
 // polpo, dopo il ghiaccio). L'Incasso è il netto: Vendite meno Spesa (GAME_SPEC.md, "Ingredienti e Spreco").
 //
 // Gli eventi sono oggetti semplici con un campo `tipo`:
-//   clienteArrivato   { posto, cliente: { id, tipo, ordine } }
+//   clienteArrivato   { posto, cliente: { id, tipo, ordine, vizio } }   `tipo` è di passaggio o del cast (CLIENTI.cast); `vizio` il suo Vizio, o null
 //   ingrediente       { postazione, scorta, costo, fatti, di, variante? }   un Ingrediente è finito nel Piatto (e si è
 //                                              pagato); `variante` c'è se era la scelta tra le varianti (lo sciroppo)
 //   cotturaIniziata   { postazione, piatto, durataMs }   finito un Ingrediente, il passo dopo è una cottura
@@ -228,6 +229,10 @@ export class Serata {
     this.serieMax = 0;
     this.manciaDaSerie = 0;
     this.prossimoId = 1;
+    // Il cast ha il suo generatore (src/serata/cast.js): non sposta gli arrivi né gli Ordini. `ultimoCast` è l'ultimo
+    // peluche del cast arrivato, che non torna di seguito.
+    this.rngCast = createRng(`${seed}/cast`);
+    this.ultimoCast = null;
 
     this.posti = Array.from({ length: posti }, () => ({ cliente: null, liberoDaMs: 0 }));
     this.bancone = [];
@@ -513,7 +518,12 @@ export class Serata {
     if (!liberi.length) return;
 
     const { posto, indice } = liberi[Math.floor(this.rng() * liberi.length)];
-    const tipo = CLIENTI.passaggio[Math.floor(this.rng() * CLIENTI.passaggio.length)];
+    // Si sorteggia sempre anche il Cliente di passaggio, come prima del cast: i numeri del generatore degli arrivi restano
+    // quelli di prima, e se arriva uno del cast prende il suo posto.
+    const passaggio = CLIENTI.passaggio[Math.floor(this.rng() * CLIENTI.passaggio.length)];
+    const delCast = scegliDelCast(this.rngCast, { alPosto: this.posti.map((p) => p.cliente?.tipo).filter(Boolean), ultimo: this.ultimoCast });
+    const tipo = delCast ?? passaggio;
+    if (delCast) this.ultimoCast = delCast;
     const ordine = this.creaOrdine();
     // La Pazienza si decide all'arrivo e non cambia più: chi arriva in ondata tiene i suoi 15 s anche se
     // l'ondata finisce mentre aspetta.
@@ -522,13 +532,15 @@ export class Serata {
     posto.cliente = {
       id: this.prossimoId++,
       tipo,
+      // Il Vizio del Cliente, o null: i Clienti di passaggio non ne hanno, e il cast lo avrà dal passo 3 del ticket 09.
+      vizio: null,
       ordine,
       pazienzaMs: pazienzaTotaleMs,
       pazienzaTotaleMs,
       cuori: PAZIENZA.hearts,
     };
     this.prossimoArrivoMs = this.tempoMs + this.attesaArrivoMs();
-    eventi.push({ tipo: 'clienteArrivato', posto: indice, cliente: { id: posto.cliente.id, tipo, ordine: [...ordine] } });
+    eventi.push({ tipo: 'clienteArrivato', posto: indice, cliente: { id: posto.cliente.id, tipo, ordine: [...ordine], vizio: posto.cliente.vizio } });
   }
 
   // Un Ordine è una lista di Piatti, da uno a tre. Un Piatto con varianti si ordina con la sua variante
@@ -629,6 +641,7 @@ export class Serata {
         cliente: cliente && {
           id: cliente.id,
           tipo: cliente.tipo,
+          vizio: cliente.vizio,
           ordine: [...cliente.ordine],
           cuori: cliente.cuori,
           pazienzaMs: cliente.pazienzaMs,
