@@ -14,7 +14,7 @@ import { salvataggio } from '../salvataggio.js';
 //
 // Disegnata a posizioni fisse su 720×1280 e tenuta al centro dello schermo (centerDesign), come il titolo. Ogni
 // bersaglio da toccare è alto almeno 110 px di gioco, cioè 55 px su un telefono da 360 di larghezza.
-const CARTA = { w: 640, h: 270, primoY: 500, passo: 300 };
+const CARTA = { w: 640, h: 300, primoY: 470, passo: 325 };
 const BOTTONE = { w: 230, h: 110 };
 
 export default class BottegaScene extends Phaser.Scene {
@@ -47,32 +47,33 @@ export default class BottegaScene extends Phaser.Scene {
     this.contenitore = c;
     this.bersagli = { compra: [], indietro: null };
 
-    c.add(this.add.text(cx, 110, t('bottega'), textStyle(72, { bold: true, outline: 10 })).setOrigin(0.5));
+    c.add(this.add.text(cx, 95, t('bottega'), textStyle(72, { bold: true, outline: 10 })).setOrigin(0.5));
 
     // Gli Yen in tasca: la moneta e il numero, centrati insieme.
     const yen = this.add.text(0, 0, String(salvato.yen), textStyle(64, { bold: true, outline: 8 })).setOrigin(0, 0.5);
     const moneta = this.add.image(0, 0, 'moneta').setScale(1.3);
     const larghezza = 78 + 22 + yen.width;
-    moneta.setPosition(cx - larghezza / 2 + 39, 225);
-    yen.setPosition(cx - larghezza / 2 + 100, 225);
+    moneta.setPosition(cx - larghezza / 2 + 39, 200);
+    yen.setPosition(cx - larghezza / 2 + 100, 200);
     c.add([moneta, yen]);
     this.testoYen = yen;
 
-    c.add(this.add.text(cx, 340, t('bottegaPotenziamenti'), textStyle(38, { bold: true })).setOrigin(0.5));
+    c.add(this.add.text(cx, 272, t('bottegaPotenziamenti'), textStyle(38, { bold: true })).setOrigin(0.5));
 
     vociDellaBottega(salvato).forEach((voce, i) => this.carta(c, voce, CARTA.primoY + i * CARTA.passo));
 
-    const y = CARTA.primoY + 2 * CARTA.passo + 20;
+    const y = 1130;
     const indietro = addButton(this, cx, y, 380, 110, t('bottegaIndietro'), 'nuvola', () => this.indietro());
     c.add([indietro.image, indietro.text]);
     this.bersagli.indietro = indietro;
 
     if (!salvato.salvato) {
-      c.add(this.add.text(cx, y - 120, t('bottegaNonSalvato'), { ...textStyle(26), align: 'center', wordWrap: { width: 600 } }).setOrigin(0.5));
+      c.add(this.add.text(cx, 1010, t('bottegaNonSalvato'), { ...textStyle(26), align: 'center', wordWrap: { width: 600 } }).setOrigin(0.5));
     }
   }
 
-  // Un Potenziamento: il nome, cosa fa, i tondi del livello e, a destra, il pulsante col prezzo del prossimo livello.
+  // Un Potenziamento: l'icona e il nome in alto, sotto cosa fa e i tondi del livello e, a destra, il pulsante col prezzo
+  // del prossimo livello.
   carta(c, voce, y) {
     const cx = VIEW.width / 2;
     const sinistra = cx - CARTA.w / 2;
@@ -80,30 +81,32 @@ export default class BottegaScene extends Phaser.Scene {
     pannello.setOrigin(0.5, (PANEL_MARGIN + CARTA.h / 2) / pannello.height);
     c.add(pannello);
 
-    c.add(this.add.text(sinistra + 34, y - 78, t(`potenziamento_${voce.id}`), textStyle(40, { bold: true })).setOrigin(0, 0.5));
-    c.add(this.add.text(sinistra + 34, y - 8, `${t(`potenziamentoDesc_${voce.id}`)}${this.effetto(voce)}`, { ...textStyle(30), wordWrap: { width: 340 } }).setOrigin(0, 0.5));
+    c.add(this.add.image(sinistra + 34 + 54, y - 66, `icona-${voce.id}`).setScale(0.9));
+    c.add(this.add.text(sinistra + 160, y - 66, t(`potenziamento_${voce.id}`), { ...textStyle(38, { bold: true }), wordWrap: { width: CARTA.w - 160 - 34 } }).setOrigin(0, 0.5));
+    c.add(this.add.text(sinistra + 34, y + 22, `${t(`potenziamentoDesc_${voce.id}`)}${this.effetto(voce)}`, { ...textStyle(30), wordWrap: { width: 340 } }).setOrigin(0, 0.5));
 
     // I livelli: un tondo ciascuno, pieno se comprato.
     for (let n = 0; n < voce.livelloMax; n++) {
       const comprato = n < voce.livello;
-      const tondo = this.add.circle(sinistra + 52 + n * 50, y + 92, 17, comprato ? 0xf7d26a : 0xfffdf8);
+      const tondo = this.add.circle(sinistra + 52 + n * 50, y + 116, 17, comprato ? 0xf7d26a : 0xfffdf8);
       tondo.setStrokeStyle(5, comprato ? 0xd1a33a : 0xcdbfa9);
       c.add(tondo);
     }
 
     const bx = cx + CARTA.w / 2 - 34 - BOTTONE.w / 2;
+    const by = y + 55;
     if (voce.prezzo === null) {
-      c.add(this.add.text(bx, y, t('bottegaAlMassimo'), textStyle(36, { bold: true })).setOrigin(0.5));
+      c.add(this.add.text(bx, by, t('bottegaAlMassimo'), textStyle(36, { bold: true })).setOrigin(0.5));
       this.bersagli.compra.push(null);
       return;
     }
     const acceso = voce.comprabile;
-    const bottone = addButton(this, bx, y, BOTTONE.w, BOTTONE.h, '', acceso ? 'menta' : 'legnoChiaro', acceso ? () => this.acquista(voce.id) : null);
-    const prezzo = this.add.text(bx + 22, y, String(voce.prezzo), textStyle(46, { bold: true })).setOrigin(0.5);
-    const moneta = this.add.image(bx - 62, y, 'moneta').setScale(0.9);
+    const bottone = addButton(this, bx, by, BOTTONE.w, BOTTONE.h, '', acceso ? 'menta' : 'legnoChiaro', acceso ? () => this.acquista(voce.id) : null);
+    const prezzo = this.add.text(bx + 22, by, String(voce.prezzo), textStyle(46, { bold: true })).setOrigin(0.5);
+    const moneta = this.add.image(bx - 62, by, 'moneta').setScale(0.9);
     if (!acceso) [bottone.image, prezzo, moneta].forEach((o) => o.setAlpha(0.55));
     c.add([bottone.image, bottone.text, moneta, prezzo]);
-    this.bersagli.compra.push({ x: bx, y, w: BOTTONE.w, h: BOTTONE.h });
+    this.bersagli.compra.push({ x: bx, y: by, w: BOTTONE.w, h: BOTTONE.h });
   }
 
   // L'effetto del livello che si sta per comprare (o dell'ultimo, se è al massimo), come testo corto: il ventaglio dice

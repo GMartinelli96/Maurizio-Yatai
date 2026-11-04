@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { compra, livelloDi, opzioniSerata, vociDellaBottega, voceDi } from '../src/bottega.js';
 import { PAZIENZA, POSTI, POTENZIAMENTI } from '../src/config.js';
+import { DISEGNI } from '../src/disegni/catalogo.js';
 import { TESTI } from '../src/i18n.js';
 import { CHIAVE_SALVATAGGIO, Salvataggio } from '../src/salvataggio.js';
 import { Serata } from '../src/serata/Serata.js';
@@ -121,6 +122,15 @@ test('la schermata Bottega e ogni Potenziamento hanno i testi in italiano, ingle
     for (const chiave of chiavi) assert.ok(TESTI[lingua][chiave]?.trim(), `${lingua}.${chiave} manca`);
   }
   assert.equal(TESTI.it.bottega, 'Bottega', 'il nome è quello del glossario');
+});
+
+test('ogni Potenziamento ha la sua icona disegnata, nella misura che la Bottega si aspetta', () => {
+  for (const id of Object.keys(POTENZIAMENTI)) {
+    const icona = DISEGNI[`icona-${id}`];
+    assert.ok(icona, `manca icona-${id}`);
+    assert.deepEqual([icona.w, icona.h], [120, 120]);
+    assert.equal(typeof icona.draw, 'function');
+  }
 });
 
 // --- Cambiare la Serata ---

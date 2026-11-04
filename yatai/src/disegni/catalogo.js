@@ -9,6 +9,7 @@ import { MAURIZIO_SIZE, POSE, drawMaurizio, maurizioKey } from './maurizio.js';
 import { DISEGNI_CLIENTI } from './clienti.js';
 import { drawOnigiri, onigiriSize } from './onigiri.js';
 import { POSTAZIONE_SIZE, POSTAZIONI, SCORTE, postazioneKey, scortaKey } from './postazioni.js';
+import { ICONA_SIZE, drawIconaPosto, drawIconaVentaglio } from './bottega.js';
 import { CESTINO_SIZE, FUMO_SIZE, drawCestino, drawFumo, drawTakoyaki, takoyakiSize } from './takoyaki.js';
 import {
   CAMPANELLA_SIZE, CUORE_SIZE, GOCCIA_SIZE, MONETA_SIZE, NUVOLETTA, SBUFFO_SIZE, STELLA_SIZE, drawCampanella, drawCuore, drawCuoreVuoto, drawGoccia, drawMoneta, drawNuvoletta, drawSbuffo, drawStella, drawStellaVuota,
@@ -44,6 +45,9 @@ export const DISEGNI = {
   cuore: { ...CUORE_SIZE, draw: drawCuore },
   'cuore-vuoto': { ...CUORE_SIZE, draw: drawCuoreVuoto },
   moneta: { ...MONETA_SIZE, draw: drawMoneta },
+  // Le icone dei Potenziamenti della Bottega (ticket 35): `icona-` più l'id in POTENZIAMENTI.
+  'icona-postoInPiu': { ...ICONA_SIZE, draw: drawIconaPosto },
+  'icona-ventaglio': { ...ICONA_SIZE, draw: drawIconaVentaglio },
   stella: { ...STELLA_SIZE, draw: drawStella },
   'stella-vuota': { ...STELLA_SIZE, draw: drawStellaVuota },
   // I segni del Lamento: la goccia a 2 cuoricini, lo sbuffo a 1. Li mette accanto al Cliente ClienteView.
