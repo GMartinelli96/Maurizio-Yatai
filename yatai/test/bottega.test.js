@@ -4,7 +4,7 @@ import { compra, livelloDi, opzioniSerata, vociDellaBottega, voceDi } from '../s
 import { PAZIENZA, POSTI, POTENZIAMENTI } from '../src/config.js';
 import { CHIAVE_SALVATAGGIO, Salvataggio } from '../src/salvataggio.js';
 import { Serata } from '../src/serata/Serata.js';
-import { BRAVURA, media } from './bot.js';
+import { BRAVURA, media } from './bot-bottega.js';
 
 function storageFinto(iniziale = {}) {
   const dati = new Map(Object.entries(iniziale));

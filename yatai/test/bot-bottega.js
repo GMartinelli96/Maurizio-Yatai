@@ -1,5 +1,6 @@
 // Il giocatore automatico dei test di bilanciamento: una copia di `giocaServata` di test/serata.test.js (ticket 34), per
-// poterla usare da altri file di test. Quando il 34 è chiuso, serata.test.js può importarla da qui e la copia sparisce.
+// poterla usare da test/bottega.test.js. È provvisorio: il ticket 07 ha un test/bot.js più completo (varianti, piatti bruciati);
+// quando arriva in main, bottega.test.js passa a quello e questo file sparisce.
 import { Serata } from '../src/serata/Serata.js';
 
 // La bravura è quanto tempo passa tra un tocco e l'altro.
