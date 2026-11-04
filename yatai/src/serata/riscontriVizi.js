@@ -1,6 +1,7 @@
 // Dove cadono i riscontri dei Vizi del cast (ticket 09, passo 4), senza Phaser: la scena li legge e i test li provano.
 // Tutto parte da quello che la logica ha già deciso (il Vizio del Cliente, lo Yen d'oro); qui si decide solo dove si vede.
 
+import { RISCONTRI } from '../config.js';
 import { CAST_PUNTI } from '../disegni/cast.js';
 import { CLIENTE_SIZE } from '../disegni/clienti.js';
 import { CALMA_SIZE } from '../disegni/vizi.js';
@@ -28,9 +29,10 @@ export function sorgenteMonete({ tipo, sprite, centro }) {
 // Dove cade lo Yen d'oro di Nella: compare sopra la testa, subito sopra i cuoricini, e cade sul cuscino del Posto. `geom` è
 // la geometria del Cliente (placeCliente).
 export function percorsoMonetaOro(geom) {
+  const { sopra, sotto } = RISCONTRI.vizi.yenDOro;
   return {
-    da: { x: geom.piedi.x, y: geom.cuori.rect.y - 20 },
-    a: { x: geom.piedi.x, y: geom.piedi.y - 8 },
+    da: { x: geom.piedi.x, y: geom.cuori.rect.y - sopra },
+    a: { x: geom.piedi.x, y: geom.piedi.y - sotto },
   };
 }
 

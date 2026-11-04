@@ -990,7 +990,7 @@ export default class SerataScene extends YataiScene {
   // cade con i rimbalzi di una moneta vera girando su sé stessa, luccica all'impatto, sosta e vola all'Incasso.
   animaYenDOro(da, a) {
     const K = RISCONTRI.vizi.yenDOro;
-    const oro = this.add.image(da.x, da.y, 'moneta-oro').setScale(K.scala * 0.3).setAlpha(0).setDepth(PROFONDITA.volo + 1);
+    const oro = this.add.image(da.x, da.y, 'moneta-oro').setScale(K.scala * K.entraScala).setAlpha(0).setDepth(PROFONDITA.volo + 1);
     this.oroInVolo += 1;
     this.tweens.add({ targets: oro, alpha: 1, scale: K.scala, duration: K.entra, ease: 'Back.easeOut' });
     this.tweens.add({ targets: oro, y: a.y, duration: K.cade, ease: 'Bounce.easeOut' });
@@ -999,8 +999,8 @@ export default class SerataScene extends YataiScene {
     this.time.delayedCall(K.cade / 2.75, () => {
       for (let i = 0; i < K.scintille; i++) {
         const angolo = (i / K.scintille) * Math.PI * 2 - Math.PI / 2;
-        const stella = this.add.image(a.x, a.y, 'stella').setScale(0.1).setDepth(PROFONDITA.volo + 2);
-        this.tweens.add({ targets: stella, x: a.x + Math.cos(angolo) * 54, y: a.y + Math.sin(angolo) * 40, scale: 0.34, duration: K.scintilla * 0.5, ease: 'Quad.easeOut' });
+        const stella = this.add.image(a.x, a.y, 'stella').setScale(K.scintillaScala.da).setDepth(PROFONDITA.volo + 2);
+        this.tweens.add({ targets: stella, x: a.x + Math.cos(angolo) * K.raggio.x, y: a.y + Math.sin(angolo) * K.raggio.y, scale: K.scintillaScala.a, duration: K.scintilla * 0.5, ease: 'Quad.easeOut' });
         this.tweens.add({ targets: stella, alpha: 0, duration: K.scintilla * 0.5, delay: K.scintilla * 0.5, ease: 'Quad.easeIn', onComplete: () => stella.destroy() });
       }
     });
@@ -1010,7 +1010,7 @@ export default class SerataScene extends YataiScene {
         targets: oro,
         x: moneta.x,
         y: moneta.y,
-        scale: K.scala * 0.45,
+        scale: K.scala * K.volaScala,
         duration: K.vola,
         ease: 'Quad.easeIn',
         onComplete: () => {
