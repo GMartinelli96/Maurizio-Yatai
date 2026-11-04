@@ -1,0 +1,65 @@
+[
+  {
+    "goto": "?sviluppo=cast"
+  },
+  {
+    "advance": 400
+  },
+  {
+    "shot": "cast-tavola"
+  },
+  {
+    "goto": "?sviluppo=cast&vista=posti&persone=marcella,carlotta,balosso&cuori=5,5,5"
+  },
+  {
+    "advance": 400
+  },
+  {
+    "shot": "cast-posti-a"
+  },
+  {
+    "goto": "?sviluppo=cast&vista=posti&persone=nella,filippo,pasquale&cuori=5,5,5"
+  },
+  {
+    "advance": 400
+  },
+  {
+    "shot": "cast-posti-b"
+  },
+  {
+    "goto": "?sviluppo=cast&vista=posti&persone=ebi-furai,marcella,carlotta&cuori=5,5,5"
+  },
+  {
+    "advance": 400
+  },
+  {
+    "shot": "cast-posti-c"
+  },
+  {
+    "goto": "?sviluppo=cast&vista=posti&persone=marcella,carlotta,balosso&cuori=2,2,1"
+  },
+  {
+    "advance": 400
+  },
+  {
+    "shot": "cast-lamento-a"
+  },
+  {
+    "goto": "?sviluppo=cast&vista=posti&persone=nella,filippo,pasquale&cuori=2,2,1"
+  },
+  {
+    "advance": 400
+  },
+  {
+    "shot": "cast-lamento-b"
+  },
+  {
+    "goto": "?sviluppo=cast&vista=posti&persone=ebi-furai,balosso,carlotta&cuori=2,1,2"
+  },
+  {
+    "advance": 400
+  },
+  {
+    "shot": "cast-lamento-c"
+  }
+]
