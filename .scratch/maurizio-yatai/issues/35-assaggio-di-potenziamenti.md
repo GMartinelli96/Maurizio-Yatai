@@ -9,11 +9,11 @@ I ticket 16 e 17 non si buttano: questo ne è la prima fetta. Quando arrivano, e
 **Status:** ready-for-agent
 
 - [x] Dopo una Serata gli Yen guadagnati restano sul dispositivo, anche ricaricando la pagina (playtest con ricaricamento). Se lo storage è bloccato il gioco funziona lo stesso, senza salvare. Il salvataggio ha un numero di versione.
-- [ ] La Bottega mostra gli Yen, i due Potenziamenti (Posto in più, ventaglio) con livello e prezzo, e si usa col pollice a 360×640; comprare costa Yen e non si scende mai sotto zero.
+- [x] La Bottega mostra gli Yen, i due Potenziamenti (Posto in più, ventaglio) con livello e prezzo, e si usa col pollice a 360×640; comprare costa Yen e non si scende mai sotto zero.
 - [x] Il Potenziamento "tagliere più veloce" è escluso da questo ticket (deciso con Giuseppe il 2026-11-03) e la scelta è scritta in GAME_SPEC.md (Progressione): "Postazione più veloce" vale per le 4 Postazioni con cottura.
 - [ ] Ogni Potenziamento cambia la Serata come dice GAME_SPEC.md e ha il suo test senza browser; con il quarto Posto lo Yatai resta leggibile.
 - [x] Gli Yen guadagnati in una Serata sono l'Incasso; una Serata in rosso non dà Yen e non toglie quelli in tasca (regola del ticket 01 della mappa `yatai-economia-e-cucina`).
-- [ ] Prezzi ed effetti sono in `config.js` (provvisori fino al ticket 29), i testi sono in italiano, inglese e giapponese, e la schermata ha il nome del glossario.
+- [x] Prezzi ed effetti sono in `config.js` (provvisori fino al ticket 29), i testi sono in italiano, inglese e giapponese, e la schermata ha il nome del glossario.
 - [ ] Giuseppe lo ha provato e il suo parere è scritto in fondo a questo file: i Potenziamenti danno più voglia di rigiocare?
 - [ ] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero, lo stato nuovo compare in `window.render_game_to_text()` e la console non ha errori.
 
@@ -46,3 +46,9 @@ Sul ramo `ticket-35`, dopo aver unito `main` (Serie del 34, passo 3). Fatto: `PO
 Misure con il bot (media di 6 semi, Hanami, Serie compresa; rapido / attento / lento): senza Potenziamenti 5005 / 3325 / 2171, il lento perde 3,5 Clienti; con il Posto in più 5012 / 3205 / 2086, il lento ne perde 5,5; ventaglio ×1,2 5160 / 3410 / 2178 (il lento non ne perde più); ×1,3 5270 / 3573 / 2204; ×1,4 5283 / 3598 / 2330; 4 Posti e ×1,4 5187 / 3363 / 2232. Con ogni caso il lento resta a ★ e il rapido a ★★★.
 
 **Da guardare, scelta di Giuseppe:** il Posto in più non fa guadagnare Yen. La cucina è il collo di bottiglia, non i Posti: con un Posto in più arrivano più Clienti, il lento ne perde di più e l'attento incassa meno (−4%). Rende la Serata più piena, non più ricca. Il ventaglio dà più Pazienza ma da ×1,3 in su la Mancia della Serie del rapido arriva al 15% dell'Incasso (il tetto del test del 34 è misurato senza ventaglio).
+
+### Passo 3: la schermata Bottega (2026-11-04)
+
+Fatto: `src/scenes/BottegaScene.js` (Yen con la moneta, un pannello per Potenziamento con nome, effetto, tondi del livello e pulsante col prezzo; al massimo c'è "Al massimo"; un pulsante spento se gli Yen non bastano), il pulsante "Bottega" sul titolo, testi in italiano, inglese e giapponese (nel giapponese le righe vanno a capo a mano, perché Phaser va a capo solo sugli spazi), la nota "gli Yen non si possono salvare su questo dispositivo" quando lo storage è bloccato. Solo in sviluppo, `?sviluppo=bottega&yen=4500` mette degli Yen in tasca. Scenari a 360×640: `bottega.json` (comprare, restare senza Yen, ricaricare, tornare al titolo; provato in it, en, ja), `bottega-bloccata.json` (con `--senza-storage`). Senza errori in console, screenshot guardati.
+
+Manca: il pulsante Bottega nella schermata di fine Serata e il quarto Posto sullo schermo (passo 4); le icone dei due Potenziamenti (oggi solo testo e tondi: da disegnare con il kit); la prova sul telefono.

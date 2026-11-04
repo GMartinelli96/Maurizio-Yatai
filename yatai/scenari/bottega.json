@@ -1,0 +1,42 @@
+[
+  { "goto": "?sviluppo=bottega&yen=4500" },
+  { "advance": 300 },
+  { "expect": "scene", "equals": "bottega" },
+  { "expect": "yen", "equals": 4500 },
+  { "expect": "voci.0.id", "equals": "postoInPiu" },
+  { "expect": "voci.0.comprabile", "equals": true },
+  { "expect": "voci.1.livello", "equals": 0 },
+  { "shot": "bottega-1-con-4500-yen" },
+
+  { "tapPath": "voci.1.compra" },
+  { "advance": 400 },
+  { "expect": "yen", "equals": 3500 },
+  { "expect": "voci.1.livello", "equals": 1 },
+  { "expect": "voci.1.prezzo", "equals": 2000 },
+  { "shot": "bottega-2-ventaglio-livello-1" },
+
+  { "tapPath": "voci.0.compra" },
+  { "advance": 400 },
+  { "expect": "yen", "equals": 500 },
+  { "expect": "voci.0.livello", "equals": 1 },
+  { "expect": "voci.0.comprabile", "equals": false },
+  { "expect": "voci.0.compra", "equals": null },
+  { "expect": "voci.1.comprabile", "equals": false },
+  { "shot": "bottega-3-posto-comprato-yen-finiti" },
+
+  { "tapPath": "voci.1.compra" },
+  { "advance": 300 },
+  { "expect": "yen", "equals": 500 },
+  { "expect": "voci.1.livello", "equals": 1 },
+
+  { "goto": "?sviluppo=bottega" },
+  { "advance": 300 },
+  { "expect": "yen", "equals": 500 },
+  { "expect": "voci.0.livello", "equals": 1 },
+  { "expect": "voci.1.livello", "equals": 1 },
+  { "shot": "bottega-4-dopo-il-ricaricamento" },
+
+  { "tapPath": "indietro" },
+  { "advance": 400 },
+  { "expect": "scene", "equals": "title" }
+]

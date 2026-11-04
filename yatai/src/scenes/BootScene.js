@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { loadFonts } from '../kit/font.js';
 import { generateTextures } from '../kit/texture.js';
+import { salvataggio } from '../salvataggio.js';
 
 // L'avvio: disegna tutte le immagini del gioco con il kit a matita, aspetta il font scritto a
 // mano e passa alla prima schermata.
@@ -11,6 +12,7 @@ import { generateTextures } from '../kit/texture.js';
 //   &posti=4            la apre con 4 Posti (lo Yatai)
 //   &matsuri=tanabata   la apre con il tema di un Matsuri (lo Yatai): hanami, tanabata, hanabi, aki, yuki
 //   &seme=prova         fissa il seme dei Clienti della Serata (?sviluppo=serata&seme=prova), per ripetere una partita
+//   &yen=5000           mette 5000 Yen in tasca (nel salvataggio del browser), per provare la Bottega
 //   &area=47,0,34,0     simula i margini sicuri del telefono: alto, destra, basso, sinistra
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -27,6 +29,7 @@ export default class BootScene extends Phaser.Scene {
       if (query.has('posti')) data = { posti: Number(query.get('posti')) };
       if (query.has('matsuri')) data = { ...data, matsuri: query.get('matsuri') };
       if (query.has('seme')) data = { ...data, seme: query.get('seme') };
+      if (query.has('yen')) salvataggio().accreditaIncasso(Number(query.get('yen')));
     }
     loadFonts().then(() => this.scene.start(next, data));
   }

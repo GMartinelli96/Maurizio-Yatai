@@ -24,6 +24,7 @@ export default class TitleScene extends Phaser.Scene {
     this.add.text(cx, 610, t('subtitle'), textStyle(36, { bold: true })).setOrigin(0.5);
     this.add.text(cx, VIEW.height - 80, t('developedBy'), textStyle(24)).setOrigin(0.5);
     this.play = addButton(this, cx, 780, 420, 120, t('play'), 'menta', () => this.gioca());
+    this.bottega = addButton(this, cx, 930, 420, 110, t('bottega'), 'giallo', () => this.vaiAllaBottega());
 
     // Invio e Spazio fanno lo stesso del pulsante (stesse azioni della Serata, src/serata/comandi.js).
     this.input.keyboard.on('keydown', (event) => {
@@ -37,9 +38,15 @@ export default class TitleScene extends Phaser.Scene {
     this.scene.start('serata');
   }
 
+  vaiAllaBottega() {
+    if (this.starting) return;
+    this.starting = true;
+    this.scene.start('bottega');
+  }
+
   getTextState() {
-    const { x, y, width, height } = this.play;
     // In coordinate di gioco: la scena è centrata in verticale, quindi y tiene conto della camera.
-    return { subtitle: t('subtitle'), play: { x, y: y - this.cameras.main.scrollY, w: width, h: height } };
+    const rect = ({ x, y, width, height }) => ({ x, y: y - this.cameras.main.scrollY, w: width, h: height });
+    return { subtitle: t('subtitle'), play: rect(this.play), bottega: rect(this.bottega) };
   }
 }

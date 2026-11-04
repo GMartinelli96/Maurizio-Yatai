@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { compra, livelloDi, opzioniSerata, vociDellaBottega, voceDi } from '../src/bottega.js';
 import { PAZIENZA, POSTI, POTENZIAMENTI } from '../src/config.js';
+import { TESTI } from '../src/i18n.js';
 import { CHIAVE_SALVATAGGIO, Salvataggio } from '../src/salvataggio.js';
 import { Serata } from '../src/serata/Serata.js';
 import { BRAVURA, media } from './bot-bottega.js';
@@ -109,6 +110,17 @@ test('un salvataggio della versione 1 (solo Yen) si legge e diventa della 2 senz
   s.accreditaIncasso(50);
   const scritto = JSON.parse(storage.getItem(CHIAVE_SALVATAGGIO));
   assert.deepEqual(scritto, { versione: 2, yen: 800, potenziamenti: {} });
+});
+
+// --- I testi ---
+
+test('la schermata Bottega e ogni Potenziamento hanno i testi in italiano, inglese e giapponese', () => {
+  const chiavi = ['bottega', 'bottegaPotenziamenti', 'bottegaIndietro', 'bottegaAlMassimo', 'bottegaNonSalvato'];
+  for (const id of Object.keys(POTENZIAMENTI)) chiavi.push(`potenziamento_${id}`, `potenziamentoDesc_${id}`);
+  for (const lingua of ['it', 'en', 'ja']) {
+    for (const chiave of chiavi) assert.ok(TESTI[lingua][chiave]?.trim(), `${lingua}.${chiave} manca`);
+  }
+  assert.equal(TESTI.it.bottega, 'Bottega', 'il nome è quello del glossario');
 });
 
 // --- Cambiare la Serata ---

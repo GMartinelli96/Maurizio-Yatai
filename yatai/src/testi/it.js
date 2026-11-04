@@ -3,6 +3,17 @@ export default {
   subtitle: 'La bancarella del Matsuri',
   developedBy: 'sviluppato da Maurizio Influencer Official',
   play: 'Gioca',
+  // La Bottega (src/scenes/BottegaScene.js): i Potenziamenti si comprano con gli Yen. I testi dei Potenziamenti hanno per
+  // chiave potenziamento_ e potenziamentoDesc_ più l'id in config.js (POTENZIAMENTI).
+  bottega: 'Bottega',
+  bottegaPotenziamenti: 'Potenziamenti',
+  bottegaIndietro: 'Indietro',
+  bottegaAlMassimo: 'Al massimo',
+  bottegaNonSalvato: 'Su questo dispositivo gli Yen non si possono salvare: restano finché non chiudi il gioco.',
+  potenziamento_postoInPiu: 'Posto in più',
+  potenziamentoDesc_postoInPiu: 'Un quarto Posto per i Clienti.',
+  potenziamento_ventaglio: 'Ventaglio di Maurizio',
+  potenziamentoDesc_ventaglio: 'I Clienti aspettano di più:',
   // I nomi dei Piatti: la chiave è piatto_ più quella di PIATTI in config.js.
   piatto_onigiri: 'Onigiri',
   piatto_takoyaki: 'Takoyaki',

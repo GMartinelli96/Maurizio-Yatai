@@ -1,0 +1,14 @@
+[
+  { "goto": "?sviluppo=bottega&yen=1500" },
+  { "advance": 300 },
+  { "expect": "yen", "equals": 1500 },
+  { "expect": "salvato", "equals": false },
+  { "shot": "bloccata-1-nota" },
+
+  { "tapPath": "voci.1.compra" },
+  { "advance": 400 },
+  { "expect": "yen", "equals": 500 },
+  { "expect": "voci.1.livello", "equals": 1 },
+  { "expect": "voci.1.comprabile", "equals": false },
+  { "shot": "bloccata-2-comprato-senza-salvare" }
+]
