@@ -6,7 +6,7 @@ I ticket 16 e 17 non si buttano: questo ne è la prima fetta. Quando arrivano, e
 
 **Blocked by:** 05 ([con te] La prima prova: è divertente?). Meglio dopo il 33 e il 34, perché cambiano la Serata su cui si calibrano i prezzi, ma non lo richiede.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Dopo una Serata gli Yen guadagnati restano sul dispositivo, anche ricaricando la pagina (playtest con ricaricamento). Se lo storage è bloccato il gioco funziona lo stesso, senza salvare. Il salvataggio ha un numero di versione.
 - [x] La Bottega mostra gli Yen, i due Potenziamenti (Posto in più, ventaglio) con livello e prezzo, e si usa col pollice a 360×640; comprare costa Yen e non si scende mai sotto zero.
