@@ -31,6 +31,7 @@ export default {
   endSpreco: 'Wasted',
   endObiettivo: 'Goal',
   endRigioca: 'Play again',
+  endInTasca: 'In your pocket',
   endServiti: 'Customers served',
   endPersi: 'Left unhappy',
   endVoto0: 'Tomorrow will be better!',

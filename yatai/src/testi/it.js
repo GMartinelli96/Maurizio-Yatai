@@ -36,6 +36,7 @@ export default {
   endSpreco: 'Spreco',
   endObiettivo: 'Obiettivo',
   endRigioca: 'Rigioca',
+  endInTasca: 'In tasca',
   endServiti: 'Clienti serviti',
   endPersi: 'Andati via',
   // Il commento di Maurizio, secondo le stelle (da 0 a 3).

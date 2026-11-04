@@ -1,0 +1,39 @@
+[
+  { "resize": "360x640" },
+  { "goto": "?sviluppo=serata&seme=completa" },
+  { "advance": 100 },
+  { "expect": "scene", "equals": "serata" },
+
+  { "gioca": { "servi": "tocco" } },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "advance": 3500 },
+  { "expect": "fine.incasso", "atLeast": 800 },
+  { "expect": "fine.yenInTasca", "atLeast": 800 },
+  { "expect": "fine.bottega.w", "atLeast": 220 },
+  { "expect": "fine.bottega.h", "atLeast": 100 },
+  { "expect": "fine.w", "atLeast": 220 },
+  { "shot": "fine-1-con-rigioca-e-bottega" },
+
+  { "tapPath": "fine.bottega" },
+  { "advance": 500 },
+  { "expect": "scene", "equals": "bottega" },
+  { "expect": "dopoSerata", "equals": true },
+  { "expect": "yen", "atLeast": 800 },
+  { "shot": "fine-2-bottega-con-gli-yen-della-serata" },
+
+  { "tapPath": "voci.1.compra" },
+  { "advance": 400 },
+  { "expect": "voci.1.livello", "equals": 1 },
+  { "shot": "fine-3-ventaglio-comprato" },
+
+  { "tapPath": "indietro" },
+  { "advance": 600 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "serata.fase", "equals": "in corso" },
+  { "expect": "serata.incasso", "equals": 0 },
+  { "expect": "fine", "equals": null },
+  
+  { "expect": "serata.pazienzaMoltiplicatore", "equals": 1.2 },
+  { "gioca": { "finoA": 4000, "sbadato": true } },
+  { "shot": "fine-4-di-nuovo-in-gioco" }
+]

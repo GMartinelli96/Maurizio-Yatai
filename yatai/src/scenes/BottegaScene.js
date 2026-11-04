@@ -22,6 +22,12 @@ export default class BottegaScene extends Phaser.Scene {
     super('bottega');
   }
 
+  // `dopoSerata`: si arriva dalla fine di una Serata del Matsuri `matsuri`, e il pulsante in fondo riporta a giocarlo.
+  init(data) {
+    this.dopoSerata = data?.dopoSerata === true;
+    this.matsuri = data?.matsuri;
+  }
+
   create() {
     addPaper(this);
     centerDesign(this);
@@ -35,7 +41,8 @@ export default class BottegaScene extends Phaser.Scene {
   indietro() {
     if (this.uscendo) return;
     this.uscendo = true;
-    this.scene.start('title');
+    if (this.dopoSerata) this.scene.start('serata', { matsuri: this.matsuri });
+    else this.scene.start('title');
   }
 
   // Disegna tutto da capo: dopo un acquisto cambiano gli Yen, il livello, il prezzo e quali pulsanti sono accesi.
@@ -63,7 +70,7 @@ export default class BottegaScene extends Phaser.Scene {
     vociDellaBottega(salvato).forEach((voce, i) => this.carta(c, voce, CARTA.primoY + i * CARTA.passo));
 
     const y = 1130;
-    const indietro = addButton(this, cx, y, 380, 110, t('bottegaIndietro'), 'nuvola', () => this.indietro());
+    const indietro = addButton(this, cx, y, 380, 110, t(this.dopoSerata ? 'endRigioca' : 'bottegaIndietro'), this.dopoSerata ? 'menta' : 'nuvola', () => this.indietro());
     c.add([indietro.image, indietro.text]);
     this.bersagli.indietro = indietro;
 
@@ -132,6 +139,7 @@ export default class BottegaScene extends Phaser.Scene {
     return {
       yen: salvato.yen,
       salvato: salvato.salvato,
+      dopoSerata: this.dopoSerata,
       // Un Potenziamento per riga: livello, prezzo del prossimo (null se al massimo), se gli Yen bastano e dov'è il
       // pulsante per comprarlo (null se non c'è: al massimo).
       voci: vociDellaBottega(salvato).map((voce, i) => ({ ...voce, compra: posto(this.bersagli.compra[i]) })),

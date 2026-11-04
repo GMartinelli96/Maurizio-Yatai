@@ -33,6 +33,7 @@ export default {
   endSpreco: 'むだになったぶん',
   endObiettivo: 'もくひょう',
   endRigioca: 'もういちど',
+  endInTasca: 'おさいふ',
   endServiti: 'ごちそうしたおきゃくさん',
   endPersi: 'かえったおきゃくさん',
   endVoto0: 'あしたはきっとうまくいくよ！',

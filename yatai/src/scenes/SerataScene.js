@@ -1045,14 +1045,37 @@ export default class SerataScene extends YataiScene {
       ['endServiti', r.serviti],
       ['endPersi', r.persi],
     ].forEach(([chiave, valore], i) => {
-      oggetti.push(this.add.text(cx, cima + 590 + i * 40,`${t(chiave)}: ${valore}`, textStyle(30, { outline: 5 })).setOrigin(0.5));
+      oggetti.push(this.add.text(cx, cima + 590 + i * 38, `${t(chiave)}: ${valore}`, textStyle(30, { outline: 5 })).setOrigin(0.5));
     });
 
-    const pulsante = addButton(this, cx, cima + 890, 420, 110, t('endRigioca'), 'menta', () => this.rigioca());
-    oggetti.push(pulsante.image, pulsante.text);
+    // Gli Yen in tasca (l'Incasso di questa Serata è già dentro, vedi perFine): servono alla Bottega, qui accanto.
+    const yenInTasca = salvataggio().yen;
+    const tasca = this.add.text(0, cima + 826, `${t('endInTasca')}: ${yenInTasca}`, textStyle(34, { bold: true, outline: 6 })).setOrigin(0, 0.5);
+    const monetaTasca = this.add.image(0, cima + 826, 'moneta').setScale(0.62);
+    const larghezzaTasca = 40 + 12 + tasca.width;
+    monetaTasca.setX(cx - larghezzaTasca / 2 + 20);
+    tasca.setX(cx - larghezzaTasca / 2 + 52);
+    oggetti.push(monetaTasca, tasca);
+
+    // Due pulsanti affiancati: rigiocare (il primo, quello di sempre) e la Bottega.
+    const BW = 270;
+    const BH = 100;
+    const by = cima + 904;
+    const dx = BW / 2 + 8;
+    const pulsante = addButton(this, cx - dx, by, BW, BH, t('endRigioca'), 'menta', () => this.rigioca());
+    const pulsanteBottega = addButton(this, cx + dx, by, BW, BH, t('bottega'), 'giallo', () => this.vaiAllaBottega());
+    oggetti.push(pulsante.image, pulsante.text, pulsanteBottega.image, pulsanteBottega.text);
     contenitore.add(oggetti);
 
-    this.fineUI = { container: contenitore, stelle, pulsante, rigioca: { x: cx, y: cima + 890, w: 420, h: 110 }, stelleAccese: 0 };
+    this.fineUI = {
+      container: contenitore,
+      stelle,
+      pulsante,
+      rigioca: { x: cx - dx, y: by, w: BW, h: BH },
+      bottega: { x: cx + dx, y: by, w: BW, h: BH },
+      yenInTasca,
+      stelleAccese: 0,
+    };
     const accendi = (i) => {
       stelle[i].setTexture('stella').setScale(2.9);
       this.tweens.add({ targets: stelle[i], scale: 2.1, duration: RISCONTRI.fine.stella, ease: 'Back.easeOut' });
@@ -1078,6 +1101,11 @@ export default class SerataScene extends YataiScene {
 
   rigioca() {
     this.scene.restart({ matsuri: this.matsuri });
+  }
+
+  // Dalla fine Serata alla Bottega a spendere gli Yen: da lì si torna a giocare lo stesso Matsuri (BottegaScene).
+  vaiAllaBottega() {
+    this.scene.start('bottega', { dopoSerata: true, matsuri: this.matsuri });
   }
 
   // --- Lo stato, per i test e per giocare senza guardare lo schermo ---
@@ -1151,7 +1179,8 @@ export default class SerataScene extends YataiScene {
       },
       eventi: { contati: this.contatori, ultimi: this.registro },
       trascinamento: this.trascina ? { dalloSlot: this.trascina.indice, sopraAlPosto: this.trascina.sopra } : null,
-      fine: this.fineUI ? { ...this.fineUI.rigioca, stelleAccese: this.fineUI.stelleAccese, incasso: this.risultato.incasso, stelle: this.risultato.stelle } : null,
+      // `x`, `y`, `w`, `h` sono il pulsante per rigiocare; `bottega` è quello della Bottega; `yenInTasca` gli Yen che si vedono.
+      fine: this.fineUI ? { ...this.fineUI.rigioca, bottega: this.fineUI.bottega, yenInTasca: this.fineUI.yenInTasca, stelleAccese: this.fineUI.stelleAccese, incasso: this.risultato.incasso, stelle: this.risultato.stelle } : null,
     };
   }
 }

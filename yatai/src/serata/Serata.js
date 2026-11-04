@@ -587,6 +587,8 @@ export class Serata {
       // Ordine servito e quanti Yen di Mancia in più ha dato finora.
       // cuoriMax: quanti cuoricini ha la Pazienza di ogni Cliente in questa Serata (5, 6 con il Posto in più).
       cuoriMax: this.cuoriMax,
+      // Di quanto il ventaglio allunga la Pazienza di chi arriva (1 senza ventaglio).
+      pazienzaMoltiplicatore: this.pazienzaMoltiplicatore,
       serie: this.serie,
       serieMax: this.serieMax,
       moltiplicatoreProssimo: moltiplicatoreSerie(this.serie + 1),
