@@ -28,6 +28,9 @@ import { idPiatto, piattoBase } from './Serata.js';
 //   disturbatoreVaVia    { chi, motivo: 'coccolata' | 'scacciato' | 'rubato' | 'rovinato' | 'delusa' }
 // Un bersaglio è { dove: 'bancone', piatto, indice } o { dove: 'postazione', postazione, piatto }.
 
+// Gli eventi che emette, tutti: un test controlla che la scena abbia un riscontro per ognuno.
+export const EVENTI = ['disturbatoreArrivato', 'disturbatorePunta', 'disturbatoreAttacca', 'disturbatoreScacciato', 'piattoRubato', 'piattoRovinato', 'disturbatoreVaVia'];
+
 const SEC = 1000;
 const ms = (cfg, voce) => cfg[`${voce}Sec`] * SEC;
 

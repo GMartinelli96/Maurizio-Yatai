@@ -8,13 +8,15 @@ import { POSTAZIONE_SIZE, SCORTE, scortaKey } from '../src/disegni/postazioni.js
 import { CLIENTI as TIPI_DISEGNATI, ESPRESSIONI, clienteKey } from '../src/disegni/clienti.js';
 import { TESTI } from '../src/i18n.js';
 import { BANCONE } from '../src/config.js';
+import { EVENTI as EVENTI_DISTURBATORI } from '../src/serata/disturbatori.js';
 
 const leggi = (file) => readFileSync(new URL(file, import.meta.url), 'utf8');
 
 test('ogni evento della Serata ha un riscontro nella scena, o è ignorato di proposito', () => {
   const logica = leggi('../src/serata/Serata.js');
   const scena = leggi('../src/scenes/SerataScene.js');
-  const emessi = new Set([...logica.matchAll(/tipo: '(\w+)'/g)].map((m) => m[1]));
+  // I Disturbatori (ticket 11) emettono dal loro file: i nomi sono in EVENTI, e un altro test controlla che sia l'elenco giusto.
+  const emessi = new Set([...logica.matchAll(/tipo: '(\w+)'/g)].map((m) => m[1]).concat(EVENTI_DISTURBATORI));
   const gestiti = new Set([...scena.matchAll(/case '(\w+)':/g)].map((m) => m[1]));
   // Questi non servono a un riscontro: il tocco su una Postazione che non c'è o su un Posto vuoto
   // non deve far succedere niente, e la scena non può nemmeno generarli dai suoi tocchi.

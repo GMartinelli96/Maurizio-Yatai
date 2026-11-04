@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DISTURBATORI, PIATTI, SERATA_MOTORE, SERATA_PROVA_DISTURBATORI } from '../src/config.js';
+import { EVENTI } from '../src/serata/disturbatori.js';
 import { Serata, costoPiatto } from '../src/serata/Serata.js';
 
 // I Disturbatori (ticket 11): Croccola, le formiche e i corvi. La logica è tutta in src/serata/disturbatori.js e si prova
@@ -47,6 +48,28 @@ const takoyakiSulBancone = (serata) => {
   cucina(serata, ['pastella', 'polpo', PIATTI.takoyaki.ricetta.find((p) => p.cotturaSec).cotturaSec * SEC, 'salsa', 'piastra']);
   assert.deepEqual(serata.bancone, ['takoyaki']);
 };
+
+// --- Gli eventi ---
+
+test('EVENTI è l’elenco di tutti gli eventi dei Disturbatori: quelli che escono sono tutti lì, e ognuno esce in qualche Serata', () => {
+  const visti = new Set();
+  for (const seme of ['e1', 'e2', 'e3', 'e4']) {
+    const serata = nuova(['croccola', 'formiche', 'corvi'], seme);
+    serata.bancone.push('takoyaki', 'kakigori-fragola', 'taiyaki-crema');
+    cucina(serata, ['riso', 'alga']);
+    const log = [];
+    for (let t = 0; t < 125 * SEC && !serata.finita; t += PASSO) {
+      for (const evento of serata.update(PASSO)) {
+        log.push(evento);
+        visti.add(evento.tipo);
+        // Il primo che arriva, di ogni tipo, lo si manda via; gli altri li lascia colpire.
+        if (evento.tipo === 'disturbatoreArrivato' && log.filter((e) => e.tipo === 'disturbatoreArrivato' && e.chi === evento.chi).length % 2 === 1) for (const e of serata.scaccia(evento.chi)) visti.add(e.tipo);
+      }
+    }
+  }
+  const disturbatori = [...visti].filter((tipo) => /^(disturbatore|piatto(Rubato|Rovinato))/.test(tipo));
+  assert.deepEqual([...disturbatori].sort(), [...EVENTI].sort());
+});
 
 // --- I dati ---
 

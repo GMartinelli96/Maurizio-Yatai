@@ -1,10 +1,10 @@
-import { BRUCIATURA, FUMO_SEC, MATSURI_PREDEFINITO, PALETTE, PIATTI, RISCONTRI, SERATE, SERATA_PRIMA, TEMI, YATAI } from '../config.js';
+import { BRUCIATURA, DISTURBATORI, FUMO_SEC, MATSURI_PREDEFINITO, PALETTE, PIATTI, RISCONTRI, SERATE, SERATA_PRIMA, SERATA_PROVA_DISTURBATORI, TEMI, YATAI } from '../config.js';
 import { DISEGNI, PANEL_MARGIN } from '../disegni/catalogo.js';
 import { PASSO_SCELTA, POSTAZIONE_SIZE, postazioneKey, scortaKey } from '../disegni/postazioni.js';
 import { CESTINO_SIZE } from '../disegni/takoyaki.js';
 import { t } from '../i18n.js';
 import { textStyle } from '../kit/font.js';
-import { generateCast, panelTexture } from '../kit/texture.js';
+import { generateCast, generateDisturbatori, panelTexture } from '../kit/texture.js';
 import { addButton } from '../kit/ui.js';
 import { center, fitIn, layoutHud } from '../layout/yatai.js';
 import { opzioniSerata } from '../bottega.js';
@@ -14,6 +14,7 @@ import { corpoSerie, moneteDelPagamento, scalaSomma, serieAlTetto, serieVisibile
 import { percorsoMonetaOro } from '../serata/riscontriVizi.js';
 import { Serata, idPiatto, passiDi } from '../serata/Serata.js';
 import ClienteView from '../yatai/ClienteView.js';
+import DisturbatoriView from '../yatai/DisturbatoriView.js';
 import FumoView from '../yatai/FumoView.js';
 import YataiScene from './YataiScene.js';
 
@@ -59,9 +60,13 @@ export default class SerataScene extends YataiScene {
     this.seme = data?.seme ?? nuovoSeme();
     const matsuri = data?.matsuri in TEMI ? data.matsuri : MATSURI_PREDEFINITO;
     // I Potenziamenti comprati nella Bottega (il Posto in più, il ventaglio) cambiano la Serata (ticket 35).
-    this.serata = new Serata({ seed: this.seme, ...(SERATE[matsuri] ?? SERATA_PRIMA), ...opzioniSerata(salvataggio()) });
-    // Il cestino serve solo se in menù c'è un Piatto che si brucia.
-    this.haCestino = this.serata.postazioni.some(({ piatto }) => (PIATTI[piatto].burnAfterSec ?? null) !== null);
+    // Con `disturbatori` (?disturbatori=croccola,formiche,corvi in sviluppo) è la Serata di prova dei Disturbatori (ticket 11);
+    // dal ticket 12 saranno i Matsuri a decidere quando arrivano.
+    this.disturbatoriChiesti = (data?.disturbatori ?? []).filter((chi) => Object.hasOwn(DISTURBATORI, chi));
+    const prova = this.disturbatoriChiesti.length ? { ...SERATA_PROVA_DISTURBATORI, disturbatori: this.disturbatoriChiesti } : null;
+    this.serata = new Serata({ seed: this.seme, ...(prova ?? SERATE[matsuri] ?? SERATA_PRIMA), ...opzioniSerata(salvataggio()) });
+    // Il cestino serve solo se in menù c'è un Piatto che si brucia, o se le formiche possono rovinarne uno.
+    this.haCestino = this.serata.postazioni.some(({ piatto }) => (PIATTI[piatto].burnAfterSec ?? null) !== null) || this.disturbatoriChiesti.includes('formiche');
     super.init({
       matsuri: data?.matsuri,
       posti: this.serata.posti.length,
@@ -134,6 +139,16 @@ export default class SerataScene extends YataiScene {
     this.dishViews.forEach((view, i) => view.zone.on('pointerdown', (pointer) => this.iniziaTrascinamento(i, pointer)));
 
     this.clienti = this.serata.posti.map((_, i) => new ClienteView(this, i, this.serata.cuoriMax));
+    // I Disturbatori (ticket 11): i disegni nascono solo se la Serata li ha, e i Piatti del Bancone passano davanti a Croccola.
+    this.disturbatori = null;
+    if (this.disturbatoriChiesti.length) {
+      this.generazioneDisturbatori = generateDisturbatori(this, this.disturbatoriChiesti);
+      this.dishViews.forEach((view) => {
+        view.image.setDepth(0.5);
+        view.shadow.setDepth(0.4);
+      });
+      this.disturbatori = new DisturbatoriView(this, this.disturbatoriChiesti);
+    }
     // La campanella dello Yatai, appesa sotto la tendina del Bancone: oscilla prima di un'ondata (ticket 34). Il perno
     // è il cordino, in cima al disegno.
     this.campanella = this.add.image(0, 0, 'campanella').setOrigin(0.5, 0).setDepth(1);
@@ -435,7 +450,8 @@ export default class SerataScene extends YataiScene {
   update(time, delta) {
     if (!this.pronta) return;
     this.esegui(this.serata.update(Math.min(delta, RISCONTRI.dtMaxMs)));
-    this.aggiornaVista();
+    const stato = this.aggiornaVista();
+    this.disturbatori?.segui(stato.disturbatori);
     // La calma di Balosso: finché è a un Posto, i cuoricini di tutti hanno l'ovale azzurra.
     const calma = this.serata.ritmoPazienza() < 1;
     for (const cliente of this.clienti) {
@@ -467,6 +483,7 @@ export default class SerataScene extends YataiScene {
       else view.glow.setVisible(attese.has(view.id));
     });
     this.aggiornaTempo();
+    return stato;
   }
 
   // Le icone della Ricetta: si accendono (con un saltino) una a una, restano mentre il Piatto cuoce e mentre
@@ -600,6 +617,14 @@ export default class SerataScene extends YataiScene {
     if (!this.pronta || this.serata.finita) return;
     if (tipo === 'postazione') this.esegui(this.serata.tocca(this.stationViews[indice].id));
     else if (tipo === 'posto') this.serviPosto(indice);
+  }
+
+  // Il tocco su un Disturbatore (Croccola la si coccola): `chi` è croccola, formiche o corvi.
+  scaccia(chi) {
+    this.lastTouch = { tipo: 'disturbatore', indice: chi, timeMs: Math.round(this.time.now) };
+    this.events.emit('tocco', { tipo: 'disturbatore', indice: chi });
+    if (!this.pronta || this.serata.finita) return;
+    this.esegui(this.serata.scaccia(chi));
   }
 
   serviPosto(indice) {
@@ -801,6 +826,30 @@ export default class SerataScene extends YataiScene {
         break;
       case 'moneta':
         this.perMoneta(evento);
+        break;
+      // I Disturbatori (ticket 11): la vista fa tutto, qui ci sono i punti a cui il ticket 23 aggancia i suoni.
+      case 'disturbatoreArrivato':
+        this.disturbatori?.perEvento(evento);
+        break;
+      case 'disturbatorePunta':
+        // Il corvo gracchia ("kaa kaa") e Croccola si acquatta: da qui il suono.
+        this.disturbatori?.perEvento(evento);
+        break;
+      case 'disturbatoreAttacca':
+        this.disturbatori?.perEvento(evento);
+        break;
+      case 'disturbatoreScacciato':
+        // Croccola coccolata fa le fusa; il corvo e le formiche scappano: i suoni (le fusa, lo sbuffo) si agganciano qui.
+        this.disturbatori?.perEvento(evento);
+        break;
+      case 'piattoRubato':
+        this.disturbatori?.perEvento(evento);
+        break;
+      case 'piattoRovinato':
+        this.disturbatori?.perEvento(evento);
+        break;
+      case 'disturbatoreVaVia':
+        this.disturbatori?.perEvento(evento);
         break;
       case 'serataFinita':
         this.perFine(evento);
@@ -1060,6 +1109,7 @@ export default class SerataScene extends YataiScene {
   // --- La fine della Serata ---
 
   perFine(evento) {
+    this.disturbatori?.chiudi();
     this.risultato = evento;
     // La Serie finisce con la Serata (la più lunga la mostra il recap, ticket 22): il numero se ne va senza "pof".
     this.tweens.killTweensOf([this.serieNumero, this.pof]);
@@ -1168,7 +1218,7 @@ export default class SerataScene extends YataiScene {
   }
 
   rigioca() {
-    this.scene.restart({ matsuri: this.matsuri });
+    this.scene.restart({ matsuri: this.matsuri, disturbatori: this.disturbatoriChiesti });
   }
 
   // Dalla fine Serata alla Bottega a spendere gli Yen: da lì si torna a giocare lo stesso Matsuri (BottegaScene).
@@ -1245,6 +1295,9 @@ export default class SerataScene extends YataiScene {
         pof: this.pof.visible ? { x: round(this.pof.x), y: round(this.pof.y), scala: Math.round(this.pof.scale * 1000) / 1000, alpha: Math.round(this.pof.alpha * 1000) / 1000 } : null,
         ultimoPagamento: this.ultimoPagamento,
       },
+      // I Disturbatori in scena: dove sono le zone da toccare (x, y, w, h al centro) e in che momento sono. Quelli della logica
+      // sono in `serata.disturbatori`.
+      disturbatori: this.disturbatori?.getTextState() ?? [],
       cestino: this.cestino.visible ? rectState({ x: this.cestino.x - this.cestino.displayWidth / 2, y: this.cestino.y - this.cestino.displayHeight, w: this.cestino.displayWidth, h: this.cestino.displayHeight }) : null,
       hud: {
         ...base.hud,

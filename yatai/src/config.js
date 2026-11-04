@@ -579,6 +579,43 @@ export const RISCONTRI = {
     },
     calma: { respiro: 1900, alpha: { da: 0.55, a: 0.95 }, margine: { x: 26, y: 16 } },
   },
+  // I Disturbatori in scena (ticket 11, passo 3; src/yatai/DisturbatoriView.js), senza testo: si capisce guardando. Le misure sono
+  // pixel di gioco; le scale sono relative a quella del Piatto sul Bancone (0,9 a 360×640), così seguono lo schermo. I movimenti
+  // passano da DisturbatoriView.muovi() e da pochi cicli di segui(): sono i punti da spegnere con "riduci movimento" (ticket 26).
+  // I suoni (le fusa, il "kaa kaa", lo sbuffo del furto) sono del ticket 23: si agganciano ai case di SerataScene.perEvento.
+  //   zonaMin   lato minimo di una zona da toccare: 44 px CSS sono 88 qui
+  //   anello    l'anello intorno al bersaglio (Piatto del Bancone o Piatto pronto): scala relativa, respira ogni `periodo` ms e,
+  //             quando mancano meno di `urgenzaMs` al colpo, ogni `periodoVeloce` (più in fretta = "tra poco")
+  //   croccola  scala e `sotto` (quanto sta sotto la base del Piatto); sta `affianco` larghezze di Piatto di lato al suo Piatto (a destra, dove il
+  //             Bancone è libero, o a sinistra dai posti 4 e 5), dietro ai Piatti, inclinata di `inclina` gradi verso di lui: così la sua faccia
+  //             non sta dietro al Piatto; arriva di corsa dal lato più vicino, con `hop` pixel
+  //             di saltello; punta con un dondolio di `dondolio.angolo` gradi ogni `durata` ms; balza di `balzo.salto` pixel
+  //             e si allunga di `allunga`; il "pop" quando cambia posa. Coccolata: `fusa.quota` della fuga è fusa (3 `cuori` che
+  //             salgono di `cuoreSalita` pixel in `cuoreDurata` ms, due archi di suono, la vibrazione), il resto se ne va. `bocca` è
+  //             dove tiene il Piatto rubato (dal punto d'appoggio, in pixel del disegno) e `scalaPiatto` quanto è grande; `fuga`
+  //             i saltelli e la loro altezza.
+  //   pof       la nuvoletta morbida (scala) dove un Piatto sparisce: il furto
+  //   formiche  `quante` in fila, scala, `passo` (distanza tra due), `zampeMs` (ogni quanto cambiano le zampe), `salita` (quanto
+  //             salgono sul Piatto durante il colpo, come frazione della sua altezza), `dietrofront` (quanto dura la fuga a
+  //             sinistra e quanto lontano arriva) e il `pof` (scala della nuvoletta) quando girano al largo
+  //   corvi     scala; il `posatoio` (dal centro dell'ultimo posto del Bancone, sul bordo della tendina); `ingresso` da dove
+  //             arriva volando; `batteAli` (ms per ogni battito); `gracchia` (quanto tiene il becco aperto e chiuso, e di quanto
+  //             salta); `picchiata` (di quanto si ingrandisce scendendo); `fuga` (dove va, in alto a destra) e le `piume` che cadono
+  disturbatori: {
+    zonaMin: 100,
+    pof: 0.8,
+    anello: { scala: 1.15, periodo: 700, periodoVeloce: 280, urgenzaMs: 1600, alpha: 1 },
+    croccola: {
+      scala: 0.89, sotto: 2, affianco: 0.78, inclina: 7, fuori: 150, hop: 16, dondolio: { angolo: 3, durata: 520 }, balzo: { salto: 30, allunga: 0.12 }, pop: { scala: 1.14, durata: 170 },
+      fusa: { quota: 0.6, cuori: 3, cuoreSalita: 110, cuoreDurata: 950, vibra: { angolo: 2.4, durata: 70 }, suono: { scala: 0.62, dx: 92, dy: 150 } },
+      bocca: { dx: 87, dy: -97, scalaPiatto: 0.5 }, fuga: { saltelli: 5, altezza: 18 },
+    },
+    formiche: { quante: 6, scala: 1, passo: 66, zampeMs: 140, salita: 0.5, dietrofront: { durata: 700, distanza: 900 }, pof: 0.7 },
+    corvi: {
+      scala: 0.555, posatoio: { dx: 14, dy: 8 }, ingresso: { dx: 240, dy: -520 }, batteAli: 110, gracchia: { aperto: 200, chiuso: 170, salto: 8 },
+      picchiata: { ingrandisce: 0.3 }, fuga: { dx: 300, dy: -620 }, piume: 3,
+    },
+  },
   // Il "−20" piccolo che scende sotto l'Incasso a ogni Ingrediente (la Spesa).
   spesa: { durata: 750, discesa: 34 },
   // La ricetta sulla Postazione: un'icona per Ingrediente (la cottura non ha icona: ha la sua barra), piccola
@@ -699,7 +736,7 @@ export const VIZI = {
 // Il tocco costa poco e ignorarli costa molto, che è quello che serve; il peso vero di ogni Matsuri (ne arrivano uno o due
 // tipi, non tre) si ritocca nel ticket 29.
 export const DISTURBATORI = {
-  croccola: { dove: 'bancone', bersagli: ['takoyaki', 'taiyaki'], esito: 'ruba', gesto: 'coccola', serveBersaglio: true, primoSec: { min: 18, max: 30 }, intervalloSec: { min: 22, max: 36 }, arrivaSec: 1.5, puntaSec: 3, colpoSec: 0.6, rinunciaSec: 2, vaViaSec: 1.6 },
+  croccola: { dove: 'bancone', bersagli: ['takoyaki', 'taiyaki'], esito: 'ruba', gesto: 'coccola', serveBersaglio: true, primoSec: { min: 18, max: 30 }, intervalloSec: { min: 22, max: 36 }, arrivaSec: 1.5, puntaSec: 3, colpoSec: 0.6, rinunciaSec: 2, vaViaSec: 2.2 },
   formiche: { dove: 'bancone', bersagli: ['kakigori', 'taiyaki'], esito: 'rovina', gesto: 'tocco', serveBersaglio: true, primoSec: { min: 22, max: 36 }, intervalloSec: { min: 26, max: 40 }, arrivaSec: 1, puntaSec: 4, colpoSec: 1, rinunciaSec: 2, vaViaSec: 1.4 },
   corvi: { dove: 'postazione', bersagli: null, esito: 'ruba', gesto: 'tocco', serveBersaglio: false, primoSec: { min: 30, max: 45 }, intervalloSec: { min: 26, max: 40 }, arrivaSec: 1, puntaSec: 2.5, colpoSec: 0.7, rinunciaSec: 6, vaViaSec: 1.6 },
 };
