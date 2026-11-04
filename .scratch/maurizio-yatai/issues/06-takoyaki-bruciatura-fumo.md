@@ -2,7 +2,7 @@
 
 **What to build:** Il secondo Piatto, alla piastra a 6 buchi, ed è il primo che si brucia: se resta sulla Postazione troppo a lungo dopo la cottura diventa un Piatto bruciato. Toccandolo va nel cestino, e la Postazione resta nel Fumo e non si può usare per qualche secondo. Arrivano gli Ordini da 2 Piatti. I tempi e il prezzo sono nella tabella dei Piatti di GAME_SPEC.md (e già nel file di configurazione). Il takoyaki segue la cucina a tocchi del ticket 33: è il primo Piatto con cottura, quindi aggiunge la cottura e gli Ingredienti "di dopo" alla logica scritta dal 33. La **Ricetta** è pastella, polpo, [cottura], salsa, prendi: 4 tocchi. La bruciatura parte a cottura finita, anche se manca la salsa. È il passo 4 di PIANO.md, con la skill `game-feel`.
 
-**Blocked by:** 05 ([con te] La prima prova: è divertente?), 33 (La cucina a tocchi), 34 (Una Serata che cambia), 35 (Un assaggio di Potenziamenti)
+**Blocked by:** nessuno (05, 33, 34 e 35 sono resolved: bloccanti tolti con Giuseppe il 2026-11-04)
 
 **Status:** ready-for-agent
 
