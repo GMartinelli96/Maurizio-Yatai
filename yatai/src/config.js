@@ -342,9 +342,18 @@ export const SERATA_TANABATA = {
 
 // La Serata dell'Hanabi (ticket 07): arriva il kakigōri, il Piatto con le varianti (fragola, melone, matcha) che non
 // si brucia mai. Il menù è quello del Tanabata più il Piatto nuovo; con le formiche e il resto dell'Hanabi
-// (ticket 11 e 14) arriveranno dopo. Obiettivo provvisorio, da calibrare col bot (passo 4 del ticket 07) e poi nel 29.
+// (ticket 11 e 14) arriveranno dopo.
+//
+// Obiettivo provvisorio fino al ticket 29, sul netto (Vendite meno Spesa), misurato col bot senza browser
+// (test/bot.js: non sbaglia una mossa, la bravura è il tempo tra un tocco e l'altro). Media di 6 semi, con le ondate:
+//   un tocco ogni 1,4 s (lento)    3111 Yen (da 2720 a 3695)   serviti 12,8
+//   un tocco ogni 1,0 s (attento)  4888 Yen (da 3840 a 5825)   serviti 17,7
+//   un tocco ogni 0,6 s (rapido)   7004 Yen (da 6235 a 8690)   serviti 22,7
+// Nessun Piatto bruciato (il bot li prende in tempo). Con obiettivo 2900 le soglie sono ★ 2900, ★★ 3770, ★★★ 4640:
+// il lento ha ★ con il 7% di margine e il rapido ★★★. L'attento, che non sbaglia mai, prende ★★★ (come nell'Hanami,
+// ticket 34): un attento umano che sbaglia qualche mossa sta più in basso.
 export const SERATA_HANABI = {
-  obiettivo: 3000,
+  obiettivo: 2900,
   piatti: ['onigiri', 'takoyaki', 'kakigori'],
   piattiPerOrdine: { min: 1, max: 2 },
 };

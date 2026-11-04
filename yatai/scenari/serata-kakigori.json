@@ -83,5 +83,29 @@
   { "expect": "postazioni.11.stato", "equals": "libera" },
   { "expect": "postazioni.11.variante", "equals": null },
   { "expect": "postazioni.11.passi.1.texture", "equals": "passo-sciroppo" },
-  { "shot": "kakigori-05-sul-bancone" }
+  { "shot": "kakigori-05-sul-bancone" },
+
+  { "tapPath": "posti.0" },
+  { "advance": 120 },
+  { "expect": "eventi.contati.scuoteTesta", "equals": 1 },
+  { "expect": "serata.serviti", "equals": 0 },
+  { "expect": "serata.bancone", "equals": ["kakigori-melone"] },
+  { "shot": "kakigori-06-ordine-incompleto" },
+
+  { "tapPath": "postazioni.5" },
+  { "advance": 2500 },
+  { "tapPath": "postazioni.7" },
+  { "advance": 300 },
+  { "tapPath": "postazioni.11" },
+  { "advance": 500 },
+  { "expect": "serata.bancone", "equals": ["kakigori-melone", "kakigori-melone"] },
+  { "expect": "serata.spesa", "equals": 160 },
+
+  { "tapPath": "posti.0" },
+  { "advance": 800 },
+  { "expect": "serata.serviti", "equals": 1 },
+  { "expect": "serata.vendite", "atLeast": 500 },
+  { "expect": "serata.spreco", "equals": 0 },
+  { "expect": "serata.bancone", "equals": [] },
+  { "shot": "kakigori-07-servito" }
 ]

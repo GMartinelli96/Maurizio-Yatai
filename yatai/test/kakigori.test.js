@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CLIENTI, FRAME_MS, PALETTE, PIATTI, POSTAZIONI, SERATA_PRIMA, SERATA_TANABATA } from '../src/config.js';
+import { CLIENTI, FRAME_MS, PALETTE, PIATTI, POSTAZIONI, SERATA_HANABI, SERATA_PRIMA, SERATA_TANABATA, SERATE } from '../src/config.js';
 import { DISEGNI, drawEntry } from '../src/disegni/catalogo.js';
 import { SCIROPPO, drawKakigori } from '../src/disegni/kakigori.js';
 import { POSTAZIONE_SIZE, scortaKey } from '../src/disegni/postazioni.js';
 import { TESTI } from '../src/i18n.js';
+import { BRAVURA, SEMI, giocaServata, mediaSemi } from './bot.js';
 import { Serata, costoPiatto, idPiatto, ingredientiDi, piattoBase, scorteDi, tocchiPerPiatto, varianteDi } from '../src/serata/Serata.js';
 
 // Il kakigōri e le sue varianti (ticket 07): ghiaccio, [2 s], uno dei tre sciroppi, prendi. Tutto senza browser.
@@ -354,4 +355,54 @@ test('l’icona del passo a scelta (le tre gocce) ha la misura delle Scorte e un
   assert.deepEqual([entry.w, entry.h], [POSTAZIONE_SIZE.w, POSTAZIONE_SIZE.h]);
   const altri = ['ghiaccio', ...VARIANTI].map((i) => registra(scortaKey(i)));
   assert.ok(!altri.includes(registra('passo-sciroppo')), 'uguale a una Scorta');
+});
+
+// --- La Serata dell'Hanabi (passo 4) ---
+
+test('l’Hanabi ha il kakigōri in menù e Ordini da uno o due Piatti', () => {
+  assert.equal(SERATE.hanabi, SERATA_HANABI);
+  assert.deepEqual(SERATA_HANABI.piatti, ['onigiri', 'takoyaki', 'kakigori']);
+  assert.deepEqual(SERATA_HANABI.piattiPerOrdine, { min: 1, max: 2 });
+});
+
+test('nell’Hanabi la bravura conta: chi è più rapido incassa di più, e chi prende i Piatti in tempo non brucia niente', () => {
+  const rapido = mediaSemi(SERATA_HANABI, 'incasso', BRAVURA.rapido);
+  const attento = mediaSemi(SERATA_HANABI, 'incasso', BRAVURA.attento);
+  const lento = mediaSemi(SERATA_HANABI, 'incasso', BRAVURA.lento);
+  assert.ok(rapido > attento * 1.15 && attento > lento * 1.15, `rapido ${rapido}, attento ${attento}, lento ${lento}`);
+  assert.equal(mediaSemi(SERATA_HANABI, 'bruciati', BRAVURA.attento), 0, 'chi prende i Piatti in tempo non brucia niente');
+});
+
+test('l’Hanabi sul netto: il lento prende ★, il rapido ★★★ (valori provvisori, ticket 29)', () => {
+  const [uno, , tre] = new Serata({ seed: 'a', ...SERATA_HANABI }).stato().sogliaStelle;
+  const lento = mediaSemi(SERATA_HANABI, 'incasso', BRAVURA.lento);
+  const rapido = mediaSemi(SERATA_HANABI, 'incasso', BRAVURA.rapido);
+  assert.ok(lento >= uno, `lento ${lento}: sotto ★ (${uno})`);
+  assert.ok(rapido >= tre, `rapido ${rapido}: non arriva a ★★★ (${tre})`);
+});
+
+test('nell’Hanabi la Spesa torna: Incasso = Vendite − Spesa, e lo Spreco di chi non brucia è piccolo', () => {
+  const massimo = 2 * costoPiatto('takoyaki') + 2 * costoPiatto('kakigori-fragola') + 2 * costoPiatto('onigiri');
+  for (const seme of SEMI) {
+    const stato = giocaServata(SERATA_HANABI, BRAVURA.attento, seme);
+    assert.equal(stato.incasso, stato.vendite - stato.spesa);
+    assert.equal(stato.bruciati, 0);
+    assert.ok(stato.spreco >= 0 && stato.spreco <= massimo, `Spreco ${stato.spreco} (seme ${seme})`);
+  }
+});
+
+test('il bot serve tutte e tre le varianti, e quello che serve è sempre quello che il Cliente aveva chiesto', () => {
+  const serviti = new Map();
+  for (const seme of SEMI) {
+    const registro = [];
+    giocaServata(SERATA_HANABI, BRAVURA.rapido, seme, { registro });
+    // Ogni servito ha pagato un Ordine: i Piatti dati sono quelli dell'Ordine, uno per uno (la logica non serve altro).
+    for (const evento of registro.filter((e) => e.tipo === 'servito')) {
+      for (const piatto of evento.piatti) serviti.set(piatto, (serviti.get(piatto) ?? 0) + 1);
+    }
+    // Nessun Cliente ha scosso la testa per colpa del bot: sa quale variante serve.
+    assert.equal(registro.filter((e) => e.tipo === 'scuoteTesta').length, 0, `seme ${seme}: il bot ha sbagliato Piatto`);
+  }
+  for (const variante of VARIANTI) assert.ok((serviti.get(idPiatto('kakigori', variante)) ?? 0) >= 3, `${variante}: serviti ${serviti.get(idPiatto('kakigori', variante)) ?? 0}`);
+  assert.ok(!serviti.has('kakigori'), 'un kakigōri senza variante non esiste');
 });
