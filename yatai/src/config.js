@@ -618,6 +618,16 @@ export const CLIENTI = {
   primoArrivoSec: 1.5,
   // I Clienti di passaggio: nessun Vizio.
   passaggio: ['tanuki', 'kitsune', 'maneki-neko'],
+  // Il cast (GLOSSARY.md, Vizio; ticket 09): sette peluche che arrivano ai Posti in mezzo ai Clienti di passaggio.
+  // Valori di partenza, da ritoccare nel ticket 29; le regole per Matsuri sono del ticket 12 (per ora arrivano tutti
+  // e sette fin dalla prima Serata). Un Cliente su quattro è del cast; due al massimo stanno ai Posti insieme, e non
+  // ce ne sono due uguali né lo stesso due volte di seguito, così un Vizio non si somma a sé stesso e il cast non è
+  // sempre lo stesso volto. Chi non arriva dal cast è di passaggio. Il Vizio di ognuno è in VIZI (passo 3 del ticket 09).
+  cast: {
+    membri: ['marcella', 'carlotta', 'balosso', 'nella', 'filippo', 'pasquale', 'ebi-furai'],
+    quota: 0.25,
+    maxAiPosti: 2,
+  },
 };
 
 // Le Ondate (GAME_SPEC.md, "La Serata"; ticket 34): la Serata ha un andamento invece di un solo intervallo di

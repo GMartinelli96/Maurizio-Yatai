@@ -3,6 +3,7 @@
 
 import { MATSURI } from '../config.js';
 import { DISEGNI, drawEntry, panelDrawing, panelKey } from '../disegni/catalogo.js';
+import { DISEGNI_CAST } from '../disegni/cast.js';
 import { chiaviTema, disegniTema } from '../disegni/sfondi/index.js';
 import { hashString } from './rng.js';
 
@@ -18,6 +19,20 @@ export function ensureTexture(scene, key, entry) {
 // Genera tutte le texture del catalogo: si chiama una volta, all'avvio.
 export function generateTextures(scene) {
   for (const [key, entry] of Object.entries(DISEGNI)) ensureTexture(scene, key, entry);
+}
+
+// Genera le texture del cast (7 peluche per 4 espressioni), se non ci sono già. Non stanno nel catalogo che si genera
+// all'avvio: costano circa un secondo e mezzo e servono solo alla Serata, che le genera entrando (una volta sola, poi
+// restano nella cache). Ritorna i millisecondi spesi e quante sono nate (zero se c'erano già).
+export function generateCast(scene) {
+  const inizio = performance.now();
+  let nuove = 0;
+  for (const [key, entry] of Object.entries(DISEGNI_CAST)) {
+    if (scene.textures.exists(key)) continue;
+    ensureTexture(scene, key, entry);
+    nuove += 1;
+  }
+  return { ms: Math.round(performance.now() - inizio), nuove };
 }
 
 // Genera le texture del Matsuri in uso (sfondo, pavimento, tendina, cuscino) e butta via quelle degli

@@ -4,7 +4,7 @@ import { PASSO_SCELTA, POSTAZIONE_SIZE, postazioneKey, scortaKey } from '../dise
 import { CESTINO_SIZE } from '../disegni/takoyaki.js';
 import { t } from '../i18n.js';
 import { textStyle } from '../kit/font.js';
-import { panelTexture } from '../kit/texture.js';
+import { generateCast, panelTexture } from '../kit/texture.js';
 import { addButton } from '../kit/ui.js';
 import { center, fitIn, layoutHud } from '../layout/yatai.js';
 import { opzioniSerata } from '../bottega.js';
@@ -88,6 +88,8 @@ export default class SerataScene extends YataiScene {
 
   create() {
     super.create();
+    // I disegni del cast si generano qui, entrando in Serata, e non all'avvio (generateCast).
+    this.generazioneCast = generateCast(this);
     // Nella Serata non c'è il ritorno al menu di sviluppo.
     this.back?.destroy();
     this.back = null;
@@ -1165,6 +1167,8 @@ export default class SerataScene extends YataiScene {
       },
       // Come i Clienti si vedono: dove sono, che faccia hanno, quali icone ha la nuvoletta.
       clienti: this.clienti.map((cliente) => cliente.getTextState()),
+      // Quanto è costato generare i disegni del cast entrando in Serata (cambia da un computer all'altro).
+      generazioneCast: this.generazioneCast,
       // Il segnale prima di un'ondata: la campanella (dov'è e di quanti gradi è inclinata adesso, se sta oscillando).
       // Maurizio con la testa alzata è in `maurizio` (posa 'guarda', allerta true).
       campanella: { x: round(this.campanella.x), y: round(this.campanella.y), angolo: round(this.campanella.angle), oscilla: this.oscillazione !== null },
