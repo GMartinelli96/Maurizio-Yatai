@@ -12,6 +12,7 @@ import {
   SERATA,
   SERATA_MOTORE,
   SERATA_PRIMA,
+  SERIE,
 } from '../config.js';
 import { createRng } from '../kit/rng.js';
 
@@ -45,15 +46,20 @@ import { createRng } from '../kit/rng.js';
 //   nienteDaPrendere  { postazione }       il Piatto non è ancora finito (mancano Ingredienti o sta cuocendo)
 //   postazioneSconosciuta { postazione }
 //   banconePieno      { postazione }       il Piatto pronto resta sulla Postazione
-//   scuoteTesta       { posto, mancano }   sul Bancone manca qualcosa dell'Ordine
+//   scuoteTesta       { posto, mancano }   sul Bancone manca qualcosa dell'Ordine (un servizio a vuoto: spezza la Serie)
 //   postoVuoto        { posto }
-//   servito           { posto, clienteId, tipoCliente, piatti, prezzo, cuori, mancia, totale }
+//   servito           { posto, clienteId, tipoCliente, piatti, prezzo, cuori, mancia, totale, serie, moltiplicatoreSerie }
+//                     `serie` è la Serie con questo Ordine dentro; `moltiplicatoreSerie` quanto ha moltiplicato la Mancia
+//   serieSpezzata     { serie, motivo: 'clientePerso' | 'servizioAVuoto', posto }   `serie` è quanto valeva: il "pof" morbido.
+//                                              Solo se valeva qualcosa (a zero non c'è niente da spezzare)
 //   mancia            { posto, yen, cuori }   solo se la Mancia non è zero
 //   moneta            { posto, yen }          il totale pagato, da far volare nell'Incasso
 //   cuoreSpento       { posto, cuori }
 //   lamento           { posto, clienteId, cuori, espressione, segno }   il Cliente scende di scalino (a 2 e a 1 cuoricini), una volta per scalino e per Cliente: l'audio ci aggancia il "mmh"
 //   clienteVaVia      { posto, clienteId, motivo: 'pazienza' }   imbronciato, senza pagare
-//   serataFinita      { incasso, vendite, spesa, spreco, obiettivo, stelle, serviti, persi }
+//   ondataInArrivo    { fase, traMs }         ONDATE.avvisoSec prima di ogni ondata (anche la finale), una volta per ondata: da qui
+//                                              parte il segnale visivo (Maurizio alza la testa, la campanella oscilla); il suono è del ticket 23
+//   serataFinita      { incasso, vendite, spesa, spreco, obiettivo, stelle, serviti, persi, serieMax, manciaDaSerie }
 
 const SEC = 1000;
 
@@ -101,10 +107,16 @@ function scaliniSuperati(prima, dopo) {
   return [LAMENTO.perplessaA, LAMENTO.imbronciataA].filter((scalino) => prima > scalino && dopo <= scalino);
 }
 
-// La Mancia va da zero (Pazienza finita) fino a maxManciaRatio del prezzo (cuoricini pieni).
-// Gli Yen sono interi.
-export function calcolaMancia(prezzo, cuori) {
-  return Math.round((prezzo * PAZIENZA.maxManciaRatio * cuori) / PAZIENZA.hearts);
+// La Mancia va da zero (Pazienza finita) fino a maxManciaRatio del prezzo (cuoricini pieni), per il moltiplicatore
+// (la Serie, Che stile!, Yen d'oro, desideri: tutti insieme, senza un tetto in più). Gli Yen sono interi.
+export function calcolaMancia(prezzo, cuori, moltiplicatore = 1) {
+  return Math.round((prezzo * PAZIENZA.maxManciaRatio * cuori * moltiplicatore) / PAZIENZA.hearts);
+}
+
+// Di quanto la Serie moltiplica la Mancia: niente per il primo Cliente, +10% per ognuno di fila oltre il primo, fino
+// al tetto (×1,5, a 6 di fila). Con Serie zero (nessun Ordine servito) è ×1.
+export function moltiplicatoreSerie(serie) {
+  return Math.min(SERIE.moltiplicatoreMax, 1 + SERIE.manciaPerCliente * Math.max(0, serie - 1));
 }
 
 // Gli Yen che servono per ★, ★★, ★★★.
@@ -167,19 +179,30 @@ export class Serata {
   //   piatti            i Piatti disponibili (le Postazioni si ricavano da qui)
   //   piattiPerOrdine   { min, max }
   //   banconeCapienza   quanti Piatti stanno sul Bancone
+  //   moltiplicatoriMancia  i moltiplicatori della Mancia che non sono la Serie (Che stile!, Yen d'oro, desideri),
+  //                     per ora nessuno: si moltiplicano tra loro e con la Serie, senza un tetto unico
+  //   posti             quanti Posti (3, 4 con il Potenziamento)
+  //   pazienzaMoltiplicatore  quanto allunga la Pazienza di chi arriva, in calma e in ondata (il ventaglio, ticket 35)
   constructor({
     seed = 'serata',
     obiettivo = SERATA_PRIMA.obiettivo,
     piatti = SERATA_PRIMA.piatti,
     piattiPerOrdine = SERATA_PRIMA.piattiPerOrdine,
     banconeCapienza = BANCONE.capienza,
+    moltiplicatoriMancia = [],
+    posti = POSTI.quanti,
+    pazienzaMoltiplicatore = 1,
   } = {}) {
     this.rng = createRng(seed);
     this.fasi = fasiDellaSerata(seed);
+    // Le ondate che hanno già dato il segnale (una volta ciascuna).
+    this.avvisate = new Set();
     this.obiettivo = obiettivo;
     this.piatti = piatti;
     this.piattiPerOrdine = piattiPerOrdine;
     this.banconeCapienza = banconeCapienza;
+    this.moltiplicatoreAltri = moltiplicatoriMancia.reduce((prodotto, m) => prodotto * m, 1);
+    this.pazienzaMoltiplicatore = pazienzaMoltiplicatore;
 
     this.durataMs = SERATA.durationSec * SEC;
     this.tempoMs = 0;
@@ -198,9 +221,14 @@ export class Serata {
     // I Piatti bruciati in questa Serata (per i Titoli e per i test). I loro Ingredienti sono già Spesa e non
     // finiscono mai in un Piatto servito, quindi sono Spreco senza bisogno di altro (vedi spreco()).
     this.bruciati = 0;
+    // La Serie: Ordini serviti di fila adesso, la più lunga di questa Serata e quanti Yen di Mancia in più ha dato
+    // (rispetto a una Mancia senza Serie). Si azzera a ogni Serata e non si salva.
+    this.serie = 0;
+    this.serieMax = 0;
+    this.manciaDaSerie = 0;
     this.prossimoId = 1;
 
-    this.posti = Array.from({ length: POSTI.quanti }, () => ({ cliente: null, liberoDaMs: 0 }));
+    this.posti = Array.from({ length: posti }, () => ({ cliente: null, liberoDaMs: 0 }));
     this.bancone = [];
     // `passo`: l'indice del passo della ricetta che viene; `fatti`: quanti Ingredienti ha già il Piatto. Stati:
     // libera | inPreparazione (aspetta un Ingrediente) | cuoce (è a un passo di cottura) | pronto | bruciato | fumo.
@@ -230,6 +258,7 @@ export class Serata {
 
   passo(passoMs, eventi) {
     this.tempoMs += passoMs;
+    this.avvisaOndate(eventi);
     for (const postazione of this.postazioni) this.cuoci(postazione, passoMs, eventi);
     this.posti.forEach((posto, indice) => this.aspetta(posto, indice, passoMs, eventi));
     this.faiArrivare(eventi);
@@ -246,6 +275,8 @@ export class Serata {
         stelle: calcolaStelle(this.incasso, this.obiettivo),
         serviti: this.serviti,
         persi: this.persi,
+        serieMax: this.serieMax,
+        manciaDaSerie: this.manciaDaSerie,
       });
     }
   }
@@ -433,8 +464,17 @@ export class Serata {
     if (cliente.pazienzaMs === 0) {
       this.persi++;
       eventi.push({ tipo: 'clienteVaVia', posto: indice, clienteId: cliente.id, motivo: 'pazienza' });
+      this.spezzaSerie('clientePerso', indice, eventi);
       this.liberaPosto(posto);
     }
+  }
+
+  // La Serie si spezza (torna a zero) solo con un Cliente perso o un servizio a vuoto. Un tocco fuori ordine su una
+  // Scorta e un Piatto bruciato non la toccano: li "punisce" già il tempo perso o lo Spreco. Senza Serie non succede niente.
+  spezzaSerie(motivo, posto, eventi) {
+    if (this.serie === 0) return;
+    eventi.push({ tipo: 'serieSpezzata', serie: this.serie, motivo, posto });
+    this.serie = 0;
   }
 
   liberaPosto(posto) {
@@ -445,6 +485,15 @@ export class Serata {
   // La fase in cui è la Serata a tempoMs: l'ultima che è già cominciata.
   faseA(tempoMs) {
     return this.fasi.findLast(({ inizioMs }) => inizioMs <= tempoMs);
+  }
+
+  // Il segnale di un'ondata: quando manca ONDATE.avvisoSec al suo inizio, una volta sola, la Serata lo dice.
+  avvisaOndate(eventi) {
+    for (const { nome, inizioMs, ondata } of this.fasi) {
+      if (!ondata || this.avvisate.has(nome) || inizioMs - this.tempoMs > ONDATE.avvisoSec * SEC) continue;
+      this.avvisate.add(nome);
+      eventi.push({ tipo: 'ondataInArrivo', fase: nome, traMs: inizioMs - this.tempoMs });
+    }
   }
 
   // L'attesa fino al prossimo arrivo, tra min e max secondi della fase di adesso, in ms e multiplo del passo,
@@ -467,7 +516,8 @@ export class Serata {
     const ordine = this.creaOrdine();
     // La Pazienza si decide all'arrivo e non cambia più: chi arriva in ondata tiene i suoi 15 s anche se
     // l'ondata finisce mentre aspetta.
-    const pazienzaTotaleMs = (this.faseA(this.tempoMs).ondata ? ONDATE.pazienzaSec : PAZIENZA.durationSec) * SEC;
+    const pazienzaSec = this.faseA(this.tempoMs).ondata ? ONDATE.pazienzaSec : PAZIENZA.durationSec;
+    const pazienzaTotaleMs = Math.round(pazienzaSec * this.pazienzaMoltiplicatore * SEC);
     posto.cliente = {
       id: this.prossimoId++,
       tipo,
@@ -507,12 +557,22 @@ export class Serata {
       if (trovato === -1) mancano.push(piatto);
       else rimasti.splice(trovato, 1);
     }
-    if (mancano.length) return [{ tipo: 'scuoteTesta', posto: indicePosto, mancano }];
+    if (mancano.length) {
+      // Un servizio a vuoto: il Cliente scuote la testa e la Serie si spezza.
+      const eventi = [{ tipo: 'scuoteTesta', posto: indicePosto, mancano }];
+      this.spezzaSerie('servizioAVuoto', indicePosto, eventi);
+      return eventi;
+    }
 
     this.bancone = rimasti;
     const prezzo = cliente.ordine.reduce((somma, piatto) => somma + PIATTI[piattoBase(piatto)].price, 0);
     const cuori = cliente.cuori;
-    const mancia = calcolaMancia(prezzo, cuori);
+    // La Serie conta questo Ordine prima di pagare la Mancia: il primo di fila vale ×1, il secondo ×1,1 e così via.
+    this.serie += 1;
+    this.serieMax = Math.max(this.serieMax, this.serie);
+    const moltiplicatoreDellaSerie = moltiplicatoreSerie(this.serie);
+    const mancia = calcolaMancia(prezzo, cuori, moltiplicatoreDellaSerie * this.moltiplicatoreAltri);
+    this.manciaDaSerie += mancia - calcolaMancia(prezzo, cuori, this.moltiplicatoreAltri);
     const totale = prezzo + mancia;
     this.incasso += totale;
     this.vendite += totale;
@@ -531,6 +591,8 @@ export class Serata {
         cuori,
         mancia,
         totale,
+        serie: this.serie,
+        moltiplicatoreSerie: moltiplicatoreDellaSerie,
       },
     ];
     if (mancia > 0) eventi.push({ tipo: 'mancia', posto: indicePosto, yen: mancia, cuori });
@@ -555,6 +617,12 @@ export class Serata {
       serviti: this.serviti,
       persi: this.persi,
       bruciati: this.bruciati,
+      // La Serie: Ordini di fila adesso, la più lunga di stasera, di quanto moltiplicherà la Mancia del prossimo
+      // Ordine servito e quanti Yen di Mancia in più ha dato finora.
+      serie: this.serie,
+      serieMax: this.serieMax,
+      moltiplicatoreProssimo: moltiplicatoreSerie(this.serie + 1),
+      manciaDaSerie: this.manciaDaSerie,
       posti: this.posti.map(({ cliente }, posto) => ({
         posto,
         cliente: cliente && {
@@ -598,8 +666,8 @@ export class Serata {
     };
   }
 
-  // Dove siamo nella curva: la fase di adesso, se è un'ondata, e quanto manca alla prossima ondata (null se non
-  // ce ne sono più). `fasi` dà gli inizi mossi dal seme, per chi vuole vedere l'intera curva.
+  // Dove siamo nella curva: la fase di adesso, se è un'ondata, quanto manca alla prossima ondata (null se non
+  // ce ne sono più) e se il segnale è acceso. `fasi` dà gli inizi mossi dal seme, per chi vuole vedere l'intera curva.
   andamento() {
     const fase = this.faseA(this.tempoMs);
     const prossima = this.fasi.find(({ inizioMs, ondata }) => ondata && inizioMs > this.tempoMs);
@@ -607,6 +675,8 @@ export class Serata {
       fase: fase.nome,
       inOndata: fase.ondata,
       prossimaOndataTraMs: prossima ? prossima.inizioMs - this.tempoMs : null,
+      // Il segnale è acceso: manca poco a un'ondata e il segnale è partito (vedi 'ondataInArrivo').
+      inAvviso: prossima ? this.avvisate.has(prossima.nome) : false,
       fasi: this.fasi.map(({ nome, inizioMs, ondata }) => ({ nome, inizioMs, ondata })),
     };
   }

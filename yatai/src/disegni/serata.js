@@ -173,3 +173,55 @@ export function drawStellaVuota(ctx, rng) {
   pastelFill(ctx, shape, rng, STELLA_VUOTA, { volume: false, hatching: 0.4 });
   pencilLine(ctx, shape, rng, { alpha: 0.5, width: 2.6 });
 }
+
+// ---------------------------------------------------------------------------------------------
+// La campanella dello Yatai: appesa a un cordino sotto la tendina del Bancone, con un fiocco rosa. Oscilla due
+// secondi prima di ogni ondata (ticket 34). Il perno è il centro in alto (il cordino), così pende da lì.
+
+export const CAMPANELLA_SIZE = { w: 56, h: 88 };
+
+export function drawCampanella(ctx, rng) {
+  // Il cordino, e il fiocco dove si attacca alla campana.
+  pencilLine(ctx, [{ x: 28, y: 1 }, { x: 28, y: 24 }], rng, { closed: false, width: 3, amount: 0.5 });
+  const campana = smoothCurve([
+    { x: 28, y: 27 }, { x: 40, y: 33 }, { x: 44, y: 50 }, { x: 47, y: 64 },
+    { x: 52, y: 72 }, { x: 4, y: 72 }, { x: 9, y: 64 }, { x: 12, y: 50 }, { x: 16, y: 33 },
+  ], { perSegment: 8 });
+  pastelFill(ctx, campana, rng, C.giallo, { hatching: 0.8 });
+  // Il riflesso sulla pancia e il bordo in basso.
+  pastelFill(ctx, ellipse(21, 49, 3, 10, 0.18), rng, { colore: '#ffffff', ombra: '#ffffff', luce: '#ffffff' }, { volume: false, alpha: 0.7, hatching: 0 });
+  pencilLine(ctx, campana, rng, { width: 2.8 });
+  pencilLine(ctx, [{ x: 8, y: 66 }, { x: 48, y: 66 }], rng, { closed: false, width: 1.8, alpha: 0.5, color: C.giallo.ombra, amount: 0.5 });
+  // Il battaglio che esce dal fondo.
+  const battaglio = ellipse(28, 78, 6.5, 6);
+  pastelFill(ctx, battaglio, rng, { colore: C.giallo.ombra, ombra: C.giallo.ombra, luce: C.giallo.colore }, { volume: false, hatching: 0.4 });
+  pencilLine(ctx, battaglio, rng, { width: 2.4 });
+  // Il fiocco rosa sopra, per ultimo.
+  for (const lato of [-1, 1]) {
+    const ala = ellipse(28 + lato * 7, 25, 7, 4.4, lato * 0.35);
+    pastelFill(ctx, ala, rng, C.rosa, { volume: false, hatching: 0.5 });
+    pencilLine(ctx, ala, rng, { width: 2.2, amount: 0.5 });
+  }
+  const nodo = ellipse(28, 25, 3.2, 3.2);
+  pastelFill(ctx, nodo, rng, C.rosa, { volume: false, hatching: 0 });
+  pencilLine(ctx, nodo, rng, { width: 2, amount: 0.4 });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Il "pof" della Serie che si spezza (ticket 34): una nuvoletta morbida di tondi rosa pallido, con qualche tondino che
+// se ne va, come negli sbuffi dei fumetti. Rosa e rotondo apposta: niente grigio del Fumo (quello è del Piatto bruciato)
+// né azzurro dello sbuffo e della goccia del Lamento, perché la Serie che finisce non è una punizione.
+
+export const POF_SIZE = { w: 128, h: 104 };
+
+const POF = { colore: '#ffe0e8', ombra: '#f4b3c5', luce: '#fff7fa' };
+
+export function drawPof(ctx, rng) {
+  // Prima i tondini lontani, poi la nuvola dal fondo al davanti: ogni tondo copre il contorno di quelli dietro.
+  const lontani = [ellipse(14, 36, 6, 5.6), ellipse(114, 34, 6.5, 6), ellipse(104, 84, 5, 4.8), ellipse(22, 82, 4.6, 4.4), ellipse(64, 12, 5, 4.8)];
+  const nuvola = [ellipse(52, 40, 15, 14), ellipse(77, 40, 15, 14), ellipse(42, 60, 16, 15), ellipse(86, 60, 16, 15), ellipse(64, 54, 22, 20)];
+  for (const tondo of [...lontani, ...nuvola]) {
+    pastelFill(ctx, tondo, rng, POF, { volume: false, hatching: 0.4 });
+    pencilLine(ctx, tondo, rng, { width: 2.4, amount: 0.5 });
+  }
+}

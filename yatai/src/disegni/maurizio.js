@@ -13,13 +13,16 @@ export const MAURIZIO_SIZE = { w: 320, h: 450 };
 // disegno, così le pose si alternano senza che Maurizio sembri un altro.
 //   riposo: in piedi, braccia lungo i fianchi;
 //   lavora: le zampine alzate davanti al petto, mentre cucina;
-//   evviva: braccia in alto, occhi felici e bocca aperta, quando serve un Cliente.
+//   evviva: braccia in alto, occhi felici e bocca aperta, quando serve un Cliente;
+//   guarda: la testa alzata e gli occhi in su, con la bocca a "o": il segnale che sta per arrivare un'ondata (ticket 34).
 // Per ogni braccio: dx = distanza dal centro, y = altezza, rx/ry = misure, giro = inclinazione
-// (positiva: la zampina va verso l'esterno).
+// (positiva: la zampina va verso l'esterno). `testa` (facoltativa) sposta in verticale tutta la testa, in
+// pixel del disegno (negativa: in su); `occhiSu` sposta gli occhi in più, dentro la faccia.
 export const POSE = {
   riposo: { braccio: { dx: 100, y: 298, rx: 25, ry: 45, giro: -0.6 }, occhi: 'aperti', bocca: 'sorriso' },
   lavora: { braccio: { dx: 92, y: 276, rx: 24, ry: 43, giro: -0.3 }, occhi: 'aperti', bocca: 'piccola' },
   evviva: { braccio: { dx: 104, y: 208, rx: 24, ry: 47, giro: 0.42 }, occhi: 'felici', bocca: 'aperta' },
+  guarda: { braccio: { dx: 100, y: 298, rx: 25, ry: 45, giro: -0.6 }, occhi: 'aperti', bocca: 'piccola', testa: -12, occhiSu: -9 },
 };
 
 // La chiave della texture di una posa: `maurizio` è quella a riposo.
@@ -101,7 +104,13 @@ export function drawMaurizio(ctx, rng, posa = 'riposo') {
     plushPart(ctx, ellipse(160 + side * arm.dx, arm.y, arm.rx, arm.ry, side * arm.giro), rng, C.pelo);
   }
 
-  // Le orecchie, poi la testa che le copre a metà.
+  // Le orecchie, poi la testa che le copre a metà. Con la testa alzata (guarda) tutto questo blocco sale: per le
+  // altre pose non si aggiunge nessuna chiamata di disegno, così le immagini approvate restano uguali.
+  const testaSu = pose.testa ?? 0;
+  if (testaSu) {
+    ctx.save();
+    ctx.translate(0, testaSu);
+  }
   for (const side of [-1, 1]) {
     plushPart(ctx, ellipse(160 + side * 86, 72, 42, 40), rng, C.pelo);
     const inner = ellipse(160 + side * 80, 78, 24, 22);
@@ -134,20 +143,23 @@ export function drawMaurizio(ctx, rng, posa = 'riposo') {
   }
 
   // Gli occhi, con il riflesso. Da felice sono due archetti all'insù, come quando si sorride a occhi chiusi.
+  // Con `occhiSu` salgono nella faccia: è lo sguardo in su.
+  const su = pose.occhiSu ?? 0;
   for (const side of [-1, 1]) {
     if (pose.occhi === 'felici') {
       const cx = 160 + side * 47;
       pencilLine(ctx, smoothCurve([{ x: cx - 11, y: 138 }, { x: cx, y: 124 }, { x: cx + 11, y: 138 }], { closed: false }), rng, { closed: false, width: 4 });
       continue;
     }
-    const eye = ellipse(160 + side * 47, 134, 9, 11.5);
+    const eye = ellipse(160 + side * 47, 134 + su, 9, 11.5);
     pastelFill(ctx, eye, rng, { colore: C.inchiostro, ombra: C.inchiostro, luce: '#6b5a52' }, { volume: false, hatching: 0.5 });
     pencilLine(ctx, eye, rng, { width: 2 });
-    pastelFill(ctx, ellipse(160 + side * 47 + 3, 129.5, 3.2, 3.2), rng, { colore: C.bianco, ombra: C.bianco, luce: C.bianco }, { volume: false, hatching: 0 });
+    pastelFill(ctx, ellipse(160 + side * 47 + 3, 129.5 + su, 3.2, 3.2), rng, { colore: C.bianco, ombra: C.bianco, luce: C.bianco }, { volume: false, hatching: 0 });
   }
 
   // Le guance rosa, a pastello leggero e senza contorno.
   for (const side of [-1, 1]) {
     pastelFill(ctx, ellipse(160 + side * 70, 180, 20, 12), rng, { colore: C.guance, ombra: C.guance, luce: C.bianco }, { volume: false, alpha: 0.5 });
   }
+  if (testaSu) ctx.restore();
 }

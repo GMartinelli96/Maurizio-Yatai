@@ -33,7 +33,7 @@ test('i Clienti della logica hanno tutti i disegni, nelle quattro espressioni', 
 });
 
 test('i disegni della Serata sono nel catalogo: nuvoletta, cuoricini, Yen, stelle e le icone dei Piatti in gioco', () => {
-  for (const key of ['nuvoletta', 'cuore', 'cuore-vuoto', 'moneta', 'stella', 'stella-vuota', 'onigiri', 'onigiri-icona', 'ombra']) {
+  for (const key of ['nuvoletta', 'cuore', 'cuore-vuoto', 'moneta', 'stella', 'stella-vuota', 'onigiri', 'onigiri-icona', 'ombra', 'pof']) {
     assert.ok(DISEGNI[key], `manca la texture ${key}`);
   }
 });

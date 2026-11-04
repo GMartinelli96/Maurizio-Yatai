@@ -1,0 +1,40 @@
+[
+  { "resize": "360x640" },
+  { "goto": "?sviluppo=serata&seme=prova" },
+  { "advance": 100 },
+  { "expect": "serata.serie", "equals": 0 },
+  { "expect": "serata.serieMax", "equals": 0 },
+  { "expect": "serata.moltiplicatoreProssimo", "equals": 1 },
+
+  { "gioca": { "finoA": 20000, "passoMs": 1100 } },
+  { "expect": "serata.serie", "atLeast": 3 },
+  { "expect": "serata.serieMax", "atLeast": 3 },
+  { "expect": "serata.moltiplicatoreProssimo", "atLeast": 1.3 },
+  { "expect": "serata.manciaDaSerie", "atLeast": 15 },
+  { "shot": "serie-1-sale" },
+
+  { "tapPath": "posti.0" },
+  { "advance": 100 },
+  { "expect": "eventi.contati.scuoteTesta", "atLeast": 1 },
+  { "expect": "eventi.contati.serieSpezzata", "equals": 1 },
+  { "expect": "serata.serie", "equals": 0 },
+  { "expect": "serata.serieMax", "atLeast": 3 },
+  { "expect": "serata.moltiplicatoreProssimo", "equals": 1 },
+  { "shot": "serie-2-servizio-a-vuoto" },
+
+  { "gioca": { "finoA": 60000, "passoMs": 1100 } },
+  { "expect": "serata.serie", "atLeast": 5 },
+  { "expect": "serata.moltiplicatoreProssimo", "equals": 1.5 },
+  { "shot": "serie-3-di-nuovo-al-tetto" },
+
+  { "gioca": { "finoA": 90000, "sbadato": true, "passoMs": 100 } },
+  { "expect": "serata.persi", "atLeast": 1 },
+  { "expect": "eventi.contati.serieSpezzata", "equals": 2 },
+  { "expect": "serata.serie", "equals": 0 },
+  { "expect": "serata.serieMax", "atLeast": 5 },
+  { "shot": "serie-4-cliente-perso" },
+
+  { "gioca": { "passoMs": 1100 } },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "expect": "serata.serieMax", "atLeast": 5 }
+]

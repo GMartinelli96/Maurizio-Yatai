@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Serata, calcolaMancia, calcolaStelle, costoPiatto, cuoriDa, espressioneDa, fasiDellaSerata, segnoDa } from '../src/serata/Serata.js';
+import { Serata, calcolaMancia, calcolaStelle, costoPiatto, cuoriDa, espressioneDa, fasiDellaSerata, moltiplicatoreSerie, segnoDa } from '../src/serata/Serata.js';
 import { TESTI } from '../src/i18n.js';
-import { CLIENTI, FRAME_MS, LAMENTO, ONDATE, PAZIENZA, PIATTI, POSTI, SERATA, SERATA_PRIMA } from '../src/config.js';
+import { CHE_STILE_BONUS, CLIENTI, FRAME_MS, LAMENTO, ONDATE, PAZIENZA, PIATTI, POSTI, SERATA, SERATA_PRIMA, SERATA_TANABATA, SERIE } from '../src/config.js';
 
 const SEC = 1000;
 
@@ -683,6 +683,49 @@ test('lo stato dice dove siamo nella curva e quanto manca alla prossima ondata',
   assert.doesNotThrow(() => JSON.stringify(serata.stato()));
 });
 
+test('il segnale: 2 s prima di ogni ondata, anche la finale, una volta sola', () => {
+  for (const seme of ['a', 'b', 'prova']) {
+    const serata = new Serata({ seed: seme });
+    const { fasi } = serata.stato().andamento;
+    const segnali = [];
+    const iniziate = [];
+    let fase = 'calma';
+    while (!serata.finita) {
+      for (const e of serata.update(10)) if (e.tipo === 'ondataInArrivo') segnali.push({ ...e, tempoMs: serata.stato().tempoMs });
+      const dopo = serata.stato().andamento;
+      if (dopo.fase !== fase) {
+        fase = dopo.fase;
+        iniziate.push({ nome: fase, tempoMs: serata.stato().tempoMs });
+      }
+    }
+    assert.deepEqual(segnali.map((s) => s.fase), ['ondata', 'finale'], `seme ${seme}: un segnale per ondata`);
+    for (const segnale of segnali) {
+      const { inizioMs } = fasi.find((f) => f.nome === segnale.fase);
+      assert.equal(inizioMs - segnale.tempoMs, segnale.traMs, 'traMs dice quanto manca davvero');
+      assert.ok(segnale.traMs <= ONDATE.avvisoSec * SEC && segnale.traMs > ONDATE.avvisoSec * SEC - 20, `seme ${seme}: il segnale arriva a ${segnale.traMs} ms dall’ondata`);
+      assert.ok(segnale.tempoMs < iniziate.find((i) => i.nome === segnale.fase).tempoMs, 'prima che l’ondata cominci');
+    }
+  }
+});
+
+test('lo stato sa se il segnale è acceso: dal segnale all’inizio dell’ondata, e non nella calma né in ondata', () => {
+  const serata = new Serata({ seed: 'a' });
+  const { fasi } = serata.stato().andamento;
+  const acceso = () => serata.stato().andamento.inAvviso;
+  avanza(serata, fasi[1].inizioMs - ONDATE.avvisoSec * SEC - 100);
+  assert.equal(acceso(), false, 'prima del segnale');
+  avanza(serata, 150);
+  assert.equal(acceso(), true, 'dopo il segnale');
+  avanza(serata, ONDATE.avvisoSec * SEC);
+  assert.equal(serata.stato().andamento.fase, 'ondata');
+  assert.equal(acceso(), false, 'a ondata cominciata il segnale è finito');
+  // Il segnale della finale: acceso nel respiro, spento nella finale (non ci sono altre ondate).
+  avanza(serata, fasi[3].inizioMs - ONDATE.avvisoSec * SEC + 100 - serata.stato().tempoMs);
+  assert.equal(acceso(), true, 'segnale della finale');
+  avanza(serata, ONDATE.avvisoSec * SEC);
+  assert.deepEqual([serata.stato().andamento.fase, acceso()], ['finale', false]);
+});
+
 test('con le ondate lo stesso seme dà la stessa Serata fino all’ultimo dato, e un altro seme sposta l’ondata', () => {
   const gioca = (seed) => {
     const serata = new Serata({ seed });
@@ -691,6 +734,171 @@ test('con le ondate lo stesso seme dà la stessa Serata fino all’ultimo dato, 
   };
   assert.equal(gioca('ondata-1'), gioca('ondata-1'));
   assert.notEqual(JSON.parse(gioca('ondata-1')).andamento.fasi[1].inizioMs, JSON.parse(gioca('ondata-2')).andamento.fasi[1].inizioMs);
+});
+
+// --- La Serie (ticket 34) ---
+
+// Il Cliente che c'è adesso, o il primo che arriva (quello con più cuoricini, se ce ne sono due).
+function prossimoCliente(serata) {
+  for (let i = 0; i < 4000; i++) {
+    const presenti = serata.stato().posti.filter((p) => p.cliente);
+    if (presenti.length) return presenti.sort((a, b) => b.cliente.pazienzaMs - a.cliente.pazienzaMs)[0];
+    avanza(serata, 50);
+  }
+  throw new Error('nessun Cliente è arrivato');
+}
+
+// Serve subito il prossimo Cliente, a Pazienza piena. `cucina`: prepara davvero l'Ordine (3 tocchi per onigiri, e la
+// Spesa); altrimenti il Bancone ha già tutto. Restituisce gli eventi del servizio.
+function serviSubito(serata, { cucina = false } = {}) {
+  const { posto, cliente } = prossimoCliente(serata);
+  if (cucina) for (const piatto of cliente.ordine) { assert.equal(piatto, 'onigiri'); preparaOnigiri(serata); }
+  else serata.bancone = [...cliente.ordine];
+  return serata.servi(posto);
+}
+
+const servitoDi = (eventi) => eventi.find((e) => e.tipo === 'servito');
+
+test('la Serie moltiplica la Mancia: ×1 per il primo, +10% per ogni Cliente di fila oltre il primo, tetto ×1,5 a 6', () => {
+  assert.deepEqual([SERIE.manciaPerCliente, SERIE.moltiplicatoreMax], [0.1, 1.5]);
+  const attesi = [[0, 1], [1, 1], [2, 1.1], [3, 1.2], [4, 1.3], [5, 1.4], [6, 1.5], [7, 1.5], [20, 1.5]];
+  for (const [serie, moltiplicatore] of attesi) {
+    assert.ok(Math.abs(moltiplicatoreSerie(serie) - moltiplicatore) < 1e-9, `Serie ${serie}: ×${moltiplicatoreSerie(serie)}, atteso ×${moltiplicatore}`);
+  }
+  assert.equal(calcolaMancia(100, 5, 1.5), 75);
+  assert.equal(calcolaMancia(100, 5), 50, 'senza moltiplicatore la Mancia è quella di sempre');
+});
+
+test('la Serie sale di 1 a ogni Ordine servito e la Mancia sale con lei, fino al tetto', () => {
+  const serata = new Serata({ seed: 'serie' });
+  const manciaAttesa = [50, 55, 60, 65, 70, 75, 75, 75];
+  manciaAttesa.forEach((mancia, i) => {
+    const servito = servitoDi(serviSubito(serata));
+    assert.equal(servito.serie, i + 1);
+    assert.equal(servito.cuori, PAZIENZA.hearts, 'servito a Pazienza piena');
+    assert.equal(servito.mancia, mancia, `Ordine ${i + 1} di fila`);
+    assert.equal(serata.stato().serie, i + 1);
+  });
+  assert.equal(serata.stato().serieMax, 8);
+});
+
+test('un Ordine da più Piatti conta uno solo nella Serie', () => {
+  const serata = new Serata({ seed: 'serie', piattiPerOrdine: { min: 2, max: 2 } });
+  const servito = servitoDi(serviSubito(serata));
+  assert.equal(servito.piatti.length, 2);
+  assert.equal(servito.serie, 1);
+});
+
+test('la Serie non tocca il prezzo né la Spesa: solo la Mancia', () => {
+  const serata = new Serata({ seed: 'serie' });
+  let vendite = 0;
+  for (let i = 1; i <= 4; i++) {
+    const servito = servitoDi(serviSubito(serata, { cucina: true }));
+    assert.equal(servito.prezzo, PIATTI.onigiri.price, 'il prezzo resta quello del Piatto');
+    assert.equal(servito.mancia, calcolaMancia(servito.prezzo, servito.cuori, moltiplicatoreSerie(i)));
+    vendite += servito.prezzo + servito.mancia;
+    assert.equal(serata.stato().spesa, i * costoPiatto('onigiri'), 'la Spesa è solo quella degli Ingredienti');
+  }
+  const stato = serata.stato();
+  assert.equal(stato.vendite, vendite);
+  assert.equal(stato.incasso, vendite - stato.spesa);
+  assert.equal(stato.manciaDaSerie, 5 + 10 + 15, 'la Mancia in più è +5, +10 e +15 Yen per il 2°, 3° e 4° Cliente');
+});
+
+test('la Serie si spezza con un Cliente perso: un evento con quanto valeva, e il prossimo Ordine riparte da ×1', () => {
+  const serata = new Serata({ seed: 'serie' });
+  for (let i = 0; i < 3; i++) serviSubito(serata);
+  assert.equal(serata.stato().serie, 3);
+  const eventi = avanza(serata, 40 * SEC);
+  const spezzate = eventi.filter((e) => e.tipo === 'serieSpezzata');
+  assert.equal(spezzate.length, 1, 'si spezza una volta sola, non a ogni Cliente perso dopo');
+  assert.deepEqual([spezzate[0].serie, spezzate[0].motivo], [3, 'clientePerso']);
+  const i = eventi.indexOf(spezzate[0]);
+  assert.deepEqual([eventi[i - 1].tipo, eventi[i - 1].posto], ['clienteVaVia', spezzate[0].posto], 'viene subito dopo il Cliente che se ne va');
+  assert.equal(serata.stato().serie, 0);
+  assert.equal(serata.stato().serieMax, 3, 'la più lunga resta');
+  const dopo = servitoDi(serviSubito(serata));
+  assert.deepEqual([dopo.serie, dopo.moltiplicatoreSerie], [1, 1]);
+});
+
+test('la Serie si spezza con un servizio a vuoto: Bancone vuoto o Ordine incompleto', () => {
+  for (const bancone of [[], ['onigiri']]) {
+    const serata = new Serata({ seed: 'serie', piattiPerOrdine: { min: 2, max: 2 } });
+    servitoDi(serviSubito(serata));
+    servitoDi(serviSubito(serata));
+    assert.equal(serata.stato().serie, 2);
+    const { posto } = prossimoCliente(serata);
+    serata.bancone = [...bancone];
+    const eventi = serata.servi(posto);
+    assert.deepEqual(tipi(eventi), ['scuoteTesta', 'serieSpezzata']);
+    assert.deepEqual([eventi[1].serie, eventi[1].motivo, eventi[1].posto], [2, 'servizioAVuoto', posto]);
+    assert.equal(serata.stato().serie, 0);
+  }
+});
+
+test('senza Serie un servizio a vuoto fa solo scuotere la testa, e toccare un Posto vuoto non la spezza', () => {
+  const serata = new Serata({ seed: 'serie' });
+  const { posto } = prossimoCliente(serata);
+  assert.deepEqual(tipi(serata.servi(posto)), ['scuoteTesta'], 'a Serie zero non c’è niente da spezzare');
+  servitoDi(serviSubito(serata));
+  const vuoto = serata.stato().posti.findIndex((p) => !p.cliente);
+  assert.deepEqual(tipi(serata.servi(vuoto)), ['postoVuoto']);
+  assert.equal(serata.stato().serie, 1);
+});
+
+test('un tocco fuori ordine su una Scorta e un Piatto bruciato non spezzano la Serie', () => {
+  const serata = new Serata({ seed: 'serie', ...SERATA_TANABATA });
+  const eventi = [];
+  const { posto } = prossimoCliente(serata);
+  serata.bancone = ['onigiri', 'onigiri', 'takoyaki', 'takoyaki'];
+  eventi.push(...serata.servi(posto));
+  assert.equal(serata.stato().serie, 1);
+
+  eventi.push(...serata.tocca('alga'));
+  assert.ok(tipi(eventi).includes('ingredienteRifiutato'), 'un Ingrediente fuori ordine');
+  // Un takoyaki dimenticato sulla piastra: si brucia, poi va nel cestino.
+  for (const scorta of ['pastella', 'polpo']) eventi.push(...serata.tocca(scorta));
+  eventi.push(...avanza(serata, 5.2 * SEC));
+  eventi.push(...serata.tocca('salsa'));
+  eventi.push(...avanza(serata, (PIATTI.takoyaki.burnAfterSec + 0.5) * SEC));
+  eventi.push(...serata.tocca('piastra'));
+  assert.ok(tipi(eventi).includes('piattoBruciato') && tipi(eventi).includes('nelCestino'), 'il Piatto si è bruciato ed è nel cestino');
+
+  assert.ok(!tipi(eventi).includes('serieSpezzata'));
+  assert.equal(serata.stato().serie, 1);
+  assert.equal(serata.stato().bruciati, 1);
+});
+
+test('la Serie si moltiplica con Che stile! e gli altri moltiplicatori della Mancia, senza un tetto unico', () => {
+  const serata = new Serata({ seed: 'serie', moltiplicatoriMancia: [1 + CHE_STILE_BONUS, 1.1] });
+  const altri = (1 + CHE_STILE_BONUS) * 1.1;
+  const mance = [];
+  for (let i = 1; i <= 7; i++) {
+    const servito = servitoDi(serviSubito(serata));
+    mance.push(servito.mancia);
+    assert.equal(servito.mancia, calcolaMancia(100, 5, moltiplicatoreSerie(i) * altri));
+  }
+  assert.equal(mance[0], 66, '1,2 × 1,1 senza Serie: 50 → 66');
+  assert.equal(mance[5], 99, 'a 6 di fila ×1,5 × 1,32: 50 → 99, sopra il ×1,5 della sola Serie (75)');
+  assert.ok(mance[5] > 75);
+  // La Mancia in più della Serie conta solo la parte della Serie.
+  assert.equal(serata.stato().manciaDaSerie, mance.reduce((s, m) => s + m, 0) - 7 * 66);
+});
+
+test('la Serie è nello stato, parte da zero a ogni Serata e a fine Serata dà la più lunga', () => {
+  assert.deepEqual(
+    (({ serie, serieMax, manciaDaSerie, moltiplicatoreProssimo }) => ({ serie, serieMax, manciaDaSerie, moltiplicatoreProssimo }))(new Serata({ seed: 'serie' }).stato()),
+    { serie: 0, serieMax: 0, manciaDaSerie: 0, moltiplicatoreProssimo: 1 },
+  );
+  const serata = new Serata({ seed: 'serie' });
+  for (let i = 0; i < 3; i++) serviSubito(serata);
+  const stato = JSON.parse(JSON.stringify(serata.stato()));
+  assert.deepEqual([stato.serie, stato.serieMax, stato.manciaDaSerie], [3, 3, 5 + 10]);
+  assert.ok(Math.abs(stato.moltiplicatoreProssimo - 1.3) < 1e-9, 'il quarto Ordine di fila avrà ×1,3');
+  const fine = avanza(serata, SERATA.durationSec * SEC).find((e) => e.tipo === 'serataFinita');
+  assert.deepEqual([fine.serieMax, fine.manciaDaSerie], [3, 15]);
+  // Una Serata nuova non porta niente dalla vecchia.
+  assert.equal(new Serata({ seed: 'serie' }).stato().serieMax, 0);
 });
 
 test('i testi della fine Serata esistono in italiano, inglese e giapponese', () => {
@@ -709,11 +917,13 @@ const SEMI = ['a', 'b', 'c', 'd', 'e', 'f'];
 
 // Un giocatore che fa una mossa ogni `reazioneMs`: serve chi ha l'Ordine sul Bancone (prima chi ha meno
 // cuoricini), porta sul Bancone i Piatti pronti, completa quelli cominciati con la Scorta che manca e
-// ne comincia di nuovi solo se servono.
-function giocaServata(reazioneMs, seed) {
-  const serata = new Serata({ seed });
+// ne comincia di nuovi solo se servono. Non sbaglia mai una mossa, quindi non spezza mai la Serie. Restituisce lo
+// stato finale con in più quanti Clienti sono arrivati. `opzioni` sono quelle di Serata (posti, pazienzaMoltiplicatore...).
+function giocaServata(reazioneMs, seed, opzioni = {}) {
+  const serata = new Serata({ seed, ...opzioni });
+  let arrivati = 0;
   for (let t = 10; !serata.finita; t += 10) {
-    serata.update(10);
+    arrivati += serata.update(10).filter((e) => e.tipo === 'clienteArrivato').length;
     if (t % reazioneMs !== 0) continue;
     const stato = serata.stato();
     const servibili = stato.posti
@@ -729,10 +939,12 @@ function giocaServata(reazioneMs, seed) {
     else if (cominciata) serata.tocca(cominciata.prossimo);
     else if (libera && bisogni > stato.bancone.length + inCorso) serata.tocca(libera.prossimo);
   }
-  return serata.stato();
+  return { ...serata.stato(), arrivati };
 }
 
-const mediaIncasso = (reazioneMs) => SEMI.reduce((somma, seme) => somma + giocaServata(reazioneMs, seme).incasso, 0) / SEMI.length;
+// La media su 6 semi (a-f) di un dato dello stato finale.
+const media = (campo, reazioneMs, opzioni) => SEMI.reduce((somma, seme) => somma + giocaServata(reazioneMs, seme, opzioni)[campo], 0) / SEMI.length;
+const mediaIncasso = (reazioneMs, opzioni) => media('incasso', reazioneMs, opzioni);
 
 test('l’Incasso dipende dalla bravura: chi è più rapido incassa molto di più (ticket 05: prima era uguale per tutti)', () => {
   const rapido = mediaIncasso(BRAVURA.rapido);
@@ -742,14 +954,43 @@ test('l’Incasso dipende dalla bravura: chi è più rapido incassa molto di pi�
   assert.ok(rapido >= attento, `rapido ${rapido}, attento ${attento}`);
 });
 
-test('la prima Serata sul netto: un giocatore lento prende ★, uno attento ★★, ★★★ è per i rapidi (valori provvisori, ticket 29)', () => {
+// I bersagli del ticket 34 (misure della mappa yatai-serata-che-cambia): Hanami, 3 Posti, obiettivo 1920, media di 6
+// semi. Con la Serie il bot attento, che non sbaglia mai, tiene la Serie al tetto e prende ★★★: è voluto. I numeri
+// sono provvisori fino al ticket 29. Misure con la Serie: rapido ~5005, attento ~3325, lento ~2171 (mappa: 5053, 3323, 2146).
+test('Hanami, 3 Posti, media di 6 semi: il rapido prende ★★★, il lento ★ ma non ★★, l’attento sta in mezzo', () => {
   const [uno, due, tre] = new Serata({ seed: 'a' }).stato().sogliaStelle;
-  const lento = mediaIncasso(BRAVURA.lento);
-  const attento = mediaIncasso(BRAVURA.attento);
+  assert.deepEqual([uno, due, tre], [1920, 2496, 3072], 'l’obiettivo dell’Hanami resta 1920');
   const rapido = mediaIncasso(BRAVURA.rapido);
-  assert.ok(lento >= uno, `lento ${lento}: sotto ★ (${uno})`);
-  assert.ok(attento >= due && attento < tre, `attento ${attento}: non è ★★ (${due}-${tre})`);
+  const attento = mediaIncasso(BRAVURA.attento);
+  const lento = mediaIncasso(BRAVURA.lento);
   assert.ok(rapido >= tre, `rapido ${rapido}: non arriva a ★★★ (${tre})`);
+  assert.ok(lento >= uno && lento < due, `lento ${lento}: deve prendere ★ ma non ★★ (${uno}-${due})`);
+  assert.ok(attento >= lento * 1.4, `attento ${attento}: deve incassare almeno il 40% più del lento (${lento})`);
+  assert.ok(attento < rapido, `attento ${attento}: deve incassare meno del rapido (${rapido})`);
+});
+
+test('chi è rapido serve molti più Clienti del lento, ma non tutti quelli che arrivano', () => {
+  const serviti = (reazioneMs) => media('serviti', reazioneMs);
+  assert.ok(serviti(BRAVURA.rapido) - serviti(BRAVURA.lento) >= 15, `rapido ${serviti(BRAVURA.rapido)}, lento ${serviti(BRAVURA.lento)}`);
+  assert.ok(media('serviti', BRAVURA.rapido) < media('arrivati', BRAVURA.rapido), 'il rapido non deve servirli tutti');
+});
+
+test('la Mancia della Serie non decide da sola le stelle: al più il 15% dell’Incasso del rapido', () => {
+  const extra = media('manciaDaSerie', BRAVURA.rapido);
+  const incasso = mediaIncasso(BRAVURA.rapido);
+  assert.ok(extra > 0, 'il rapido deve avere una Serie');
+  assert.ok(extra <= incasso * 0.15, `Mancia della Serie ${extra} su ${incasso}: ${((100 * extra) / incasso).toFixed(1)}%`);
+});
+
+test('con 4 Posti e col ventaglio (+20% di Pazienza) il lento prende ★ e il rapido ★★★ (il ventaglio è un’ipotesi: i numeri veri sono del ticket 35)', () => {
+  const [uno, , tre] = new Serata({ seed: 'a' }).stato().sogliaStelle;
+  const casi = { '4 Posti': { posti: 4 }, ventaglio: { pazienzaMoltiplicatore: 1.2 }, '4 Posti e ventaglio': { posti: 4, pazienzaMoltiplicatore: 1.2 } };
+  for (const [nome, opzioni] of Object.entries(casi)) {
+    const lento = mediaIncasso(BRAVURA.lento, opzioni);
+    const rapido = mediaIncasso(BRAVURA.rapido, opzioni);
+    assert.ok(lento >= uno, `${nome}: il lento fa ${lento}, sotto ★ (${uno})`);
+    assert.ok(rapido >= tre, `${nome}: il rapido fa ${rapido}, sotto ★★★ (${tre})`);
+  }
 });
 
 test('con le ondate nessun seme è impossibile per il lento: ogni Serata gli dà ★ e non si ferma a metà', () => {

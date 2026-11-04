@@ -18,6 +18,9 @@ export default class MaurizioActor {
     this.tween = null;
     this.timer = null;
     this.contaAzioni = 0;
+    // L'allerta (il segnale prima di un'ondata): finché dura, la posa di base è 'guarda' e non 'riposo'.
+    this.inAllerta = false;
+    this.timerAllerta = null;
   }
 
   // Mette Maurizio con il fondo del riquadro in (x, y), alla scala data.
@@ -43,7 +46,25 @@ export default class MaurizioActor {
     this.azioneInCorso = null;
     const { x, y, scale } = this.base;
     this.sprite.setPosition(x, y).setScale(scale);
-    this.setPosa('riposo');
+    this.setPosa(this.posaDiBase());
+  }
+
+  // La posa quando non fa niente: a riposo, o con la testa alzata se c'è l'allerta.
+  posaDiBase() {
+    return this.inAllerta ? 'guarda' : 'riposo';
+  }
+
+  // Il segnale di un'ondata: Maurizio alza la testa per durataMs. Un'azione (cuoci, servi...) ha la precedenza
+  // finché dura la sua posa, poi torna la testa alzata. Una nuova allerta riparte da capo.
+  allerta(durataMs) {
+    this.timerAllerta?.remove();
+    this.inAllerta = true;
+    if (!this.azioneInCorso) this.setPosa('guarda');
+    this.timerAllerta = this.scene.time.delayedCall(durataMs, () => {
+      this.timerAllerta = null;
+      this.inAllerta = false;
+      if (!this.azioneInCorso) this.setPosa('riposo');
+    });
   }
 
   // Dopo ogni spostamento o azione: fermo e poi il respiro.
@@ -93,19 +114,20 @@ export default class MaurizioActor {
     this.timer = this.scene.time.delayedCall(cfg.tienePosa, () => {
       this.timer = null;
       this.azioneInCorso = null;
-      this.setPosa('riposo');
+      this.setPosa(this.posaDiBase());
     });
   }
 
   destroy() {
     this.tween?.remove();
     this.timer?.remove();
+    this.timerAllerta?.remove();
     this.shadow.destroy();
     this.sprite.destroy();
   }
 
   getTextState() {
     const { x, y, scale } = this.base;
-    return { x: Math.round(x), y: Math.round(y), scala: Number(scale.toFixed(3)), posa: this.posa, azione: this.azioneInCorso, azioni: this.contaAzioni };
+    return { x: Math.round(x), y: Math.round(y), scala: Number(scale.toFixed(3)), posa: this.posa, azione: this.azioneInCorso, azioni: this.contaAzioni, allerta: this.inAllerta };
   }
 }
