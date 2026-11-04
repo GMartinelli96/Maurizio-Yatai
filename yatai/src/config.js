@@ -433,22 +433,22 @@ export const SERATA_AKI = {
 // La Serata dello Yuki Matsuri (ticket 08): arriva il ramen, il Piatto da 4 tocchi, e con lui gli Ordini da 3 Piatti
 // (GAME_SPEC.md, tabella dei Matsuri). Ha tutti e 5 i Piatti, quindi tutte le Postazioni e tutte le Scorte (16).
 //
-// ATTENZIONE: gli Ordini sono da 1 o 2 Piatti, non da 3 come dice la tabella dei Matsuri. Con 3 Piatti per Ordine (uno su
-// tre) la Serata non regge: il ramen da 4 tocchi e 6 s di cottura, con la Pazienza di 15 s nelle ondate, non si fa in tempo
-// per un Ordine da 12 tocchi, e il bot rapido incassa meno che nell'Aki (media di 12 semi: rapido 4617, attento 2675, lento
-// 2617, da −365 a 9610, 5 Piatti bruciati a Serata e 1250 Yen di Spreco). La logica gli Ordini da 3 li fa (basta max: 3, c'è
-// un test); gli Ordini da 3 Piatti nello Yuki vanno ripensati nel ticket 29 (per esempio più rari, o con più Pazienza).
-// Misurato col bot con 1 o 2 Piatti per Ordine (media di 24 semi, con le ondate), obiettivo provvisorio fino al ticket 29:
-//   un tocco ogni 1,4 s (lento)    3210 Yen (da 435 a 4910)    serviti 11,4
-//   un tocco ogni 1,0 s (attento)  5488 Yen (da 1320 a 7180)   serviti 16,6
-//   un tocco ogni 0,6 s (rapido)   8458 Yen (da 5195 a 10905)  serviti 21,2
-// Con obiettivo 3000 le soglie sono ★ 3000, ★★ 3900, ★★★ 4800: il lento ha ★ con il 7% di margine (ma con un'oscillazione
-// grande: il ramen costa 200 Yen, e lo Spreco pesa), l'attento che non sbaglia mai ★★★ (come nell'Hanami e nell'Hanabi) e il
-// rapido ★★★.
+// Gli Ordini sono da 1 o 2 Piatti, e il 15% (`tre`) da 3: è la modalità difficile dello Yuki. Con 3 Piatti per Ordine in un
+// Ordine su tre la Serata non regge (il ramen da 4 tocchi e 6 s di cottura, con la Pazienza di 15 s nelle ondate, non si fa
+// in tempo per un Ordine da 12 tocchi: il bot rapido incassa meno che nell'Aki, 5 Piatti bruciati a Serata e 1250 Yen di
+// Spreco, fino a −365), e una Pazienza più lunga per ogni Piatto in più non aiuta (i Posti restano pieni). Con il 15%
+// (a 25% iniziano le Serate in rosso) la Serata regge ed è più dura.
+// Misurato col bot (media di 24 semi, con le ondate), obiettivo provvisorio fino al ticket 29:
+//   un tocco ogni 1,4 s (lento)    3244 Yen (da 1583 a 5177)   serviti 10,3 (da 3 Piatti 0,4), 1,0 bruciati
+//   un tocco ogni 1,0 s (attento)  4342 Yen (da 1334 a 6947)   serviti 12,8 (da 3 Piatti 0,9), 2,3 bruciati
+//   un tocco ogni 0,6 s (rapido)   7527 Yen (da 2166 a 11074)  serviti 18,0 (da 3 Piatti 1,7), 2,1 bruciati
+// Senza Ordini da 3 (tre: 0) erano 3297, 5701 e 9072, e l'attento prendeva ★★★ senza sforzo. Con obiettivo 3000 le soglie sono
+// ★ 3000, ★★ 3900, ★★★ 4800: il lento ha ★ con l'8% di margine (con un'oscillazione grande: il ramen costa 200 Yen e lo Spreco
+// pesa), l'attento ★★ e il rapido ★★★.
 export const SERATA_YUKI = {
   obiettivo: 3000,
   piatti: ['onigiri', 'takoyaki', 'kakigori', 'taiyaki', 'ramen'],
-  piattiPerOrdine: { min: 1, max: 2 },
+  piattiPerOrdine: { min: 1, max: 2, tre: 0.15 },
 };
 
 // Come è fatta la Serata di ogni Matsuri. Dal passo 8 ogni Serata avrà la sua; per ora ne ha una il
@@ -628,6 +628,20 @@ export const CLIENTI = {
     quota: 0.25,
     maxAiPosti: 2,
   },
+};
+
+// I Vizi del cast che non dipendono dalla cucina (GLOSSARY.md, Vizio; GAME_SPEC.md, "Clienti e Disturbatori"; ticket 09).
+// La chiave è il peluche del cast (CLIENTI.cast): chi non ha una voce qui arriva senza Vizio (gli altri quattro, finché
+// non c'è il ticket 10). Valori di partenza, da ritoccare nel ticket 29.
+//   carlotta  paga `prezzoX` volte il prezzo dell'Ordine (la Mancia segue il prezzo) ma è impaziente: la sua Pazienza
+//             dura `pazienzaX` di quella normale, in calma e in ondata (i cuoricini sono sempre 5, ognuno più corto)
+//   balosso   finché è a un Posto la Pazienza di tutti, lui compreso, scende a `ritmoPazienza` della velocità normale
+//   nella     a ogni Ordine servito lascia lo Yen d'oro con probabilità `yenDOro`: la sua Mancia vale `manciaX` volte
+//             (si moltiplica con la Serie e con gli altri moltiplicatori, senza un tetto in più)
+export const VIZI = {
+  carlotta: { prezzoX: 2, pazienzaX: 0.6 },
+  balosso: { ritmoPazienza: 0.6 },
+  nella: { yenDOro: 0.35, manciaX: 3 },
 };
 
 // Le Ondate (GAME_SPEC.md, "La Serata"; ticket 34): la Serata ha un andamento invece di un solo intervallo di

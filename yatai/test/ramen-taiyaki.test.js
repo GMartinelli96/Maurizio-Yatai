@@ -422,7 +422,7 @@ test('l’Aki Matsuri e lo Yuki Matsuri hanno la loro Serata, con il taiyaki e c
   assert.equal(SERATE.yuki, SERATA_YUKI);
   assert.deepEqual(SERATA_AKI.piatti, ['onigiri', 'takoyaki', 'kakigori', 'taiyaki']);
   assert.deepEqual(SERATA_YUKI.piatti, Object.keys(PIATTI));
-  assert.equal(SERATA_YUKI.piattiPerOrdine.max, 2, 'con 3 Piatti per Ordine la Serata dello Yuki non regge (vedi config.js): da ripensare nel ticket 29');
+  assert.deepEqual(SERATA_YUKI.piattiPerOrdine, { min: 1, max: 2, tre: 0.15 }, 'Ordini da 1 o 2 Piatti e il 15% da 3 (vedi config.js: con uno su tre la Serata non regge)');
 });
 
 // --- Le Serate dell'Aki e dello Yuki (passo 4): il bot, valori provvisori fino al ticket 29 ---
@@ -436,13 +436,40 @@ test('nell’Aki e nello Yuki la bravura conta: chi è più rapido incassa di pi
   }
 });
 
-test('nell’Aki e nello Yuki la Spesa torna: Incasso = Vendite − Spesa, e chi prende i Piatti in tempo non ne brucia quasi nessuno', () => {
-  for (const config of [SERATA_AKI, SERATA_YUKI]) {
+test('nell’Aki e nello Yuki la Spesa torna: Incasso = Vendite − Spesa, e nell’Aki chi prende i Piatti in tempo non ne brucia quasi nessuno (nello Yuki, con gli Ordini da 3, qualcuno si brucia)', () => {
+  for (const [config, massimoBruciati] of [[SERATA_AKI, 2], [SERATA_YUKI, 6]]) {
     for (const seme of ['a', 'b', 'c']) {
       const stato = giocaServata(config, BRAVURA.attento, seme);
       assert.equal(stato.incasso, stato.vendite - stato.spesa);
       assert.ok(stato.spreco >= 0 && stato.spreco <= stato.spesa);
-      assert.ok(stato.bruciati <= 2, `${stato.bruciati} bruciati`);
+      assert.ok(stato.bruciati <= massimoBruciati, `${stato.bruciati} bruciati`);
     }
   }
+});
+
+test('nello Yuki circa il 15% degli Ordini è da 3 Piatti e nessuno da più; nelle altre Serate non ce ne sono, e il resto non cambia', () => {
+  const conta = (config) => {
+    const quanti = [0, 0, 0, 0];
+    for (const seme of 'abcdefghijklmnopqrstuvwx'.split('')) {
+      const serata = new Serata({ seed: seme, ...config });
+      for (let t = 0; t < 120 * SEC; t += 100) {
+        for (const evento of serata.update(100)) if (evento.tipo === 'clienteArrivato') quanti[evento.cliente.ordine.length] += 1;
+      }
+    }
+    return quanti;
+  };
+  const yuki = conta(SERATA_YUKI);
+  const totale = yuki[1] + yuki[2] + yuki[3];
+  assert.equal(yuki[0], 0);
+  assert.ok(yuki[3] / totale > 0.09 && yuki[3] / totale < 0.21, `Ordini da 3: ${yuki[3]} su ${totale}`);
+  assert.ok(yuki[1] > 0 && yuki[2] > 0);
+  for (const config of [SERATA_HANABI, SERATA_AKI]) assert.equal(conta(config)[3], 0, 'senza tre non ci sono Ordini da 3');
+  // Senza `tre` non si estrae un numero in più: stessi Ordini di prima.
+  const ordini = (config) => {
+    const serata = new Serata({ seed: 'x', ...config });
+    const lista = [];
+    for (let t = 0; t < 60 * SEC; t += 100) for (const e of serata.update(100)) if (e.tipo === 'clienteArrivato') lista.push(e.cliente.ordine.join('+'));
+    return lista;
+  };
+  assert.deepEqual(ordini({ ...SERATA_YUKI, piattiPerOrdine: { min: 1, max: 2, tre: 0 } }), ordini({ ...SERATA_YUKI, piattiPerOrdine: { min: 1, max: 2 } }));
 });

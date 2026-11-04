@@ -4,18 +4,18 @@
 
 **Blocked by:** 06 (Il takoyaki: cottura, bruciatura e Fumo), 37 (Il takoyaki a tocchi: la cottura a metà della Ricetta)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Le tre Scorte dello sciroppo (fragola, melone, matcha) si toccano direttamente, senza menu: dopo il ghiaccio e la macinatura (2 s), il tocco su una delle tre mette quello sciroppo nel Piatto; le altre due, a Piatto finito o scelta già fatta, non fanno niente (con test).
-- [ ] Le tre Scorte e le tre icone si distinguono anche in uno screenshot in bianco e nero, guardato.
-- [ ] Servire la variante sbagliata non funziona: il Cliente scuote la testa (con test).
-- [ ] La regola delle Scorte per variante è in GAME_SPEC.md (Come si gioca, scritta il 2026-11-03) e il codice la rispetta.
-- [ ] I tasti per le Scorte delle varianti arrivano con il ticket 26; qui basta tocco e mouse.
-- [ ] Il kakigōri ha la sua Ricetta (ghiaccio 20, [2 s], sciroppo 60, prendi: 3 tocchi), la cottura di 2 s tra ghiaccio e sciroppo, e il tetto di 4 tocchi vale con un test sul conteggio. Ordine sbagliato: non succede niente (come in GAME_SPEC.md).
-- [ ] La Ricetta in icone sotto la macchina del ghiaccio mostra lo sciroppo della variante scelta; il prossimo Ingrediente è evidenziato.
-- [ ] Gli Ingredienti e i costi del kakigōri sono in `config.js` (bozza in GAME_SPEC.md, da regolare qui e nel 29); la variante è un Ingrediente diverso e il costo del Piatto resta circa un terzo del prezzo.
-- [ ] I numeri nuovi sono nel file di configurazione e i testi nuovi sono in tutte e tre le lingue.
-- [ ] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero, lo stato nuovo compare in `window.render_game_to_text()` e la console non ha errori.
+- [x] Le tre Scorte dello sciroppo (fragola, melone, matcha) si toccano direttamente, senza menu: dopo il ghiaccio e la macinatura (2 s), il tocco su una delle tre mette quello sciroppo nel Piatto; le altre due, a Piatto finito o scelta già fatta, non fanno niente (con test).
+- [x] Le tre Scorte e le tre icone si distinguono anche in uno screenshot in bianco e nero, guardato.
+- [x] Servire la variante sbagliata non funziona: il Cliente scuote la testa (con test).
+- [x] La regola delle Scorte per variante è in GAME_SPEC.md (Come si gioca, scritta il 2026-11-03) e il codice la rispetta.
+- [x] I tasti per le Scorte delle varianti arrivano con il ticket 26; qui basta tocco e mouse.
+- [x] Il kakigōri ha la sua Ricetta (ghiaccio 20, [2 s], sciroppo 60, prendi: 3 tocchi), la cottura di 2 s tra ghiaccio e sciroppo, e il tetto di 4 tocchi vale con un test sul conteggio. Ordine sbagliato: non succede niente (come in GAME_SPEC.md).
+- [x] La Ricetta in icone sotto la macchina del ghiaccio mostra lo sciroppo della variante scelta; il prossimo Ingrediente è evidenziato.
+- [x] Gli Ingredienti e i costi del kakigōri sono in `config.js` (bozza in GAME_SPEC.md, da regolare qui e nel 29); la variante è un Ingrediente diverso e il costo del Piatto resta circa un terzo del prezzo.
+- [x] I numeri nuovi sono nel file di configurazione e i testi nuovi sono in tutte e tre le lingue.
+- [x] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero, lo stato nuovo compare in `window.render_game_to_text()` e la console non ha errori.
 
 ## Comments
 
@@ -33,3 +33,13 @@ Due punti che la mappa non chiudeva, **decisi con Giuseppe il 2026-11-03** e scr
 ### Dal ticket 37 (2026-11-03)
 
 Il 37 scrive la cottura come **passo della Ricetta** nei dati (`{ cotturaSec: N }` tra gli Ingredienti), con la logica già generale: qui basta `ricetta: [ghiaccio, { cotturaSec: 2 }, sciroppo]` per ogni variante, senza cambiare `Serata.js`. La cottura del kakigōri, dopo il ghiaccio, funziona come quella del takoyaki dopo il polpo.
+
+### Chiuso (2026-11-04)
+
+Unito in `main` con `99130de` (fast-forward del ramo `ticket-08`, che conteneva i quattro commit del 07: `abb7eec`, `fa1d1c1`, `bd98d14`, `2d2cdfb`; worktree `../maurizio-t07`). La prova di Giuseppe sul telefono vero è andata bene. Riverificato dopo il merge con main (ticket 34 e 10): `npm test` verde e i 25 scenari di `yatai/scenari/` senza errori in console, tra cui `serata-kakigori.json` e `serata-kakigori-variante.json` a 360×640.
+
+- **Logica**: `PIATTI.kakigori.ricetta` ha il passo `{ unoDi: [...] }` per lo sciroppo; un Piatto con variante si chiama `kakigori-fragola` negli Ordini, sul Bancone e nei disegni (`idPiatto`, `piattoBase`, `varianteDi`, `scorteDi`, `tocchiPerPiatto`, `costoPiatto` in `Serata.js`). Test in `test/kakigori.test.js`: la scelta tra tre dopo la macinatura, le altre Scorte che non fanno niente, la variante sbagliata (il Cliente scuote la testa), Ordini misti, il tetto di 3 tocchi, lo Spreco.
+- **Disegni**: `src/disegni/kakigori.js` (ghiaccio, tre sciroppi, tre Piatti in due misure, l'icona del passo a scelta). In bianco e nero si distinguono per la forma (bottiglia alta, barattolo largo, latta), per la frutta (fragola a cuore, fetta di melone, foglie di tè) e per la luminosità dello sciroppo (~150, ~215, ~100: un test le tiene a 40 punti l'una dall'altra); il foglio in bianco e nero è stato guardato.
+- **Scaffali**: oltre 7 voci (Scorte e Postazioni) le Scorte escono dalla fila e stanno ai lati di Maurizio, in due colonne per lato; la misura per 16 Scorte è stata chiusa nel ticket 08.
+- **Bot condiviso**: `test/bot.js` (varianti, bravura, semi), `SERATA_HANABI` con obiettivo provvisorio 2900 (lento ★ con il 7% di margine, rapido ★★★).
+- **Da sapere**: lo sciroppo è l'ultimo passo, quindi appena scelto il Piatto è pronto e copre le icone della Ricetta: la variante scelta si vede sul Piatto pronto e per un attimo nella Ricetta, non resta lì. I tasti per le Scorte delle varianti sono del ticket 26.

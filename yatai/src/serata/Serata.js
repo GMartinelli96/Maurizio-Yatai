@@ -13,6 +13,7 @@ import {
   SERATA_MOTORE,
   SERATA_PRIMA,
   SERIE,
+  VIZI,
 } from '../config.js';
 import { createRng } from '../kit/rng.js';
 import { scegliDelCast } from './cast.js';
@@ -49,8 +50,10 @@ import { scegliDelCast } from './cast.js';
 //   banconePieno      { postazione }       il Piatto pronto resta sulla Postazione
 //   scuoteTesta       { posto, mancano }   sul Bancone manca qualcosa dell'Ordine (un servizio a vuoto: spezza la Serie)
 //   postoVuoto        { posto }
-//   servito           { posto, clienteId, tipoCliente, piatti, prezzo, cuori, mancia, totale, serie, moltiplicatoreSerie }
-//                     `serie` è la Serie con questo Ordine dentro; `moltiplicatoreSerie` quanto ha moltiplicato la Mancia
+//   servito           { posto, clienteId, tipoCliente, piatti, prezzo, cuori, mancia, totale, serie, moltiplicatoreSerie, yenDOro }
+//                     `serie` è la Serie con questo Ordine dentro; `moltiplicatoreSerie` quanto ha moltiplicato la Mancia;
+//                     `prezzo` è quello pagato (il doppio per Carlotta); `yenDOro` dice se Nella ha lasciato lo Yen d'oro
+//   yenDOro           { posto, clienteId, yen }   con 'servito', solo se Nella lascia lo Yen d'oro: `yen` è la sua Mancia, già triplicata
 //   serieSpezzata     { serie, motivo: 'clientePerso' | 'servizioAVuoto', posto }   `serie` è quanto valeva: il "pof" morbido.
 //                                              Solo se valeva qualcosa (a zero non c'è niente da spezzare)
 //   mancia            { posto, yen, cuori }   solo se la Mancia non è zero
@@ -180,7 +183,8 @@ export class Serata {
   //   seed              il seme dell'arrivo dei Clienti
   //   obiettivo         Incasso per ★
   //   piatti            i Piatti disponibili (le Postazioni si ricavano da qui)
-  //   piattiPerOrdine   { min, max }
+  //   piattiPerOrdine   { min, max, tre? }   `tre` (da 0 a 1) è la quota degli Ordini da 3 Piatti, sopra min e max: se manca
+  //                     non si pesa niente (e non si estrae un numero in più, quindi le Serate di prima restano identiche)
   //   banconeCapienza   quanti Piatti stanno sul Bancone
   //   moltiplicatoriMancia  i moltiplicatori della Mancia che non sono la Serie (Che stile!, Yen d'oro, desideri),
   //                     per ora nessuno: si moltiplicano tra loro e con la Serie, senza un tetto unico
@@ -238,6 +242,10 @@ export class Serata {
     // peluche del cast arrivato, che non torna di seguito.
     this.rngCast = createRng(`${seed}/cast`);
     this.ultimoCast = null;
+    // I Vizi (VIZI) hanno il loro generatore, per le scelte a caso (lo Yen d'oro di Nella): non toccano né gli arrivi
+    // né il cast. `ritmo` è la velocità con cui scende la Pazienza di tutti in questo istante (1, o meno se c'è Balosso).
+    this.rngVizi = createRng(`${seed}/vizi`);
+    this.ritmo = 1;
 
     this.posti = Array.from({ length: posti }, () => ({ cliente: null, liberoDaMs: 0 }));
     this.bancone = [];
@@ -271,6 +279,7 @@ export class Serata {
     this.tempoMs += passoMs;
     this.avvisaOndate(eventi);
     for (const postazione of this.postazioni) this.cuoci(postazione, passoMs, eventi);
+    this.ritmo = this.ritmoPazienza();
     this.posti.forEach((posto, indice) => this.aspetta(posto, indice, passoMs, eventi));
     this.faiArrivare(eventi);
     if (this.tempoMs >= this.durataMs) {
@@ -452,10 +461,16 @@ export class Serata {
 
   // --- Clienti ---
 
+  // Quanto scende in fretta la Pazienza di tutti adesso: 1, o meno se ai Posti c'è chi la rallenta (Balosso). I cuoricini e
+  // il Lamento seguono la Pazienza rimasta, quindi scendono più piano da soli.
+  ritmoPazienza() {
+    return this.posti.reduce((ritmo, { cliente }) => ritmo * (VIZI[cliente?.vizio]?.ritmoPazienza ?? 1), 1);
+  }
+
   aspetta(posto, indice, passoMs, eventi) {
     const cliente = posto.cliente;
     if (!cliente) return;
-    cliente.pazienzaMs = Math.max(0, cliente.pazienzaMs - passoMs);
+    cliente.pazienzaMs = Math.max(0, cliente.pazienzaMs - passoMs * this.ritmo);
     const cuori = cuoriDa(cliente.pazienzaMs, cliente.pazienzaTotaleMs, this.cuoriMax);
     if (cuori !== cliente.cuori) {
       const prima = cliente.cuori;
@@ -533,13 +548,14 @@ export class Serata {
     // La Pazienza si decide all'arrivo e non cambia più: chi arriva in ondata tiene i suoi 15 s anche se
     // l'ondata finisce mentre aspetta.
     const pazienzaSec = this.faseA(this.tempoMs).ondata ? ONDATE.pazienzaSec : PAZIENZA.durationSec;
+    // Il Vizio è il nome del peluche del cast, se in VIZI ha una voce; gli altri arrivano senza (null).
+    const vizio = Object.hasOwn(VIZI, tipo) ? tipo : null;
     // Ogni cuoricino dura un quinto della Pazienza di base, comunque siano i cuoricini (this.cuoriMax / PAZIENZA.hearts).
-    const pazienzaTotaleMs = Math.round(pazienzaSec * (this.cuoriMax / PAZIENZA.hearts) * this.pazienzaMoltiplicatore * SEC);
+    const pazienzaTotaleMs = Math.round(pazienzaSec * (this.cuoriMax / PAZIENZA.hearts) * this.pazienzaMoltiplicatore * (VIZI[vizio]?.pazienzaX ?? 1) * SEC);
     posto.cliente = {
       id: this.prossimoId++,
       tipo,
-      // Il Vizio del Cliente, o null: i Clienti di passaggio non ne hanno, e il cast lo avrà dal passo 3 del ticket 09.
-      vizio: null,
+      vizio,
       ordine,
       pazienzaMs: pazienzaTotaleMs,
       pazienzaTotaleMs,
@@ -553,8 +569,8 @@ export class Serata {
   // (kakigori-melone). Il generatore si usa per la variante solo se il Piatto ne ha, così le Serate senza
   // varianti restano identiche a prima, a parità di seme.
   creaOrdine() {
-    const { min, max } = this.piattiPerOrdine;
-    const quanti = min + Math.floor(this.rng() * (max - min + 1));
+    const { min, max, tre = 0 } = this.piattiPerOrdine;
+    const quanti = tre > 0 && this.rng() < tre ? 3 : min + Math.floor(this.rng() * (max - min + 1));
     return Array.from({ length: quanti }, () => {
       const piatto = this.piatti[Math.floor(this.rng() * this.piatti.length)];
       const { varianti } = PIATTI[piatto];
@@ -584,14 +600,19 @@ export class Serata {
     }
 
     this.bancone = rimasti;
-    const prezzo = cliente.ordine.reduce((somma, piatto) => somma + PIATTI[piattoBase(piatto)].price, 0);
+    const vizio = VIZI[cliente.vizio];
+    // Carlotta paga il doppio: il prezzo dell'Ordine (e la Mancia, che ne è una parte) ma non la Spesa.
+    const prezzo = cliente.ordine.reduce((somma, piatto) => somma + PIATTI[piattoBase(piatto)].price, 0) * (vizio?.prezzoX ?? 1);
     const cuori = cliente.cuori;
     // La Serie conta questo Ordine prima di pagare la Mancia: il primo di fila vale ×1, il secondo ×1,1 e così via.
     this.serie += 1;
     this.serieMax = Math.max(this.serieMax, this.serie);
     const moltiplicatoreDellaSerie = moltiplicatoreSerie(this.serie);
-    const mancia = calcolaMancia(prezzo, cuori, moltiplicatoreDellaSerie * this.moltiplicatoreAltri, this.cuoriMax);
-    this.manciaDaSerie += mancia - calcolaMancia(prezzo, cuori, this.moltiplicatoreAltri, this.cuoriMax);
+    // Lo Yen d'oro di Nella, a volte, triplica la sua Mancia; vale come gli altri moltiplicatori e non conta come Serie.
+    const yenDOro = vizio?.yenDOro !== undefined && this.rngVizi() < vizio.yenDOro;
+    const altri = this.moltiplicatoreAltri * (yenDOro ? vizio.manciaX : 1);
+    const mancia = calcolaMancia(prezzo, cuori, moltiplicatoreDellaSerie * altri, this.cuoriMax);
+    this.manciaDaSerie += mancia - calcolaMancia(prezzo, cuori, altri, this.cuoriMax);
     const totale = prezzo + mancia;
     this.incasso += totale;
     this.vendite += totale;
@@ -612,8 +633,10 @@ export class Serata {
         totale,
         serie: this.serie,
         moltiplicatoreSerie: moltiplicatoreDellaSerie,
+        yenDOro,
       },
     ];
+    if (yenDOro) eventi.push({ tipo: 'yenDOro', posto: indicePosto, clienteId: cliente.id, yen: mancia });
     if (mancia > 0) eventi.push({ tipo: 'mancia', posto: indicePosto, yen: mancia, cuori });
     eventi.push({ tipo: 'moneta', posto: indicePosto, yen: totale });
     return eventi;
@@ -646,6 +669,8 @@ export class Serata {
       serieMax: this.serieMax,
       moltiplicatoreProssimo: moltiplicatoreSerie(this.serie + 1),
       manciaDaSerie: this.manciaDaSerie,
+      // Quanto scende in fretta la Pazienza di tutti adesso: 1, o meno finché Balosso è a un Posto (VIZI).
+      ritmoPazienza: this.ritmoPazienza(),
       posti: this.posti.map(({ cliente }, posto) => ({
         posto,
         cliente: cliente && {

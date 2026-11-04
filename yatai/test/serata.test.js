@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Serata, calcolaMancia, calcolaStelle, costoPiatto, cuoriDa, espressioneDa, fasiDellaSerata, moltiplicatoreSerie, segnoDa } from '../src/serata/Serata.js';
 import { TESTI } from '../src/i18n.js';
-import { CHE_STILE_BONUS, CLIENTI, FRAME_MS, LAMENTO, ONDATE, PAZIENZA, PIATTI, POSTI, SERATA, SERATA_PRIMA, SERATA_TANABATA, SERIE } from '../src/config.js';
+import { CHE_STILE_BONUS, CLIENTI, FRAME_MS, LAMENTO, ONDATE, PAZIENZA, PIATTI, POSTI, SERATA, SERATA_PRIMA, SERATA_TANABATA, SERIE, VIZI } from '../src/config.js';
 
 const SEC = 1000;
 
@@ -277,7 +277,8 @@ test('aspettare riduce la Mancia: servito a metà Pazienza dà meno che a Pazien
 test('quando la Pazienza finisce il Cliente se ne va imbronciato e non paga', () => {
   const serata = conPrimoCliente();
   const eventi = avanza(serata, PAZIENZA.durationSec * SEC + 100);
-  const via = eventi.find((e) => e.tipo === 'clienteVaVia');
+  // Il primo Cliente (a Posto 0): il cast più impaziente (Carlotta) può essersene andato prima, ma non è lui.
+  const via = eventi.find((e) => e.tipo === 'clienteVaVia' && e.clienteId === 1);
   assert.ok(via, 'il Cliente non se n è andato');
   assert.equal(via.motivo, 'pazienza');
   assert.equal(via.posto, 0);
@@ -286,7 +287,9 @@ test('quando la Pazienza finisce il Cliente se ne va imbronciato e non paga', ()
   const stato = serata.stato();
   assert.equal(stato.incasso, 0);
   assert.equal(stato.serviti, 0);
-  assert.equal(stato.persi, 1);
+  // Nei 25 secondi può essersene andato anche un Cliente del cast più impaziente (Carlotta): contano tutti quelli che se ne sono andati.
+  assert.equal(stato.persi, eventi.filter((e) => e.tipo === 'clienteVaVia').length);
+  assert.ok(stato.persi >= 1);
   assert.equal(stato.fase, 'in corso', 'nessun game over a metà Serata');
 });
 
@@ -536,7 +539,7 @@ function arriviSenzaAttese(seed) {
     for (const e of serata.update(10)) {
       if (e.tipo !== 'clienteArrivato') continue;
       const { andamento, tempoMs, posti } = serata.stato();
-      arrivi.push({ tempoMs, fase: andamento.fase, inOndata: andamento.inOndata, pazienzaTotaleMs: posti[e.posto].cliente.pazienzaTotaleMs });
+      arrivi.push({ tempoMs, fase: andamento.fase, inOndata: andamento.inOndata, vizio: posti[e.posto].cliente.vizio, pazienzaTotaleMs: posti[e.posto].cliente.pazienzaTotaleMs });
     }
     for (const { posto, cliente } of serata.stato().posti) if (cliente) serata.servi(posto);
   }
@@ -583,7 +586,9 @@ test('la Pazienza si decide all’arrivo: 15 s in ondata, 25 s altrimenti', () =
   const arrivi = arriviSenzaAttese('b');
   assert.ok(arrivi.some((a) => a.inOndata) && arrivi.some((a) => !a.inOndata));
   for (const a of arrivi) {
-    assert.equal(a.pazienzaTotaleMs, (a.inOndata ? ONDATE.pazienzaSec : PAZIENZA.durationSec) * SEC, `arrivo a ${a.tempoMs} in ${a.fase}`);
+    // Chi ha un Vizio sulla Pazienza (Carlotta, più impaziente) la ha ridotta di quanto dicono i dati: gli altri 15 o 25 s.
+    const normale = (a.inOndata ? ONDATE.pazienzaSec : PAZIENZA.durationSec) * SEC;
+    assert.equal(a.pazienzaTotaleMs, Math.round(normale * (VIZI[a.vizio]?.pazienzaX ?? 1)), `arrivo a ${a.tempoMs} in ${a.fase}`);
   }
 });
 
