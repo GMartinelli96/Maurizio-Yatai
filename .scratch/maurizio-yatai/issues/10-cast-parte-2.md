@@ -7,6 +7,7 @@
 **Status:** ready-for-agent
 
 - [ ] Marcella fa il Bis restando al Posto, e il Bis si serve come un Ordine nuovo.
+- [ ] Il Bis conta due nella Serie (ticket 34): è un Ordine nuovo, quindi servirlo dà +1 da sé, e il Bis si somma all'Ordine di prima. Un test lo prova: Marcella serve l'Ordine e poi il Bis di fila, e `serie` sale di 2 (e `serieMax` con lei).
 - [ ] I Vizi di Marcella, Filippo, Pasquale ed Ebi Furai hanno ciascuno il suo test.
 - [ ] Le regole legate al Matsuri ricevono il Matsuri come dato e sono testate sia per il Matsuri in cui valgono sia per gli altri.
 - [ ] Ogni Vizio si capisce guardando (per esempio Ebi Furai che si spaventa).
