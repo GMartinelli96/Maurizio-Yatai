@@ -177,7 +177,8 @@ export class Serata {
   //   seed              il seme dell'arrivo dei Clienti
   //   obiettivo         Incasso per ★
   //   piatti            i Piatti disponibili (le Postazioni si ricavano da qui)
-  //   piattiPerOrdine   { min, max }
+  //   piattiPerOrdine   { min, max, tre? }   `tre` (da 0 a 1) è la quota degli Ordini da 3 Piatti, sopra min e max: se manca
+  //                     non si pesa niente (e non si estrae un numero in più, quindi le Serate di prima restano identiche)
   //   banconeCapienza   quanti Piatti stanno sul Bancone
   //   moltiplicatoriMancia  i moltiplicatori della Mancia che non sono la Serie (Che stile!, Yen d'oro, desideri),
   //                     per ora nessuno: si moltiplicano tra loro e con la Serie, senza un tetto unico
@@ -534,8 +535,8 @@ export class Serata {
   // (kakigori-melone). Il generatore si usa per la variante solo se il Piatto ne ha, così le Serate senza
   // varianti restano identiche a prima, a parità di seme.
   creaOrdine() {
-    const { min, max } = this.piattiPerOrdine;
-    const quanti = min + Math.floor(this.rng() * (max - min + 1));
+    const { min, max, tre = 0 } = this.piattiPerOrdine;
+    const quanti = tre > 0 && this.rng() < tre ? 3 : min + Math.floor(this.rng() * (max - min + 1));
     return Array.from({ length: quanti }, () => {
       const piatto = this.piatti[Math.floor(this.rng() * this.piatti.length)];
       const { varianti } = PIATTI[piatto];
