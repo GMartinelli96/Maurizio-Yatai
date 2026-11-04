@@ -55,7 +55,7 @@ test('il primo Cliente arriva a un Posto con un Ordine di onigiri e la Pazienza 
   const eventi = avanza(serata, CLIENTI.primoArrivoSec * SEC + 50);
   const arrivo = eventi.find((e) => e.tipo === 'clienteArrivato');
   assert.ok(arrivo, 'nessun Cliente è arrivato');
-  assert.ok(CLIENTI.passaggio.includes(arrivo.cliente.tipo));
+  assert.ok([...CLIENTI.passaggio, ...CLIENTI.cast.membri].includes(arrivo.cliente.tipo), 'né di passaggio né del cast');
   assert.deepEqual(arrivo.cliente.ordine, ['onigiri']);
   const cliente = serata.stato().posti[arrivo.posto].cliente;
   assert.equal(cliente.cuori, PAZIENZA.hearts);
