@@ -63,7 +63,8 @@ import { scegliDelCast } from './cast.js';
 //   clienteVaVia      { posto, clienteId, motivo: 'pazienza' }   imbronciato, senza pagare
 //   ondataInArrivo    { fase, traMs }         ONDATE.avvisoSec prima di ogni ondata (anche la finale), una volta per ondata: da qui
 //                                              parte il segnale visivo (Maurizio alza la testa, la campanella oscilla); il suono è del ticket 23
-//   serataFinita      { incasso, vendite, spesa, spreco, obiettivo, stelle, serviti, persi, serieMax, manciaDaSerie }
+//   serataFinita      { incasso, vendite, spesa, spreco, obiettivo, stelle, serviti, persi, serieMax, manciaDaSerie, perPiatto }
+//                     `perPiatto` è la tabella del recap (vedi perPiatto())
 
 const SEC = 1000;
 
@@ -232,6 +233,9 @@ export class Serata {
     // I Piatti bruciati in questa Serata (per i Titoli e per i test). I loro Ingredienti sono già Spesa e non
     // finiscono mai in un Piatto servito, quindi sono Spreco senza bisogno di altro (vedi spreco()).
     this.bruciati = 0;
+    // I conti per Piatto (la tabella del recap), una voce per Piatto del menù: la variante conta nel suo Piatto.
+    // `spesa` e `spesaServita` sono come quelle della Serata, `vendite` il prezzo pagato più la sua parte di Mancia.
+    this.conti = Object.fromEntries(piatti.map((piatto) => [piatto, { fatti: 0, serviti: 0, spesa: 0, spesaServita: 0, vendite: 0 }]));
     // La Serie: Ordini serviti di fila adesso, la più lunga di questa Serata e quanti Yen di Mancia in più ha dato
     // (rispetto a una Mancia senza Serie). Si azzera a ogni Serata e non si salva.
     this.serie = 0;
@@ -297,6 +301,7 @@ export class Serata {
         persi: this.persi,
         serieMax: this.serieMax,
         manciaDaSerie: this.manciaDaSerie,
+        perPiatto: this.perPiatto(),
       });
     }
   }
@@ -330,6 +335,20 @@ export class Serata {
     return this.spesa - this.spesaServita;
   }
 
+  // La tabella del recap: una riga per Piatto del menù, nell'ordine del menù.
+  //   fatti    Piatti arrivati pronti (anche quelli poi bruciati o rimasti sul Bancone)
+  //   serviti  Piatti finiti in un Ordine pagato
+  //   costo    la Spesa degli Ingredienti usati per quel Piatto
+  //   sprecati gli Yen di quegli Ingredienti che non sono finiti in un Piatto servito (anche i Piatti non finiti)
+  //   vendite  quanto è entrato per quel Piatto: il suo prezzo (doppio per Carlotta) più la sua parte di Mancia
+  // Le somme di costo, sprecati e vendite sono la Spesa, lo Spreco e le Vendite della Serata.
+  perPiatto() {
+    return this.piatti.map((piatto) => {
+      const { fatti, serviti, spesa, spesaServita, vendite } = this.conti[piatto];
+      return { piatto, fatti, serviti, costo: spesa, sprecati: spesa - spesaServita, vendite };
+    });
+  }
+
   // Quanto dura il passo di cottura a cui è la Postazione (zero se il passo non è una cottura).
   cotturaMs(postazione) {
     return (PIATTI[postazione.piatto].ricetta[postazione.passo]?.cotturaSec ?? 0) * SEC;
@@ -344,6 +363,7 @@ export class Serata {
     postazione.cottoMs = 0;
     const prossimo = ricetta[postazione.passo];
     if (!prossimo) {
+      this.conti[postazione.piatto].fatti += 1;
       postazione.stato = 'pronto';
       postazione.prontoMs = 0;
       postazione.avvisato = false;
@@ -450,6 +470,7 @@ export class Serata {
     }
     const { costo, variante } = voce(scelta);
     this.spesa += costo;
+    this.conti[scelta.piatto].spesa += costo;
     this.incasso -= costo;
     scelta.fatti += 1;
     // La variante scelta resta nel Piatto: serve a dargli il nome giusto quando è pronto.
@@ -617,6 +638,7 @@ export class Serata {
     this.incasso += totale;
     this.vendite += totale;
     this.spesaServita += cliente.ordine.reduce((somma, piatto) => somma + costoPiatto(piatto), 0);
+    this.contaOrdine(cliente.ordine, vizio?.prezzoX ?? 1, mancia);
     this.serviti++;
     this.liberaPosto(posto);
 
@@ -642,6 +664,22 @@ export class Serata {
     return eventi;
   }
 
+  // Un Ordine pagato entra nei conti per Piatto. La Mancia è una sola per l'Ordine: la dividiamo tra i suoi Piatti in
+  // proporzione al prezzo, e il resto dell'arrotondamento va all'ultimo, così le Vendite per Piatto sommano esatte.
+  contaOrdine(ordine, prezzoX, mancia) {
+    const prezzi = ordine.map((piatto) => PIATTI[piattoBase(piatto)].price * prezzoX);
+    const totalePrezzi = prezzi.reduce((somma, prezzo) => somma + prezzo, 0);
+    let datoDiMancia = 0;
+    ordine.forEach((id, i) => {
+      const conto = this.conti[piattoBase(id)];
+      const parte = i === ordine.length - 1 ? mancia - datoDiMancia : Math.floor((mancia * prezzi[i]) / totalePrezzi);
+      datoDiMancia += parte;
+      conto.serviti += 1;
+      conto.spesaServita += costoPiatto(id);
+      conto.vendite += prezzi[i] + parte;
+    });
+  }
+
   // Lo stato in forma di dati semplici (solo numeri, stringhe, liste): basta per
   // window.render_game_to_text() e per i test. Per giocare senza guardare lo schermo.
   stato() {
@@ -659,6 +697,8 @@ export class Serata {
       serviti: this.serviti,
       persi: this.persi,
       bruciati: this.bruciati,
+      // La tabella del recap, una riga per Piatto del menù (vedi perPiatto()).
+      perPiatto: this.perPiatto(),
       // La Serie: Ordini di fila adesso, la più lunga di stasera, di quanto moltiplicherà la Mancia del prossimo
       // Ordine servito e quanti Yen di Mancia in più ha dato finora.
       // cuoriMax: quanti cuoricini ha la Pazienza di ogni Cliente in questa Serata (5, 6 con il Posto in più).
