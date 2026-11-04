@@ -60,6 +60,12 @@ export default {
   endInTasca: 'In tasca',
   endServiti: 'Clienti serviti',
   endPersi: 'Andati via',
+  // La tabella per Piatto del recap: sprecati, costo e vendite sono in Yen, fatti e serviti sono Piatti.
+  endTabellaFatti: 'Fatti',
+  endTabellaServiti: 'Serviti',
+  endTabellaSprecati: 'Sprecati',
+  endTabellaCosto: 'Costo',
+  endTabellaVendite: 'Vendite',
   // Il commento di Maurizio, secondo le stelle (da 0 a 3).
   endVoto0: 'Domani andrà meglio!',
   endVoto1: 'Bella serata!',

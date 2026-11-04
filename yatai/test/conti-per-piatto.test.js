@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CLIENTI, FRAME_MS, PIATTI, SERATA_YUKI, VIZI } from '../src/config.js';
+import { CLIENTI, FRAME_MS, PIATTI, RECAP, SERATA_YUKI, VIZI } from '../src/config.js';
 import { Serata, costoPiatto } from '../src/serata/Serata.js';
 import { BRAVURA, SEMI, giocaServata } from './bot.js';
 
@@ -137,4 +137,13 @@ test('in una Serata intera tutti e 5 i Piatti compaiono con qualcosa di fatto (a
   const sommaFatti = Object.fromEntries(MENU.map((p) => [p, 0]));
   for (const seme of SEMI) for (const r of giocaServata(SERATA_YUKI, BRAVURA.rapido, seme).perPiatto) sommaFatti[r.piatto] += r.fatti;
   for (const piatto of MENU) assert.ok(sommaFatti[piatto] > 0, `${piatto} mai fatto`);
+});
+
+test('le colonne del recap stanno dentro il pannello e non si toccano', () => {
+  const { colonne, margine, nomeLarghezza } = RECAP.tabella;
+  const passo = colonne[1] - colonne[0];
+  colonne.forEach((x, i) => i && assert.equal(x - colonne[i - 1], passo));
+  assert.ok(colonne.at(-1) + passo / 2 <= RECAP.pannello.w / 2 - margine + 4, 'l\'ultima colonna esce dal pannello');
+  // Il nome del Piatto finisce prima della prima colonna.
+  assert.ok(-RECAP.pannello.w / 2 + margine + nomeLarghezza <= colonne[0] - passo / 2 + 4, 'il nome tocca la prima colonna');
 });

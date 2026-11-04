@@ -476,6 +476,24 @@ export const COMANDI = {
   rigioca: ['Enter', 'Space'],
 };
 
+// Il recap di fine Serata (src/scenes/SerataScene.js, costruisciFine; ticket 06). Misure in pixel di gioco, dall'alto del
+// pannello. La tabella per Piatto sta sotto i totali: una riga per Piatto del menù, con le colonne fatti, serviti,
+// sprecati, costo e vendite. `colonne` sono i centri delle cinque colonne a destra, dal centro del pannello.
+export const RECAP = {
+  pannello: { w: 650, h: 1180 },
+  tabella: {
+    cima: 766,
+    passo: 38,
+    margine: 28,
+    nomeLarghezza: 150,
+    colonne: [-100, -12, 76, 164, 252],
+    corpo: 26,
+    corpoIntestazione: 22,
+    // Gli Yen sprecati di un Piatto, se ce ne sono: un rosso caldo, mai acceso.
+    colorePerdita: '#b4565f',
+  },
+};
+
 export const RISCONTRI = {
   // Un frame lungo (scheda in secondo piano, telefono lento) non fa saltare mezza Serata: la
   // scena non fa avanzare la logica di più di così per frame.
