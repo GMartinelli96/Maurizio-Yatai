@@ -4,6 +4,7 @@
 import { MATSURI } from '../config.js';
 import { DISEGNI, drawEntry, panelDrawing, panelKey } from '../disegni/catalogo.js';
 import { DISEGNI_CAST } from '../disegni/cast.js';
+import { DISEGNI_DISTURBATORI, texturePer } from '../disegni/disturbatori.js';
 import { chiaviTema, disegniTema } from '../disegni/sfondi/index.js';
 import { hashString } from './rng.js';
 
@@ -30,6 +31,20 @@ export function generateCast(scene) {
   for (const [key, entry] of Object.entries(DISEGNI_CAST)) {
     if (scene.textures.exists(key)) continue;
     ensureTexture(scene, key, entry);
+    nuove += 1;
+  }
+  return { ms: Math.round(performance.now() - inizio), nuove };
+}
+
+// Genera i disegni dei Disturbatori che una Serata ha (`tipi`: chiavi di DISTURBATORI), se non ci sono già: sono pochi e
+// piccoli, ma non servono a chi gioca senza, quindi non stanno nel catalogo dell'avvio. Ritorna i millisecondi spesi e quante
+// ne sono nate.
+export function generateDisturbatori(scene, tipi) {
+  const inizio = performance.now();
+  let nuove = 0;
+  for (const key of texturePer(tipi)) {
+    if (scene.textures.exists(key)) continue;
+    ensureTexture(scene, key, DISEGNI_DISTURBATORI[key]);
     nuove += 1;
   }
   return { ms: Math.round(performance.now() - inizio), nuove };
