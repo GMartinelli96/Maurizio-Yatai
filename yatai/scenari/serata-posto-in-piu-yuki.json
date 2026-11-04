@@ -1,0 +1,25 @@
+[
+  { "resize": "360x640" },
+  { "goto": "?sviluppo=bottega&yen=3000" },
+  { "advance": 300 },
+  { "tapPath": "voci.0.compra" },
+  { "advance": 400 },
+  { "expect": "voci.0.livello", "equals": 1 },
+
+  { "goto": "?sviluppo=serata&seme=prova&matsuri=yuki" },
+  { "advance": 100 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "matsuri", "equals": "yuki" },
+  { "expect": "serata.posti.length", "equals": 4 },
+  { "expect": "serata.cuoriMax", "equals": 6 },
+  { "expect": "posti.length", "equals": 4 },
+  { "expect": "serata.scorte.15.id", "equals": "naruto" },
+  { "expect": "postazioni.0.w", "atLeast": 88 },
+  { "expect": "postazioni.15.h", "atLeast": 88 },
+  { "expect": "postazioni.20.w", "atLeast": 120 },
+  { "expect": "maurizio.fascia.w", "atLeast": 224 },
+
+  { "gioca": { "finoA": 20000, "sbadato": true } },
+  { "expect": "clienti.0.stato", "equals": "attesa" },
+  { "shot": "yuki-posto-in-piu-4-posti-16-scorte" }
+]

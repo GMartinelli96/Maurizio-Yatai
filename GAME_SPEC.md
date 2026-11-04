@@ -35,7 +35,7 @@ I termini in grassetto sono definiti in [GLOSSARY.md](./GLOSSARY.md). Le idee ri
     - **Varianti** (decisione del 2026-11-03): la variante è l'Ingrediente che distingue il Piatto, e ha una Scorta per ciascuna (sciroppo di fragola, melone, matcha; ripieno di fagioli rossi, crema; uovo, naruto). Si tocca direttamente, senza menu, quindi scegliere la variante non costa tocchi in più. La Ricetta sotto la Postazione mostra l'Ingrediente della variante scelta.
     - **Dove cade la cottura** (stessa decisione), con i tocchi: onigiri riso, alga, prendi (3, senza cottura); kakigōri ghiaccio, [2 s], sciroppo, prendi (3); taiyaki pastella, ripieno, [8 s], prendi (3); takoyaki pastella, polpo, [5 s], salsa, prendi (4); ramen noodles, brodo, [6 s], uovo o naruto, prendi (4).
     - **Costo in tocchi**: con più tocchi per Cliente i Piatti con cottura pesano di più sul giocatore lento; gli arrivi, la Pazienza e gli obiettivi si ricalibrano nel ticket 29.
-- **Clienti**: l'Ordine compare nella nuvoletta, fatto di icone. La Pazienza è di 5 cuoricini, circa 25 secondi (15 per chi arriva durante un'ondata, vedi Ondate).
+- **Clienti**: l'Ordine compare nella nuvoletta, fatto di icone. La Pazienza è di 5 cuoricini, circa 25 secondi (15 per chi arriva durante un'ondata, vedi Ondate). Con il Potenziamento Posto in più i cuoricini sono 6 (30 secondi, 18 in ondata): ogni cuoricino dura sempre come prima e il sesto si aggiunge in coda; il Lamento resta a 2 e a 1 cuoricino rimasti e la Mancia piena non cambia.
   - La Mancia arriva fino a +50% del prezzo se la Pazienza è piena.
   - Se la Pazienza finisce, il Cliente se ne va imbronciato e non paga.
   - **Lamento** (decisione della mappa `yatai-economia-e-cucina`, ticket 03): mentre la Pazienza scende, la faccia del Cliente cambia con i cuoricini rimasti. Con 5, 4 e 3 è neutra; con 2 è perplessa e compare una goccia di sudore; con 1 è imbronciata e compare uno sbuffo d'aria; da servito è contenta. A ogni scalino c'è un "mmh" breve e morbido, una volta per Cliente. Niente fumetti con parole, quindi niente testi da tradurre.
@@ -123,7 +123,7 @@ Sono 5 Matsuri da 6 Serate ciascuno, disposti su una mappa. La sesta Serata è l
   - Se Maurizio indossa un Vestito del Matsuri in corso scatta **Che stile!**: la Mancia vale ×1,2 (non "+20% del prezzo"). Con la Pazienza sempre piena (e senza la Serie, che moltiplica la Mancia a sua volta) vale al più circa +9% sull'Incasso, quindi resta un premio piccolo anche con la Spesa. In Serata si vede quando è attivo.
   - Le stelle non bloccano mai l'avanzamento, nemmeno per i Vestiti: nessuna Serata ne richiede uno.
 - **Gli Yen** servono per (nella **Bottega**, insieme alla sezione Vestiti):
-  - i **Potenziamenti**: Postazione più veloce (3 livelli per ognuna delle 4 Postazioni con cottura: il tagliere dell'onigiri non cuoce, quindi non ne ha), Posto in più, ventaglio di Maurizio (+Pazienza, 3 livelli);
+  - i **Potenziamenti**: Postazione più veloce (3 livelli per ognuna delle 4 Postazioni con cottura: il tagliere dell'onigiri non cuoce, quindi non ne ha), Posto in più (il quarto Posto e un cuoricino di Pazienza in più, decisione del ticket 35), ventaglio di Maurizio (+Pazienza: +20%, +30%, +40%, anche in ondata; 3 livelli);
   - l'**Arredo**, solo estetico: tenda noren, lanterne chōchin, lanterne bonbori, campanella fūrin, statuetta del maneki-neko.
 
 ## Contorno
