@@ -5,6 +5,7 @@ import { CLIENTE_FEET, CLIENTE_SIZE, SEGNI_POS, clienteKey } from '../disegni/cl
 import { onigiriSize } from '../disegni/onigiri.js';
 import { CUORE_SIZE, NUVOLETTA } from '../disegni/serata.js';
 import { placeCliente } from '../layout/yatai.js';
+import { rettangoloCalma, sorgenteMonete } from '../serata/riscontriVizi.js';
 import { espressioneDa, segnoDa } from '../serata/Serata.js';
 
 // Lo spazio per le icone di un Ordine: da uno a tre Piatti.
@@ -23,6 +24,10 @@ const round = (n) => Math.round(n * 10) / 10;
 // ogni frame (segui()), così sta fermo sul Cliente anche quando questo scuote la testa o salta. Le sue
 // animazioni partono tutte da animaSegno(): è l'unico punto da spegnere con "riduci movimento".
 //
+// La calma di Balosso (ticket 09): finché è a un Posto i cuoricini di tutti hanno dietro un'ovale azzurra con le bollicine,
+// che respira piano. La scena dice a ogni Cliente se mostrarla (calma(si)), a ogni frame; l'unico movimento è animaCalma(),
+// da spegnere con "riduci movimento" (ticket 26): senza, l'ovale compare ferma.
+//
 // Stati: vuoto → attesa → (servito | imbronciato) → vuoto. L'uscita dura meno di POSTI.ricambioSec
 // (un test lo controlla): il Posto è libero per tutto il tempo in cui si vede il Cliente che parte.
 export default class ClienteView {
@@ -40,6 +45,10 @@ export default class ClienteView {
     this.sprite = scene.add.image(0, 0, clienteKey('tanuki', 'neutra')).setOrigin(0.5, 1).setVisible(false);
     this.nuvoletta = scene.add.image(0, 0, 'nuvoletta').setOrigin(0.5, 1).setVisible(false);
     this.icone = Array.from({ length: ICONE_MASSIME }, () => scene.add.image(0, 0, 'onigiri-icona').setVisible(false));
+    // L'ovale della calma, dietro ai cuoricini (viene creata prima di loro).
+    this.calmaImg = scene.add.image(0, 0, 'calma').setVisible(false);
+    this.calmaVista = false;
+    this.tweenCalma = null;
     this.cuoriViste = Array.from({ length: PAZIENZA.hearts }, () => scene.add.image(0, 0, 'cuore').setVisible(false));
     // Il segno del Lamento, sopra tutto il resto del Posto. `segnoMoto` è il suo movimento a parte
     // (entrata, discesa, sbuffo), in pixel del disegno del Cliente: segui() lo somma alla posizione.
@@ -72,6 +81,8 @@ export default class ClienteView {
     this.scalaNuvoletta = Math.min(nuvoletta.w / NUVOLETTA.w, nuvoletta.h / NUVOLETTA.h);
     this.nuvoletta.setPosition(nuvoletta.x + nuvoletta.w / 2, nuvoletta.y + nuvoletta.h).setScale(this.scalaNuvoletta);
     this.scalaCuore = g.cuori.lato / (CUORE_SIZE.w - 12);
+    const calma = rettangoloCalma(g.cuori.rect, this.rect, RISCONTRI.vizi.calma.margine);
+    this.calmaImg.setPosition(calma.x, calma.y).setOrigin(0.5, calma.origineY).setScale(calma.scalaX, calma.scalaY);
     this.cuoriViste.forEach((cuore, i) => cuore.setPosition(g.cuori.centri[i].x, g.cuori.centri[i].y).setScale(this.scalaCuore));
     this.evidenziato = false;
     this.sprite.setPosition(this.base.sprite.x, this.base.sprite.y).setScale(this.base.sprite.scale).setAngle(0).setAlpha(1);
@@ -113,6 +124,7 @@ export default class ClienteView {
     this.cliente = null;
     this.segno = null;
     this.mostraSegno();
+    this.calma(false);
   }
 
   // --- Animazioni (tutte dentro `this.tweens`, così si fermano insieme) ---
@@ -127,6 +139,7 @@ export default class ClienteView {
     for (const tween of this.tweens) tween.remove();
     this.tweens = [];
     this.tweensSegno = [];
+    this.tweenCalma = null;
   }
 
   // Ferma solo i movimenti del segno (stanno anche in `this.tweens`, da cui si tolgono).
@@ -344,6 +357,33 @@ export default class ClienteView {
     this.nascondi();
   }
 
+  // La calma: mostra o nasconde l'ovale dietro ai cuoricini. Si chiama a ogni frame con la stessa risposta e fa qualcosa solo
+  // quando cambia (o quando un fermaTutto ha tolto il respiro). Solo a un Cliente che aspetta: quando se ne va non c'è più.
+  calma(si) {
+    const attiva = si && this.stato === 'attesa';
+    if (attiva === this.calmaVista && (!attiva || this.tweenCalma)) return;
+    this.calmaVista = attiva;
+    this.calmaImg.setVisible(attiva);
+    this.animaCalma();
+  }
+
+  // L'unico punto da cui si muove la calma: l'ovale respira (la trasparenza sale e scende piano). Con "riduci movimento"
+  // (ticket 26) basta non chiamarlo: l'ovale resta ferma alla trasparenza piena.
+  animaCalma() {
+    this.tweenCalma?.remove();
+    this.tweens = this.tweens.filter((tween) => tween !== this.tweenCalma);
+    this.tweenCalma = null;
+    const { respiro, alpha } = RISCONTRI.vizi.calma;
+    this.calmaImg.setAlpha(alpha.a);
+    if (!this.calmaVista) return;
+    this.tweenCalma = this.tween({ targets: this.calmaImg, alpha: { from: alpha.da, to: alpha.a }, duration: respiro, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+
+  // Da dove escono le monete del suo pagamento: dalla borsetta di Carlotta, dal centro per gli altri.
+  sorgenteMonete() {
+    return sorgenteMonete({ tipo: this.cliente?.tipo, sprite: this.base.sprite, centro: this.centro() });
+  }
+
   // Il Cliente che sta per essere servito (un Piatto trascinato gli è sopra) si fa un po' più grande.
   evidenzia(si) {
     if (this.stato !== 'attesa' || !this.base) return;
@@ -359,7 +399,7 @@ export default class ClienteView {
 
   destroy() {
     this.fermaTutto();
-    for (const oggetto of [this.ombra, this.sprite, this.nuvoletta, ...this.icone, ...this.cuoriViste, this.segnoImg]) oggetto.destroy();
+    for (const oggetto of [this.ombra, this.sprite, this.nuvoletta, ...this.icone, this.calmaImg, ...this.cuoriViste, this.segnoImg]) oggetto.destroy();
   }
 
   getTextState() {
@@ -369,6 +409,9 @@ export default class ClienteView {
       posto: this.indice,
       stato: this.stato,
       tipo: this.cliente?.tipo ?? null,
+      // Il Vizio del Cliente (VIZI) e se la calma di Balosso è accesa sui suoi cuoricini.
+      vizio: this.cliente?.vizio ?? null,
+      calma: this.calmaVista,
       espressione: this.stato === 'vuoto' ? null : this.espressione,
       // Il segno del Lamento che si vede adesso: 'goccia' (2 cuoricini), 'sbuffo' (1, e quando se ne va) o null.
       segno: this.segnoImg.visible ? this.segno : null,

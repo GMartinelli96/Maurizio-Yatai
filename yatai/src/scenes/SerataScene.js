@@ -9,6 +9,7 @@ import { addButton } from '../kit/ui.js';
 import { center, fitIn, layoutHud } from '../layout/yatai.js';
 import { azioneDaTasto } from '../serata/comandi.js';
 import { corpoSerie, moneteDelPagamento, scalaSomma, serieAlTetto, serieVisibile, testoSerie } from '../serata/riscontriSerie.js';
+import { percorsoMonetaOro } from '../serata/riscontriVizi.js';
 import { Serata, idPiatto, passiDi } from '../serata/Serata.js';
 import ClienteView from '../yatai/ClienteView.js';
 import FumoView from '../yatai/FumoView.js';
@@ -68,6 +69,7 @@ export default class SerataScene extends YataiScene {
     this.pronta = false;
     this.incassoMostrato = 0;
     this.inVolo = 0;
+    this.oroInVolo = 0;
     this.visibili = 0;
     this.trascina = null;
     this.origineVolo = null;
@@ -431,7 +433,12 @@ export default class SerataScene extends YataiScene {
     if (!this.pronta) return;
     this.esegui(this.serata.update(Math.min(delta, RISCONTRI.dtMaxMs)));
     this.aggiornaVista();
-    for (const cliente of this.clienti) cliente.segui();
+    // La calma di Balosso: finché è a un Posto, i cuoricini di tutti hanno l'ovale azzurra.
+    const calma = this.serata.ritmoPazienza() < 1;
+    for (const cliente of this.clienti) {
+      cliente.calma(calma);
+      cliente.segui();
+    }
   }
 
   // Quello che si legge dallo stato a ogni frame: il Bancone, le Postazioni e il tempo. Tutto il
@@ -786,7 +793,8 @@ export default class SerataScene extends YataiScene {
         this.perMancia(evento);
         break;
       case 'yenDOro':
-        // Lo Yen d'oro di Nella: il riscontro (la moneta che cade) è del passo 4 del ticket 09; il suono, del ticket 23.
+        // Lo Yen d'oro di Nella cade dal suo Posto. Il suono si aggancia qui (ticket 23).
+        this.perYenDOro(evento);
         break;
       case 'moneta':
         this.perMoneta(evento);
@@ -968,9 +976,53 @@ export default class SerataScene extends YataiScene {
     }
   }
 
+  // Lo Yen d'oro di Nella: una moneta d'oro grande compare sopra il suo Posto e cade sul cuscino. È solo un riscontro: gli Yen
+  // li accreditano le monete di perMoneta (la Mancia tripla è già nel pagamento).
+  perYenDOro(evento) {
+    const { da, a } = percorsoMonetaOro(this.clienti[evento.posto].geom);
+    this.animaYenDOro(da, a);
+  }
+
+  // L'unico punto da cui si muove lo Yen d'oro (ticket 26: con "riduci movimento" compare già a terra, luccica e basta): entra,
+  // cade con i rimbalzi di una moneta vera girando su sé stessa, luccica all'impatto, sosta e vola all'Incasso.
+  animaYenDOro(da, a) {
+    const K = RISCONTRI.vizi.yenDOro;
+    const oro = this.add.image(da.x, da.y, 'moneta-oro').setScale(K.scala * 0.3).setAlpha(0).setDepth(PROFONDITA.volo + 1);
+    this.oroInVolo += 1;
+    this.tweens.add({ targets: oro, alpha: 1, scale: K.scala, duration: K.entra, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: oro, y: a.y, duration: K.cade, ease: 'Bounce.easeOut' });
+    this.tweens.add({ targets: oro, angle: 360 * K.giri, duration: K.cade, ease: 'Cubic.easeOut' });
+    // Il primo impatto di Bounce.easeOut cade a 1/2,75 del tempo: lì le stelline si aprono a raggiera.
+    this.time.delayedCall(K.cade / 2.75, () => {
+      for (let i = 0; i < K.scintille; i++) {
+        const angolo = (i / K.scintille) * Math.PI * 2 - Math.PI / 2;
+        const stella = this.add.image(a.x, a.y, 'stella').setScale(0.1).setDepth(PROFONDITA.volo + 2);
+        this.tweens.add({ targets: stella, x: a.x + Math.cos(angolo) * 54, y: a.y + Math.sin(angolo) * 40, scale: 0.34, duration: K.scintilla * 0.5, ease: 'Quad.easeOut' });
+        this.tweens.add({ targets: stella, alpha: 0, duration: K.scintilla * 0.5, delay: K.scintilla * 0.5, ease: 'Quad.easeIn', onComplete: () => stella.destroy() });
+      }
+    });
+    const { moneta } = this.hudLayout;
+    this.time.delayedCall(K.cade + K.sosta, () => {
+      this.tweens.add({
+        targets: oro,
+        x: moneta.x,
+        y: moneta.y,
+        scale: K.scala * 0.45,
+        duration: K.vola,
+        ease: 'Quad.easeIn',
+        onComplete: () => {
+          oro.destroy();
+          this.oroInVolo -= 1;
+        },
+      });
+    });
+  }
+
   // Il pagamento: la scritta "+150" sul Cliente e le monete che volano verso l'Incasso.
   perMoneta(evento) {
     const { x, y } = this.clienti[evento.posto].centro();
+    // Le monete escono dal centro del Cliente, ma da quella di Carlotta escono dalla borsetta.
+    const sorgente = this.clienti[evento.posto].sorgenteMonete();
     // La scritta sta dove c'era la nuvoletta (a questo punto è sparita), non sulla faccia.
     const { nuvoletta } = this.clienti[evento.posto].geom;
     const sommaY = nuvoletta.y + nuvoletta.h * 0.45;
@@ -989,7 +1041,7 @@ export default class SerataScene extends YataiScene {
     for (let i = 0; i < quante; i++) {
       const valore = i === quante - 1 ? evento.yen - quota * (quante - 1) : quota;
       // Le monete partono sparpagliate attorno al Cliente, a ventaglio.
-      const partenza = { x: x + (i - (quante - 1) / 2) * 30, y: y + 10 - (i % 2) * 22 };
+      const partenza = { x: sorgente.x + (i - (quante - 1) / 2) * 30, y: sorgente.y + 10 - (i % 2) * 22 };
       this.vola('moneta', partenza, { x: moneta.x, y: moneta.y }, {
         durata: volo,
         ritardo: i * ritardo,
@@ -1139,6 +1191,8 @@ export default class SerataScene extends YataiScene {
       clienti: this.clienti.map((cliente) => cliente.getTextState()),
       // Quanto è costato generare i disegni del cast entrando in Serata (cambia da un computer all'altro).
       generazioneCast: this.generazioneCast,
+      // I riscontri dei Vizi: quanti Yen d'oro sono in volo adesso e a quanti Clienti è accesa la calma di Balosso.
+      vizi: { yenDOro: { inVolo: this.oroInVolo, lasciati: this.contatori.yenDOro ?? 0 }, calma: this.clienti.filter((cliente) => cliente.calmaVista).length },
       // Il segnale prima di un'ondata: la campanella (dov'è e di quanti gradi è inclinata adesso, se sta oscillando).
       // Maurizio con la testa alzata è in `maurizio` (posa 'guarda', allerta true).
       campanella: { x: round(this.campanella.x), y: round(this.campanella.y), angolo: round(this.campanella.angle), oscilla: this.oscillazione !== null },
