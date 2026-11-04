@@ -24,10 +24,10 @@ const prezzo = (id, livello) => POTENZIAMENTI[id].livelli[livello - 1].prezzo;
 
 // --- Comprare ---
 
-test('la Bottega mostra i due Potenziamenti con livello e prezzo del prossimo', () => {
+test('la Bottega mostra i tre Potenziamenti con livello e prezzo del prossimo', () => {
   const voci = vociDellaBottega(conYen(0));
-  assert.deepEqual(voci.map((v) => v.id), ['postoInPiu', 'ventaglio']);
-  assert.deepEqual(voci.map((v) => [v.livello, v.livelloMax, v.prezzo]), [[0, 1, prezzo('postoInPiu', 1)], [0, 3, prezzo('ventaglio', 1)]]);
+  assert.deepEqual(voci.map((v) => v.id), ['postoInPiu', 'ventaglio', 'piastraPiuVeloce']);
+  assert.deepEqual(voci.map((v) => [v.livello, v.livelloMax, v.prezzo]), [[0, 1, prezzo('postoInPiu', 1)], [0, 3, prezzo('ventaglio', 1)], [0, 3, prezzo('piastraPiuVeloce', 1)]]);
   assert.ok(voci.every((v) => !v.comprabile), 'senza Yen non si compra niente');
 });
 

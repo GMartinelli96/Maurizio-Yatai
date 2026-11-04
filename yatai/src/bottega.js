@@ -6,7 +6,7 @@
 import { PAZIENZA, POSTI, POTENZIAMENTI } from './config.js';
 
 // Nell'ordine in cui la Bottega li mostra.
-export const ORDINE_POTENZIAMENTI = ['postoInPiu', 'ventaglio'];
+export const ORDINE_POTENZIAMENTI = ['postoInPiu', 'ventaglio', 'piastraPiuVeloce'];
 
 // A che livello è un Potenziamento: da 0 (non comprato) fino all'ultimo. Un livello salvato più alto di quelli che
 // esistono (un gioco più vecchio o un file modificato) vale l'ultimo.

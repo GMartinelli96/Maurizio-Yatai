@@ -1,0 +1,37 @@
+[
+  { "resize": "360x640" },
+  { "goto": "?sviluppo=bottega&yen=9000" },
+  { "advance": 300 },
+  { "expect": "scene", "equals": "bottega" },
+  { "expect": "voci.2.id", "equals": "piastraPiuVeloce" },
+  { "expect": "voci.2.livelloMax", "equals": 3 },
+  { "expect": "voci.2.prezzo", "equals": 1200 },
+  { "expect": "voci.2.comprabile", "equals": true },
+  { "expect": "voci.2.compra.h", "atLeast": 110 },
+  { "expect": "indietro.h", "atLeast": 110 },
+  { "shot": "piastra-1-bottega-con-tre-carte" },
+
+  { "tapPath": "voci.2.compra" },
+  { "advance": 400 },
+  { "expect": "yen", "equals": 7800 },
+  { "expect": "voci.2.livello", "equals": 1 },
+  { "expect": "voci.2.prezzo", "equals": 2500 },
+  { "shot": "piastra-2-livello-1" },
+
+  { "tapPath": "voci.2.compra" },
+  { "advance": 400 },
+  { "tapPath": "voci.2.compra" },
+  { "advance": 400 },
+  { "expect": "yen", "equals": 1300 },
+  { "expect": "voci.2.livello", "equals": 3 },
+  { "expect": "voci.2.prezzo", "equals": null },
+  { "expect": "voci.2.compra", "equals": null },
+  { "shot": "piastra-3-al-massimo" },
+
+  { "goto": "?sviluppo=serata&seme=prova&matsuri=tanabata" },
+  { "advance": 100 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "serata.cotturaMoltiplicatori.piastra", "equals": 0.5 },
+  { "gioca": { "finoA": 6000 } },
+  { "shot": "piastra-4-serata-con-cottura-corta" }
+]

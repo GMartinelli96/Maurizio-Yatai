@@ -66,12 +66,12 @@ export function drawIconaVentaglio(ctx, rng) {
   pencilLine(ctx, cuore, rng, { width: 1.6, amount: 0.3 });
 }
 
-// La piastra vera della Postazione (132×152), più piccola e in basso a sinistra, e in alto a destra un disco giallo con un
+// La piastra vera della Postazione (132×152), un po' più piccola, e in alto a destra un disco giallo con un
 // lampo: lo stesso posto del "+" dello sgabello, così le icone della Bottega si leggono allo stesso modo.
 export function drawIconaPiastra(ctx, rng) {
   ctx.save();
-  ctx.translate(2, 16);
-  ctx.scale(0.78, 0.78);
+  ctx.translate(2, -22);
+  ctx.scale(0.92, 0.92);
   POSTAZIONI.takoyaki(ctx, rng);
   ctx.restore();
 
