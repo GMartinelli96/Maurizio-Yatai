@@ -267,16 +267,19 @@ export const YATAI = {
   // Postazioni, ticket 07 passo 3: toglieva altezza ai Clienti e a Maurizio e accalcava le icone della Ricetta.)
   // Su ogni lato ci sono `colonne` colonne e tante righe quante servono, dall'alto; `centro` è la larghezza lasciata
   // a Maurizio; la cella è alta quanto larga per `proporzione` ma non più di `cellaMax` di larghezza; il lato destro
-  // lascia `riservaCestino` in basso al cestino, quindi lì stanno meno righe. `cellaMin` è l'altezza sotto cui una
-  // cella non scende (44 px CSS a 360×640): con 2 colonne e il cestino stanno 12 Scorte a 360×640 (8 a sinistra e 4 a
-  // destra; con 9, come nell'Hanabi, 5 e 4). Oltre (il ramen del ticket 08 porta il totale a circa 15) la misura va
-  // rivista lì.
+  // lascia `riservaCestino` in basso al cestino, quindi lì stanno meno righe. `rigaMin` è l'altezza sotto cui una
+  // riga non scende quando si contano quante ne entrano (44 px CSS da 375 px di larghezza in su, 42 a 360: a 360×640 le
+  // righe sono comunque da 91), `cellaMin` è la larghezza di una cella quando le colonne sono 3 (44 px CSS a 360). Con 2 colonne e il cestino stanno 12 Scorte a 360×640 (8 a sinistra e 4 a
+  // destra; con 9, come nell'Hanabi, 5 e 4). Con 13 Scorte o più (ticket 08: con il taiyaki sono 12 + il ramen che ne
+  // aggiunge 4 = 16) a sinistra si aggiunge una terza colonna, le celle larghe `cellaMin` e Maurizio ha il resto: a 360×640
+  // 3 colonne a sinistra (4 righe) e 2 a destra (2 righe) fanno 16 Scorte, e a Maurizio restano 232 px invece di 280.
   scorte: {
     colonne: 2,
     centro: 280,
     proporzione: 1.1,
     cellaMax: 120,
     riservaCestino: 130,
+    rigaMin: 84,
     cellaMin: 88,
   },
   // Le Postazioni: una per Piatto, in fila vicino al pollice. `altezzaEtichetta` è lo spazio per il nome;
@@ -426,6 +429,8 @@ export const SERATE = {
   hanami: SERATA_PRIMA,
   tanabata: SERATA_TANABATA,
   hanabi: SERATA_HANABI,
+  aki: SERATA_AKI,
+  yuki: SERATA_YUKI,
 };
 
 // --- La scena della Serata (src/scenes/SerataScene.js): comandi e riscontri ---

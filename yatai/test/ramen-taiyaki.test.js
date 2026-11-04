@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BRUCIATURA, CLIENTI, FRAME_MS, FUMO_SEC, PIATTI, POSTAZIONI, SERATA_AKI, SERATA_HANABI, SERATA_YUKI } from '../src/config.js';
+import { BRUCIATURA, CLIENTI, FRAME_MS, FUMO_SEC, PIATTI, POSTAZIONI, SERATA_AKI, SERATA_HANABI, SERATA_YUKI, SERATE } from '../src/config.js';
 import { BRAVURA, giocaServata } from './bot.js';
 import { Serata, costoPiatto, idPiatto, ingredientiDi, scorteDi, tocchiPerPiatto } from '../src/serata/Serata.js';
 
@@ -413,4 +413,12 @@ test('il bot gioca lo Yuki Matsuri con tutti e 5 i Piatti e li serve tutti, ogni
   assert.equal(stato.incasso, stato.vendite - stato.spesa);
   assert.ok(stato.spreco >= 0 && stato.spreco <= stato.spesa);
   assert.equal(stato.scorte.length, 16);
+});
+
+test('l’Aki Matsuri e lo Yuki Matsuri hanno la loro Serata, con il taiyaki e con tutti e 5 i Piatti', () => {
+  assert.equal(SERATE.aki, SERATA_AKI);
+  assert.equal(SERATE.yuki, SERATA_YUKI);
+  assert.deepEqual(SERATA_AKI.piatti, ['onigiri', 'takoyaki', 'kakigori', 'taiyaki']);
+  assert.deepEqual(SERATA_YUKI.piatti, Object.keys(PIATTI));
+  assert.equal(SERATA_YUKI.piattiPerOrdine.max, 3, 'Ordini da 3 Piatti nello Yuki (GAME_SPEC.md, tabella dei Matsuri)');
 });

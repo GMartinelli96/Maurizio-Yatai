@@ -389,12 +389,12 @@ test('l’Hanabi (9 Scorte e 3 Postazioni): le Scorte vanno sugli scaffali e le 
 
 test('gli scaffali stanno nella fascia della cucina, mai sopra Maurizio, il cestino o altre Scorte, e le Scorte sono in ordine', () => {
   for (const schermo of SCHERMI) {
-    for (const [scorte, stations] of [[2, 12 - 7], [9, 12], [12, 15]]) {
+    for (const [scorte, stations] of [[2, 12 - 7], [9, 12], [12, 15], [13, 16], [16, 21]]) {
       if (stations <= YATAI.postazioni.massimo) continue;
       const { layout, canvas } = layoutFor(schermo, { stations, scorte });
       const { cucina } = layout.zone;
       const celle = layout.postazioni.slice(0, scorte);
-      const centro = { x: cucina.x + (cucina.w - YATAI.scorte.centro) / 2, y: cucina.y, w: YATAI.scorte.centro, h: cucina.h };
+      const centro = layout.maurizio;
       celle.forEach((cella, i) => {
         const nome = `${schermo.nome}, ${scorte} Scorte, cella ${i}`;
         inside(cella, cucina, nome);
@@ -418,4 +418,54 @@ test('le Postazioni della Serata dell’Hanabi sono sopra il pavimento della fil
   const { layout } = layoutFor(SCHERMI[0], { stations: 12, scorte: 9 });
   for (const r of layout.postazioni.slice(9)) assert.ok(r.y > layout.maurizio.y + layout.maurizio.h - 1e-6 || r.y >= layout.zone.postazioni.y - 1e-6);
   assert.throws(() => layoutFor(SCHERMI[0], { stations: 12 }), RangeError, 'una fila di 12 voci senza Scorte da spostare non sta');
+});
+
+// Le 16 Scorte del ticket 08 (tutti e 5 i Piatti, con il taiyaki e il ramen): a 360×640 la cucina è alta 364 px di gioco.
+
+test('fino a 12 Scorte gli scaffali sono a due colonne per lato e Maurizio ha 280 px, come prima del ticket 08', () => {
+  for (const schermo of SCHERMI) {
+    for (const scorte of [5, 9, 12]) {
+      const { layout } = layoutFor(schermo, { stations: scorte + 3, scorte });
+      const { cucina } = layout.zone;
+      near(layout.maurizio.w, YATAI.scorte.centro, `${schermo.nome}, ${scorte} Scorte: Maurizio`);
+      near(center(layout.maurizio).x, center(cucina).x, `${schermo.nome}, ${scorte} Scorte: Maurizio al centro`);
+      const colonne = new Set(layout.postazioni.slice(0, scorte).map((r) => r.x));
+      assert.ok(colonne.size <= 4, `${schermo.nome}, ${scorte} Scorte: ${colonne.size} colonne`);
+    }
+  }
+});
+
+test('con 13 Scorte o più a sinistra c’è una terza colonna: celle larghe 88 px e Maurizio nello spazio che resta, senza uscire dalla fascia', () => {
+  const { layout, canvas } = layoutFor(SCHERMI[0], { stations: 21, scorte: 16 });
+  const { cucina } = layout.zone;
+  const celle = layout.postazioni.slice(0, 16);
+  assert.equal(new Set(celle.slice(0, 12).map((r) => r.x)).size, 3, 'tre colonne a sinistra');
+  assert.equal(new Set(celle.slice(12).map((r) => r.x)).size, 2, 'due colonne a destra');
+  assert.equal(celle.filter((r) => center(r).x < center(layout.maurizio).x).length, 12);
+  near(celle[0].w, YATAI.scorte.cellaMin, 'cella larga cellaMin');
+  near(layout.maurizio.w, cucina.w - 5 * YATAI.scorte.cellaMin, 'Maurizio ha quello che resta');
+  inside(layout.maurizio, cucina, 'Maurizio');
+  // Maurizio, ridisegnato nel suo spazio, resta grande abbastanza: almeno il 70% del disegno.
+  const { scale } = placeMaurizio(layout.maurizio, 320, 450);
+  assert.ok(scale >= 0.7 && scale <= YATAI.maurizio.scalaMax, `scala di Maurizio ${scale}`);
+  assert.ok(layout.maurizio.w * canvas.scale >= 100, 'a Maurizio restano almeno 100 px');
+});
+
+test('16 Scorte e 5 Postazioni: ogni voce è toccabile col pollice (44 px CSS) su ogni schermo, e le Postazioni sono in fila e grandi', () => {
+  for (const schermo of SCHERMI) {
+    if (schermo.dito === false) continue;
+    const { layout, canvas } = layoutFor(schermo, { stations: 21, scorte: 16 });
+    assert.equal(layout.postazioni.length, 21);
+    layout.postazioni.forEach((r, i) => {
+      assert.ok(r.w * canvas.scale >= 44 - 1e-6, `${schermo.nome}: la voce ${i} è larga ${(r.w * canvas.scale).toFixed(1)} px`);
+      assert.ok(r.h * canvas.scale >= 44 - 1e-6, `${schermo.nome}: la voce ${i} è alta ${(r.h * canvas.scale).toFixed(1)} px`);
+    });
+    const fila = layout.postazioni.slice(16);
+    for (const r of fila) inside(r, layout.zone.postazioni, `${schermo.nome}: Postazione`);
+    assert.equal(new Set(fila.map((r) => r.y)).size, 1, `${schermo.nome}: le 5 Postazioni sono in una riga`);
+    assert.ok(fila.every((r) => r.w * canvas.scale >= 60), `${schermo.nome}: Postazione stretta`);
+    for (const [i, a] of layout.postazioni.entries()) {
+      layout.postazioni.slice(0, i).forEach((b, j) => assert.ok(!overlap(a, b), `${schermo.nome}: la voce ${i} è sopra la ${j}`));
+    }
+  }
 });
