@@ -785,6 +785,9 @@ export default class SerataScene extends YataiScene {
       case 'mancia':
         this.perMancia(evento);
         break;
+      case 'yenDOro':
+        // Lo Yen d'oro di Nella: il riscontro (la moneta che cade) è del passo 4 del ticket 09; il suono, del ticket 23.
+        break;
       case 'moneta':
         this.perMoneta(evento);
         break;
