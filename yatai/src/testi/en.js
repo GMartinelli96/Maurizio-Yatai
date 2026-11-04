@@ -11,6 +11,8 @@ export default {
   potenziamentoDesc_postoInPiu: 'A fourth seat for customers.',
   potenziamento_ventaglio: 'Maurizio’s fan',
   potenziamentoDesc_ventaglio: 'Customers wait longer:',
+  potenziamento_piastraPiuVeloce: 'Faster takoyaki pan',
+  potenziamentoDesc_piastraPiuVeloce: 'Takoyaki cook sooner:',
   piatto_onigiri: 'Onigiri',
   piatto_takoyaki: 'Takoyaki',
   piatto_kakigori: 'Kakigori',

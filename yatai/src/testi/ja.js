@@ -13,6 +13,8 @@ export default {
   potenziamentoDesc_postoInPiu: 'よにんめの\nせきができるよ。',
   potenziamento_ventaglio: 'マウリツィオのうちわ',
   potenziamentoDesc_ventaglio: 'おきゃくさんが\nながくまってくれる：',
+  potenziamento_piastraPiuVeloce: 'はやいたこ焼き器',
+  potenziamentoDesc_piastraPiuVeloce: 'たこ焼きが\nはやくやけるよ：',
   piatto_onigiri: 'おにぎり',
   piatto_takoyaki: 'たこ焼き',
   piatto_kakigori: 'かき氷',

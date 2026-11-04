@@ -628,6 +628,10 @@ export const RISCONTRI = {
 //   postoInPiu  un livello solo: i Posti diventano `posti` (il quarto) e la Pazienza ha `cuori` cuoricini (il sesto), cioè
 //               ×1,2: ogni cuoricino dura come prima (5 s in calma, 3 s in ondata) e il nuovo si aggiunge in coda
 //   ventaglio   di Maurizio: ogni livello moltiplica la Pazienza dei Clienti che arrivano, in calma e in ondata (`pazienza`)
+//   piastraPiuVeloce  "Postazione più veloce" (GAME_SPEC.md) per la piastra del takoyaki: `postazione` è l'id in POSTAZIONI, e
+//               ogni livello moltiplica i secondi della sua cottura (`cottura`: 0,8 vuol dire un quinto in meno). La bruciatura
+//               non cambia: parte a Piatto pronto e dura quanto dice burnAfterSec. Il tagliere non cuoce e non ne ha uno; le
+//               altre Postazioni con cottura (macchina, stampo, pentola) lo ricevono con il ticket 17, come voci uguali a questa
 // Misure con il bot (media di 6 semi, Hanami, Serie compresa; Incasso di rapido / attento / lento):
 //   senza Potenziamenti  5005 / 3325 / 2171   il lento perde 3,5 Clienti
 //   Posto in più         5012 / 3205 / 2086   il lento ne perde 5,5: la cucina è il collo di bottiglia, non i Posti
@@ -639,10 +643,20 @@ export const RISCONTRI = {
 //   Posto in più e ventaglio ×1,4    5286 / 3493 / 2215   nessuno perde Clienti
 // Scartato "4 cuori di base e 5 con 4 Posti":
 // peggiorava la Serata di chi non compra niente (lento 2005, a un passo dal limite di ★).
-// "Postazione più veloce" non è qui: arriva con il ticket 06 (la piastra) e il 17 (le altre Postazioni con cottura).
+// Piastra più veloce, misurata con il bot (media di 6 semi nel Tanabata, onigiri e takoyaki; Incasso di rapido / attento / lento):
+//   senza Potenziamenti    6143 / 3979 / 2802
+//   cottura ×0,8 (5→4 s)   7155 / 4365 / 2808
+//   cottura ×0,65          7351 / 4365 / 2808   l'attento arriva allo stesso tocco: 3,25 s e 4 s cadono sullo stesso passo del bot
+//   cottura ×0,5 (2,5 s)   8090 / 4436 / 3102   il rapido perde 0,9 Clienti in meno, il lento 0,4 in più (incassa di più e ne serve di più)
+//   tutto al massimo       8554 / 4924 / 3434   con Posto in più e ventaglio ×1,4: la Mancia della Serie è l'8,6% dell'Incasso del rapido
+// Il Potenziamento aiuta chi è veloce più di chi è lento (la cucina è già il suo collo di bottiglia). Prezzi e ×: di partenza, ticket 29.
 export const POTENZIAMENTI = {
   postoInPiu: { livelli: [{ prezzo: 3000, posti: 4, cuori: 6 }] },
   ventaglio: { livelli: [{ prezzo: 1000, pazienza: 1.2 }, { prezzo: 2000, pazienza: 1.3 }, { prezzo: 3500, pazienza: 1.4 }] },
+  piastraPiuVeloce: {
+    postazione: 'piastra',
+    livelli: [{ prezzo: 1200, cottura: 0.8 }, { prezzo: 2500, cottura: 0.65 }, { prezzo: 4000, cottura: 0.5 }],
+  },
 };
 
 export const POSTI = {

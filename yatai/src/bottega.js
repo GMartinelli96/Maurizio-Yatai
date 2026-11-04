@@ -39,6 +39,17 @@ export function compra(salvataggio, id) {
   return salvataggio.acquista(id, voce.prezzo, voce.livello + 1);
 }
 
+// Quanto è più veloce la cottura di ogni Postazione che ha un Potenziamento "più veloce" comprato: l'id della Postazione
+// (piastra) e il moltiplicatore dei secondi della sua cottura. Una Postazione senza livello comprato non c'è.
+export function cotturaMoltiplicatori(salvataggio) {
+  const moltiplicatori = {};
+  for (const [id, { postazione }] of Object.entries(POTENZIAMENTI)) {
+    const livello = postazione ? livelloDi(salvataggio, id) : 0;
+    if (livello > 0) moltiplicatori[postazione] = POTENZIAMENTI[id].livelli[livello - 1].cottura;
+  }
+  return moltiplicatori;
+}
+
 // Come i Potenziamenti cambiano una Serata: sono le opzioni di Serata (src/serata/Serata.js).
 export function opzioniSerata(salvataggio) {
   const posto = livelloDi(salvataggio, 'postoInPiu');
@@ -48,5 +59,6 @@ export function opzioniSerata(salvataggio) {
     posti: postoInPiu?.posti ?? POSTI.quanti,
     cuori: postoInPiu?.cuori ?? PAZIENZA.hearts,
     pazienzaMoltiplicatore: ventaglio > 0 ? POTENZIAMENTI.ventaglio.livelli[ventaglio - 1].pazienza : 1,
+    cotturaMoltiplicatori: cotturaMoltiplicatori(salvataggio),
   };
 }

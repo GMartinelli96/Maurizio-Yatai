@@ -136,7 +136,7 @@ test('ogni Potenziamento ha la sua icona disegnata, nella misura che la Bottega 
 // --- Cambiare la Serata ---
 
 test('senza Potenziamenti la Serata è quella di sempre: 3 Posti e Pazienza normale', () => {
-  assert.deepEqual(opzioniSerata(conYen(0)), { posti: POSTI.quanti, cuori: PAZIENZA.hearts, pazienzaMoltiplicatore: 1 });
+  assert.deepEqual(opzioniSerata(conYen(0)), { posti: POSTI.quanti, cuori: PAZIENZA.hearts, pazienzaMoltiplicatore: 1, cotturaMoltiplicatori: {} });
 });
 
 test('il Posto in più dà il quarto Posto e il sesto cuoricino', () => {
@@ -242,7 +242,7 @@ test('comprati e ricaricati, i Potenziamenti cambiano la Serata che parte dopo: 
   for (let i = 0; i < 3; i++) compra(prima, 'ventaglio');
   // Un'altra sessione dello stesso dispositivo: legge dal salvataggio.
   const opzioni = opzioniSerata(new Salvataggio(storage));
-  assert.deepEqual(opzioni, { posti: 4, cuori: 6, pazienzaMoltiplicatore: 1.4 });
+  assert.deepEqual(opzioni, { posti: 4, cuori: 6, pazienzaMoltiplicatore: 1.4, cotturaMoltiplicatori: {} });
   const stato = new Serata({ seed: 'a', ...opzioni }).stato();
   assert.deepEqual([stato.posti.length, stato.cuoriMax, stato.pazienzaMoltiplicatore], [4, 6, 1.4]);
   // 25 s in calma × 6/5 × 1,4 = 42 s; 15 s in ondata × 6/5 × 1,4 = 25,2 s.

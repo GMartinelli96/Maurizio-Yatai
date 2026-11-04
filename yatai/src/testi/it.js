@@ -14,6 +14,8 @@ export default {
   potenziamentoDesc_postoInPiu: 'Un quarto Posto per i Clienti.',
   potenziamento_ventaglio: 'Ventaglio di Maurizio',
   potenziamentoDesc_ventaglio: 'I Clienti aspettano di più:',
+  potenziamento_piastraPiuVeloce: 'Piastra più veloce',
+  potenziamentoDesc_piastraPiuVeloce: 'Il takoyaki cuoce prima:',
   // I nomi dei Piatti: la chiave è piatto_ più quella di PIATTI in config.js.
   piatto_onigiri: 'Onigiri',
   piatto_takoyaki: 'Takoyaki',

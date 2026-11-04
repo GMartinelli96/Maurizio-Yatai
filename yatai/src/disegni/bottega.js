@@ -2,9 +2,11 @@
 // testo (si leggono anche senza sapere la lingua). La chiave della texture è `icona-` più l'id in POTENZIAMENTI.
 //   icona-postoInPiu  lo sgabello dei Posti con il segno "+": un Posto in più
 //   icona-ventaglio   l'uchiwa, il ventaglio rotondo di carta rosa con un fiore di ciliegio (docs/ricerca/piatti-e-matsuri.md)
+//   icona-piastraPiuVeloce  la piastra del takoyaki con un lampo giallo: cuoce più in fretta (ticket 06)
 
 import { PALETTE as C } from '../config.js';
-import { ellipse, pastelFill, pencilLine, roundedRect } from '../kit/matita.js';
+import { ellipse, pastelFill, pencilLine, roundedPolygon, roundedRect } from '../kit/matita.js';
+import { POSTAZIONI } from './postazioni.js';
 import { drawPosto } from './yatai.js';
 
 export const ICONA_SIZE = { w: 120, h: 120 };
@@ -62,4 +64,27 @@ export function drawIconaVentaglio(ctx, rng) {
   const cuore = ellipse(cx, cy - 4, 3.6, 3.6);
   pastelFill(ctx, cuore, rng, C.giallo, { volume: false, hatching: 0 });
   pencilLine(ctx, cuore, rng, { width: 1.6, amount: 0.3 });
+}
+
+// La piastra vera della Postazione (132×152), più piccola e in basso a sinistra, e in alto a destra un disco giallo con un
+// lampo: lo stesso posto del "+" dello sgabello, così le icone della Bottega si leggono allo stesso modo.
+export function drawIconaPiastra(ctx, rng) {
+  ctx.save();
+  ctx.translate(2, 16);
+  ctx.scale(0.78, 0.78);
+  POSTAZIONI.takoyaki(ctx, rng);
+  ctx.restore();
+
+  const cx = 94;
+  const cy = 28;
+  const disco = ellipse(cx, cy, 21, 21);
+  pastelFill(ctx, disco, rng, C.giallo, { hatching: 0.7 });
+  pencilLine(ctx, disco, rng, { width: 3 });
+  // Il lampo: una zeta stretta con la punta in basso.
+  const lampo = roundedPolygon([
+    { x: cx + 3, y: cy - 14 }, { x: cx - 9, y: cy + 3 }, { x: cx - 1, y: cy + 3 },
+    { x: cx - 4, y: cy + 14 }, { x: cx + 9, y: cy - 3 }, { x: cx + 1, y: cy - 3 },
+  ], 1.5);
+  pastelFill(ctx, lampo, rng, C.rosa, { volume: false, hatching: 0.3 });
+  pencilLine(ctx, lampo, rng, { width: 2.4, amount: 0.3 });
 }

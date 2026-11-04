@@ -191,6 +191,8 @@ export class Serata {
   //                     per ora nessuno: si moltiplicano tra loro e con la Serie, senza un tetto unico
   //   posti             quanti Posti (3, 4 con il Potenziamento)
   //   pazienzaMoltiplicatore  quanto allunga la Pazienza di chi arriva, in calma e in ondata (il ventaglio, ticket 35)
+  //   cotturaMoltiplicatori  { piastra: 0.8 }: per ogni Postazione (id in POSTAZIONI) il moltiplicatore dei secondi della sua
+  //                     cottura (Postazione più veloce, ticket 06); chi manca cuoce in tempo pieno
   //   cuori             quanti cuoricini ha la Pazienza di ogni Cliente (5, 6 con il Posto in più): ognuno dura sempre un
   //                     quinto della Pazienza di base, quindi con 6 la Pazienza totale è 6/5 (ticket 35)
   constructor({
@@ -203,6 +205,7 @@ export class Serata {
     posti = POSTI.quanti,
     pazienzaMoltiplicatore = 1,
     cuori = PAZIENZA.hearts,
+    cotturaMoltiplicatori = {},
   } = {}) {
     this.rng = createRng(seed);
     this.fasi = fasiDellaSerata(seed);
@@ -215,6 +218,7 @@ export class Serata {
     this.moltiplicatoreAltri = moltiplicatoriMancia.reduce((prodotto, m) => prodotto * m, 1);
     this.pazienzaMoltiplicatore = pazienzaMoltiplicatore;
     this.cuoriMax = cuori;
+    this.cotturaMoltiplicatori = cotturaMoltiplicatori;
 
     this.durataMs = SERATA.durationSec * SEC;
     this.tempoMs = 0;
@@ -350,8 +354,10 @@ export class Serata {
   }
 
   // Quanto dura il passo di cottura a cui è la Postazione (zero se il passo non è una cottura).
+  // Con "Postazione più veloce" i secondi della ricetta si moltiplicano per quelli della Postazione (arrotondati al ms).
   cotturaMs(postazione) {
-    return (PIATTI[postazione.piatto].ricetta[postazione.passo]?.cotturaSec ?? 0) * SEC;
+    const secondi = PIATTI[postazione.piatto].ricetta[postazione.passo]?.cotturaSec ?? 0;
+    return Math.round(secondi * SEC * (this.cotturaMoltiplicatori[postazione.id] ?? 1));
   }
 
   // Un passo della ricetta è fatto (un Ingrediente o una cottura): la Postazione passa al successivo. Se non
@@ -370,7 +376,7 @@ export class Serata {
       eventi.push({ tipo: 'piattoPronto', postazione: postazione.id, piatto: idPiatto(postazione.piatto, postazione.variante) });
     } else if (prossimo.cotturaSec !== undefined) {
       postazione.stato = 'cuoce';
-      eventi.push({ tipo: 'cotturaIniziata', postazione: postazione.id, piatto: postazione.piatto, durataMs: prossimo.cotturaSec * SEC });
+      eventi.push({ tipo: 'cotturaIniziata', postazione: postazione.id, piatto: postazione.piatto, durataMs: this.cotturaMs(postazione) });
     } else {
       postazione.stato = 'inPreparazione';
     }
@@ -703,6 +709,8 @@ export class Serata {
       // Ordine servito e quanti Yen di Mancia in più ha dato finora.
       // cuoriMax: quanti cuoricini ha la Pazienza di ogni Cliente in questa Serata (5, 6 con il Posto in più).
       cuoriMax: this.cuoriMax,
+      // Di quanto "Postazione più veloce" accorcia la cottura di ogni Postazione che ce l'ha (vuoto senza Potenziamenti).
+      cotturaMoltiplicatori: { ...this.cotturaMoltiplicatori },
       // Di quanto il ventaglio allunga la Pazienza di chi arriva (1 senza ventaglio).
       pazienzaMoltiplicatore: this.pazienzaMoltiplicatore,
       serie: this.serie,
