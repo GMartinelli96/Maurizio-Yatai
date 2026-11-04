@@ -76,3 +76,17 @@ Misure del bot con Serie e ondate, media di 6 semi (mappa tra parentesi): rapido
 Tanabata (stessa curva e stessa Serie, obiettivo 2400 invariato): lento 2746, attento 3910, rapido 5861. L'attento supera ★★★ (3840), come nell'Hanami; il test `bruciatura.test.js` chiede ora "almeno ★★ e meno del rapido". Da ribilanciare nel ticket 29.
 
 Resta il passo 4: i riscontri della Serie (numero vicino a Maurizio, monete più generose, "pof"). In `SerataScene` c'è già il `case 'serieSpezzata'` come punto d'aggancio.
+
+### Passo 4: i riscontri della Serie (2026-11-04)
+
+Scelte di Giuseppe per il numero (2026-11-04): **a destra di Maurizio, a mezza altezza** (il lato libero, speculare alla campanella) e **giallo moneta, arcobaleno al tetto**.
+
+Fatto: `RISCONTRI.serie` in `config.js` (posizione, corpo, colori, pop, "pof", monete extra) e il modulo senza Phaser `src/serata/riscontriSerie.js` (`serieVisibile`, `testoSerie`, `progressoSerie`, `corpoSerie`, `moneteDelPagamento`, `scalaSomma`), provato da `test/riscontri-serie.test.js`.
+- **Il numero** "×N" (nessun testo da tradurre) compare dalla Serie 2, perché il primo Ordine di fila non ha bonus. Il corpo cresce da 46 a 78 px in proporzione a quanto la Mancia della Serie è vicina al tetto (×1,5, a 6 di fila), a ogni Ordine fa un pop, e al tetto le lettere prendono le cinque bande dell'arcobaleno della palette (con un pop più grande la prima volta). Oltre il tetto il numero continua a contare ma non cresce più.
+- **Monete più generose**: fino a 3 monete in più per pagamento (3 a Serie 1, 4 a 2, 5 a 4, 7 a 6) e la scritta "+150" fino a 1,3 volte più grande, con il corpo (non la scala) così resta nitida. Senza Serie niente cambia.
+- **Il "pof"**: quando la Serie si spezza (`serieSpezzata`, per Cliente perso o servizio a vuoto) il numero si gonfia e svanisce in 0,2 s e una nuvoletta rosa pallido, nuova texture `pof` (catalogo e `docs/stile/asset-manifest.json`), si apre e svanisce in 0,5 s. Rosa e rotonda apposta: non è il grigio del Fumo né l'azzurro del Lamento. Nessuna scossa, nessun rosso. Se il numero non si vedeva (Serie 1) non succede niente. A fine Serata il numero se ne va senza "pof"; la Serie più lunga la mostra il recap (ticket 22).
+- `render_game_to_text()` ha `serie { valore, visibile, testo, x, y, scala, alpha, corpo, colore: 'oro' | 'arcobaleno', pof, ultimoPagamento { yen, monete, serie } }`; la Serie della logica resta in `serata.serie`. Scenario `scenari/serata-serie-riscontri.json`; visto a 360×640, 390×844 e 1280×720 (e 720×1280 per i dettagli).
+
+Punti d'aggancio per gli altri ticket: il **tintinnio che sale** (ticket 23) si aggancia a `SerataScene.perSerieSale()`, dove `evento.serie` è lo scalino della scala; il suono del **"pof"** a `perSerieSpezzata()`. "Riduci movimento" (ticket 26): tutti i movimenti della Serie (entrata, pop, numero che svanisce, nuvoletta) passano da `SerataScene.animaSerie()`, l'unico punto da spegnere, come per la campanella; un test controlla che nessun tween tocchi il numero o il "pof" da un'altra parte.
+
+Resta il passo 5, la chiusura: rileggere i criteri aperti (la Serie "nei riscontri", "Nessun game over... testi", "Verificato come dice PIANO.md") e spuntare solo quelli veri.

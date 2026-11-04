@@ -12,7 +12,7 @@ import { POSTAZIONE_SIZE, POSTAZIONI, SCORTE, postazioneKey, scortaKey } from '.
 import { ICONA_SIZE, drawIconaPosto, drawIconaVentaglio } from './bottega.js';
 import { CESTINO_SIZE, FUMO_SIZE, drawCestino, drawFumo, drawTakoyaki, takoyakiSize } from './takoyaki.js';
 import {
-  CAMPANELLA_SIZE, CUORE_SIZE, GOCCIA_SIZE, MONETA_SIZE, NUVOLETTA, SBUFFO_SIZE, STELLA_SIZE, drawCampanella, drawCuore, drawCuoreVuoto, drawGoccia, drawMoneta, drawNuvoletta, drawSbuffo, drawStella, drawStellaVuota,
+  CAMPANELLA_SIZE, CUORE_SIZE, GOCCIA_SIZE, MONETA_SIZE, NUVOLETTA, POF_SIZE, SBUFFO_SIZE, STELLA_SIZE, drawCampanella, drawCuore, drawCuoreVuoto, drawGoccia, drawMoneta, drawNuvoletta, drawPof, drawSbuffo, drawStella, drawStellaVuota,
 } from './serata.js';
 
 export const ONIGIRI_BANCONE = 150;
@@ -55,6 +55,8 @@ export const DISEGNI = {
   'segno-sbuffo': { ...SBUFFO_SIZE, draw: drawSbuffo },
   // La campanella dello Yatai, che oscilla prima di un'ondata (ticket 34): la appende SerataScene.
   campanella: { ...CAMPANELLA_SIZE, draw: drawCampanella },
+  // Il "pof" della Serie che si spezza (ticket 34): una nuvoletta morbida, senza punizione.
+  pof: { ...POF_SIZE, draw: drawPof },
 };
 
 // I pannelli e i pulsanti cambiano misura da una schermata all'altra: si disegnano su richiesta.

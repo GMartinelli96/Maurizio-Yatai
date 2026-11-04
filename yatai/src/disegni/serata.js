@@ -206,3 +206,22 @@ export function drawCampanella(ctx, rng) {
   pastelFill(ctx, nodo, rng, C.rosa, { volume: false, hatching: 0 });
   pencilLine(ctx, nodo, rng, { width: 2, amount: 0.4 });
 }
+
+// ---------------------------------------------------------------------------------------------
+// Il "pof" della Serie che si spezza (ticket 34): una nuvoletta morbida di tondi rosa pallido, con qualche tondino che
+// se ne va, come negli sbuffi dei fumetti. Rosa e rotondo apposta: niente grigio del Fumo (quello è del Piatto bruciato)
+// né azzurro dello sbuffo e della goccia del Lamento, perché la Serie che finisce non è una punizione.
+
+export const POF_SIZE = { w: 128, h: 104 };
+
+const POF = { colore: '#ffe0e8', ombra: '#f4b3c5', luce: '#fff7fa' };
+
+export function drawPof(ctx, rng) {
+  // Prima i tondini lontani, poi la nuvola dal fondo al davanti: ogni tondo copre il contorno di quelli dietro.
+  const lontani = [ellipse(14, 36, 6, 5.6), ellipse(114, 34, 6.5, 6), ellipse(104, 84, 5, 4.8), ellipse(22, 82, 4.6, 4.4), ellipse(64, 12, 5, 4.8)];
+  const nuvola = [ellipse(52, 40, 15, 14), ellipse(77, 40, 15, 14), ellipse(42, 60, 16, 15), ellipse(86, 60, 16, 15), ellipse(64, 54, 22, 20)];
+  for (const tondo of [...lontani, ...nuvola]) {
+    pastelFill(ctx, tondo, rng, POF, { volume: false, hatching: 0.4 });
+    pencilLine(ctx, tondo, rng, { width: 2.4, amount: 0.5 });
+  }
+}

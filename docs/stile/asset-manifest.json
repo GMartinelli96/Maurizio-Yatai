@@ -42,6 +42,7 @@
     { "id": "stella", "role": "stella del voto accesa", "path": "generated: yatai/src/disegni/serata.js drawStella()", "status": "target", "technical": { "dimensions": "68x66", "alpha": true } },
     { "id": "stella-vuota", "role": "stella del voto spenta", "path": "generated: yatai/src/disegni/serata.js drawStellaVuota()", "status": "target", "technical": { "dimensions": "68x66", "alpha": true } },
     { "id": "campanella", "role": "la campanella dello Yatai: ottone con fiocco rosa, appesa a un cordino sotto la tendina; oscilla prima di un'ondata (ticket 34)", "path": "generated: yatai/src/disegni/serata.js drawCampanella()", "status": "target", "technical": { "dimensions": "56x88", "alpha": true, "anchor": "perno in alto al centro (28,1)" } },
+    { "id": "pof", "role": "il pof della Serie che si spezza (ticket 34): nuvoletta morbida di tondi panna e rosa pallido con qualche tondino attorno, senza grigio né segni di rabbia", "path": "generated: yatai/src/disegni/serata.js drawPof()", "status": "target", "technical": { "dimensions": "128x104", "alpha": true, "anchor": "centro (64,52)" } },
     { "id": "pannelli e pulsanti", "role": "UI, su richiesta", "path": "generated: panel() in matita.js", "status": "target", "technical": { "alpha": true } },
     {
       "id": "font-comic-neue", "role": "font latino 400 e 700", "path": "yatai/public/fonts/comic-neue-latin-{400,700}-normal.woff2", "status": "placeholder-for-final",

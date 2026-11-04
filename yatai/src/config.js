@@ -373,6 +373,32 @@ export const RISCONTRI = {
     codaMs: 600,
     campanella: { larghezza: 56, dalBordo: 64, sottoTendina: 192, oscillazioni: 6, ampiezza: 24, durata: 1900 },
   },
+  // I riscontri della Serie (ticket 34, passo 4), senza testo. Il numero "×N" sta a destra di Maurizio, a mezza altezza
+  // (scelta di Giuseppe): `posizione` sono frazioni della fascia della cucina, da sinistra e dall'alto. Compare dalla Serie
+  // `daSerie` (il primo Ordine di fila non ha bonus) e a ogni Ordine servito fa un pop (`pop.scala` volte la sua misura,
+  // che torna in `pop.durata` ms; `pop.scalaTetto` la prima volta che la Mancia della Serie arriva al massimo). Il corpo del
+  // testo (pixel di gioco) cresce da `corpo.base` a `corpo.alTetto` in proporzione a quanto la Mancia della Serie è vicina
+  // al suo tetto (SERIE.moltiplicatoreMax). È giallo come la scritta "+150" (`colore`); al tetto le lettere prendono le cinque
+  // bande dell'arcobaleno della palette (come sulla salopette di Maurizio), dall'alto in basso, tra `arcobaleno.da` e
+  // `arcobaleno.a` (frazioni dell'altezza del testo, per far cadere le bande sulle cifre e non sull'aria sopra e sotto).
+  // Quando la Serie si spezza il numero si gonfia e svanisce in `pof.numero.durata` ms e una nuvoletta morbida (il "pof",
+  // larga `pof.dimensione` pixel) si apre e svanisce in `pof.durata`: niente rosso, niente scossa.
+  // Le monete sono più generose: fino a `moneteExtra` monete in più in ogni pagamento (in proporzione alla Serie) e la
+  // scritta "+150" fino a `sommaAlTetto` volte più grande. Tutti i movimenti della Serie si spengono con "riduci movimento"
+  // (ticket 26) in un punto solo, SerataScene.animaSerie(); il tintinnio che sale è del ticket 23.
+  serie: {
+    daSerie: 2,
+    posizione: { x: 0.82, y: 0.5 },
+    corpo: { base: 46, alTetto: 78 },
+    contorno: 9,
+    colore: '#f7d26a',
+    arcobaleno: { da: 0.2, a: 0.85 },
+    entra: { da: 0.3, durata: 260 },
+    pop: { scala: 1.35, scalaTetto: 1.7, durata: 240 },
+    pof: { dimensione: 150, scalaDa: 0.4, scalaA: 1.1, durata: 480, numero: { scala: 1.45, durata: 200 } },
+    moneteExtra: 3,
+    sommaAlTetto: 1.3,
+  },
   // Il "−20" piccolo che scende sotto l'Incasso a ogni Ingrediente (la Spesa).
   spesa: { durata: 750, discesa: 34 },
   // La ricetta sulla Postazione: un'icona per Ingrediente (la cottura non ha icona: ha la sua barra), piccola
