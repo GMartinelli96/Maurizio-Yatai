@@ -407,6 +407,23 @@ export const RISCONTRI = {
   fine: { ritardo: 1200, stella: 420, conta: 900 },
 };
 
+// I Potenziamenti della Bottega (GAME_SPEC.md, "Progressione"; ticket 35). Ognuno ha dei livelli, dal primo in poi; un livello costa
+// Yen e si compra una volta, in ordine. Prezzi ed effetti sono di partenza, fino al ticket 29.
+//   postoInPiu  un livello solo: i Posti diventano `posti` (il quarto)
+//   ventaglio   di Maurizio: ogni livello moltiplica la Pazienza dei Clienti che arrivano, in calma e in ondata (`pazienza`)
+// Misure con il bot (media di 6 semi, Hanami, Serie compresa; Incasso di rapido / attento / lento):
+//   senza Potenziamenti  5005 / 3325 / 2171   il lento perde 3,5 Clienti
+//   Posto in più         5012 / 3205 / 2086   il lento ne perde 5,5: la cucina è il collo di bottiglia, non i Posti
+//   ventaglio ×1,2       5160 / 3410 / 2178   il lento non ne perde più
+//   ventaglio ×1,3       5270 / 3573 / 2204
+//   ventaglio ×1,4       5283 / 3598 / 2330   la Mancia della Serie del rapido arriva al 15% dell'Incasso
+//   4 Posti e ×1,4       5187 / 3363 / 2232
+// "Postazione più veloce" non è qui: arriva con il ticket 06 (la piastra) e il 17 (le altre Postazioni con cottura).
+export const POTENZIAMENTI = {
+  postoInPiu: { livelli: [{ prezzo: 3000, posti: 4 }] },
+  ventaglio: { livelli: [{ prezzo: 1000, pazienza: 1.2 }, { prezzo: 2000, pazienza: 1.3 }, { prezzo: 3500, pazienza: 1.4 }] },
+};
+
 export const POSTI = {
   quanti: 3,
   // Dopo che un Cliente se n'è andato il Posto resta libero per un attimo, così la scena ha il tempo
