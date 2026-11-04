@@ -1,4 +1,5 @@
 [
+  { "resize": "360x640" },
   { "goto": "?sviluppo=serata&seme=prova&matsuri=yuki" },
   { "advance": 100 },
   { "expect": "scene", "equals": "serata" },
