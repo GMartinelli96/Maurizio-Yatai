@@ -19,6 +19,17 @@ export default {
   'piatto_kakigori-fragola': 'Strawberry kakigori',
   'piatto_kakigori-melone': 'Melon kakigori',
   'piatto_kakigori-matcha': 'Matcha kakigori',
+  ingrediente_impasto: 'Sweet batter',
+  ingrediente_fagioli: 'Red bean',
+  ingrediente_crema: 'Custard',
+  ingrediente_noodles: 'Noodles',
+  ingrediente_brodo: 'Broth',
+  ingrediente_uovo: 'Egg',
+  ingrediente_naruto: 'Naruto',
+  'piatto_taiyaki-fagioli': 'Red bean taiyaki',
+  'piatto_taiyaki-crema': 'Custard taiyaki',
+  'piatto_ramen-uovo': 'Ramen with egg',
+  'piatto_ramen-naruto': 'Ramen with naruto',
 
 
   // Fine Serata

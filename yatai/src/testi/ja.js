@@ -20,6 +20,17 @@ export default {
   'piatto_kakigori-fragola': 'いちごのかき氷',
   'piatto_kakigori-melone': 'メロンのかき氷',
   'piatto_kakigori-matcha': '抹茶のかき氷',
+  ingrediente_impasto: 'あまい生地',
+  ingrediente_fagioli: 'あんこ',
+  ingrediente_crema: 'カスタード',
+  ingrediente_noodles: '麺',
+  ingrediente_brodo: 'スープ',
+  ingrediente_uovo: '味玉',
+  ingrediente_naruto: 'ナルト',
+  'piatto_taiyaki-fagioli': 'あんこのたい焼き',
+  'piatto_taiyaki-crema': 'カスタードのたい焼き',
+  'piatto_ramen-uovo': '味玉ラーメン',
+  'piatto_ramen-naruto': 'ナルトラーメン',
 
 
   // Fine Serata

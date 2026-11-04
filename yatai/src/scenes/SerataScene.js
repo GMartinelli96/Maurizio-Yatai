@@ -1,6 +1,6 @@
 import { BRUCIATURA, FUMO_SEC, MATSURI_PREDEFINITO, PALETTE, PIATTI, RISCONTRI, SERATE, SERATA_PRIMA, TEMI, YATAI } from '../config.js';
 import { PANEL_MARGIN } from '../disegni/catalogo.js';
-import { POSTAZIONE_SIZE, postazioneKey, scortaKey } from '../disegni/postazioni.js';
+import { PASSO_SCELTA, POSTAZIONE_SIZE, postazioneKey, scortaKey } from '../disegni/postazioni.js';
 import { CESTINO_SIZE } from '../disegni/takoyaki.js';
 import { t } from '../i18n.js';
 import { textStyle } from '../kit/font.js';
@@ -22,9 +22,6 @@ const nuovoSeme = () => `${Date.now().toString(36)}-${Math.random().toString(36)
 // A che profondità stanno le cose che vanno sopra al resto: l'HUD, quello che vola, il Piatto trascinato e
 // la schermata di fine Serata.
 const PROFONDITA = { hud: 10, volo: 120, trascinato: 150, fine: 200 };
-
-// L'icona di un passo della Ricetta che è una scelta (lo sciroppo): le tre gocce, finché non si è scelto.
-const PASSO_SCELTA = 'passo-sciroppo';
 
 // Un colore a metà strada tra a e b (t da 0 a 1), come numeri 0xRRGGBB.
 const mescola = (a, b, t) => {
@@ -111,7 +108,7 @@ export default class SerataScene extends YataiScene {
       // sciroppo) mostra le tre gocce finché non si sceglie, poi la Scorta scelta (vedi aggiornaPassi).
       view.passi = passiDi(piatto).map((passo) => {
         const scelta = passo.unoDi !== undefined;
-        const icona = this.add.image(0, 0, scelta ? PASSO_SCELTA : scortaKey(passo.ingrediente)).setOrigin(0.5, 1).setAlpha(RISCONTRI.passoSpento).setDepth(PROFONDITA.hud);
+        const icona = this.add.image(0, 0, scelta ? PASSO_SCELTA[piatto] : scortaKey(passo.ingrediente)).setOrigin(0.5, 1).setAlpha(RISCONTRI.passoSpento).setDepth(PROFONDITA.hud);
         icona.acceso = false;
         icona.scelta = scelta;
         return icona;
@@ -342,7 +339,7 @@ export default class SerataScene extends YataiScene {
       icona.setVisible(!conPiatto);
       // Il passo a scelta mostra lo sciroppo scelto (e le tre gocce finché non c'è).
       if (icona.scelta) {
-        const chiave = postazione.variante ? scortaKey(postazione.variante) : PASSO_SCELTA;
+        const chiave = postazione.variante ? scortaKey(postazione.variante) : PASSO_SCELTA[postazione.piatto];
         if (icona.texture.key !== chiave) icona.setTexture(chiave);
       }
       const acceso = k < postazione.fatti;

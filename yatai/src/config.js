@@ -51,6 +51,17 @@ export const PALETTE = {
   melone: { colore: '#cfeda0', ombra: '#9cc468', luce: '#ecf8cf' },
   matcha: { colore: '#55793a', ombra: '#3a5628', luce: '#86a867' },
   foglia: { colore: '#7bbf72', ombra: '#4f8f4c', luce: '#a9dda0' },
+  // Il taiyaki e i suoi ripieni (ticket 08). In bianco e nero i fagioli rossi (luminosità ~70, quasi scuri come l'inchiostro)
+  // e la crema (~225, chiara) restano lontani, e il taiyaki dorato (~175) sta in mezzo.
+  taiyaki: { colore: '#e2a65e', ombra: '#b2742f', luce: '#f6d6a0' },
+  fagioli: { colore: '#7b3040', ombra: '#521c2a', luce: '#b0626f' },
+  crema: { colore: '#fbe48a', ombra: '#dcbc50', luce: '#fff4c4' },
+  // Il ramen: i noodles gialli, l'uovo marinato (l'albume è un po' ambrato, il tuorlo arancio) e il naruto (bianco con
+  // la spirale rosa, che è C.rosa). L'uovo e il naruto si distinguono anche per la forma (ovale con il tuorlo, disco
+  // dal bordo ondulato con la spirale).
+  noodles: { colore: '#f4d98a', ombra: '#d4b04e', luce: '#fbeab8' },
+  albume: { colore: '#f6e6cc', ombra: '#d2b48c', luce: '#fffaf0' },
+  tuorlo: { colore: '#f09a2e', ombra: '#c6701a', luce: '#f8c36a' },
 };
 
 export const VIEW = {
