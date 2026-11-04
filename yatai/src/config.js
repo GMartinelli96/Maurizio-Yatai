@@ -451,6 +451,14 @@ export const SERATA_YUKI = {
   piattiPerOrdine: { min: 1, max: 2, tre: 0.15 },
 };
 
+// La Serata di prova dei Disturbatori (ticket 11): il menù dell'Aki Matsuri (onigiri, takoyaki, kakigōri, taiyaki), che ha
+// un Piatto per ognuno dei loro bersagli, con Croccola, le formiche e i corvi. Non è di nessun Matsuri: dal ticket 12 saranno
+// i Matsuri a decidere quando arriva ciascuno. Si apre con ?sviluppo=serata&disturbatori=croccola,formiche,corvi.
+export const SERATA_PROVA_DISTURBATORI = {
+  ...SERATA_AKI,
+  disturbatori: ['croccola', 'formiche', 'corvi'],
+};
+
 // Come è fatta la Serata di ogni Matsuri. Dal passo 8 ogni Serata avrà la sua; per ora ne ha una il
 // Matsuri, e chi manca gioca quella dell'Hanami.
 export const SERATE = {
@@ -664,6 +672,36 @@ export const VIZI = {
   carlotta: { prezzoX: 2, pazienzaX: 0.6 },
   balosso: { ritmoPazienza: 0.6 },
   nella: { yenDOro: 0.35, manciaX: 3 },
+};
+
+// I Disturbatori (GLOSSARY.md; GAME_SPEC.md, "Clienti e Disturbatori"; ticket 11): personaggi che intralciano lo Yatai senza
+// essere Clienti. Ognuno arriva, punta un Piatto e, se nessuno lo ferma, lo ruba o lo rovina; un tocco lo manda via. Ce
+// n'è al più uno per tipo alla volta. Valori di partenza, da ritoccare nel ticket 29; quando arrivano per Matsuri
+// (Croccola dal Tanabata, formiche dall'Hanabi, corvi dall'Aki Matsuri) lo decide il ticket 12: per ora una Serata li
+// ha solo se la si apre con l'opzione `disturbatori` (SERATA_PROVA_DISTURBATORI).
+//   dove          'bancone' (punta un Piatto sul Bancone) o 'postazione' (punta un Piatto pronto su una Postazione)
+//   bersagli      i Piatti che punta (quelli di base, senza variante); null = qualunque
+//   esito         'ruba' (il Piatto sparisce con lui) o 'rovina' (il Piatto è rovinato e va nel cestino)
+//   gesto         come lo si manda via: 'coccola' (Croccola: la si accarezza, fa le fusa e se ne va) o 'tocco' (un tocco e se ne va)
+//   serveBersaglio  arriva solo se c'è già un Piatto da puntare (Croccola e formiche); i corvi si posano sul tetto comunque
+//   primoSec      quando arriva la prima volta: tra min e max secondi dall'inizio della Serata (scelto dal seme)
+//   intervalloSec dopo che se n'è andato, quando torna: tra min e max secondi
+//   arrivaSec     arriva (si può già mandare via); poi punta per puntaSec (il corvo gracchia, la fila di formiche si avvicina,
+//                 Croccola si acquatta); poi colpisce per colpoSec (balzo, picchiata, salita sul Piatto): è l'ultima possibilità
+//                 di fermarlo, e se intanto il Piatto sparisce (servito, preso dalla Postazione) non c'è più niente da colpire
+//   rinunciaSec   se al momento di colpire non c'è nessun Piatto da puntare aspetta tanto, poi se ne va deluso
+//   vaViaSec      quanto dura la fuga, prima che possa tornare a contare l'intervallo
+// Misurato col bot (test/bot.js, media di 24 semi, Serata di prova con tutti e tre; senza Disturbatori la stessa Serata dà
+// 3486 lento, 4933 attento, 7342 rapido). In una Serata arrivano circa 8-9 Disturbatori in tutto (circa 3 per tipo):
+//   bot che li manda via subito   lento 2805, attento 4477, rapido 7127 Yen (un tocco in più ogni volta: -19%, -9%, -3%)
+//   bot che li ignora             lento 2402, attento 3987, rapido 6617 Yen, 1-3 Piatti rubati e 1 rovinato a Serata,
+//                                 Spreco più che doppio (182 → 492 il lento)
+// Il tocco costa poco e ignorarli costa molto, che è quello che serve; il peso vero di ogni Matsuri (ne arrivano uno o due
+// tipi, non tre) si ritocca nel ticket 29.
+export const DISTURBATORI = {
+  croccola: { dove: 'bancone', bersagli: ['takoyaki', 'taiyaki'], esito: 'ruba', gesto: 'coccola', serveBersaglio: true, primoSec: { min: 18, max: 30 }, intervalloSec: { min: 22, max: 36 }, arrivaSec: 1.5, puntaSec: 3, colpoSec: 0.6, rinunciaSec: 2, vaViaSec: 1.6 },
+  formiche: { dove: 'bancone', bersagli: ['kakigori', 'taiyaki'], esito: 'rovina', gesto: 'tocco', serveBersaglio: true, primoSec: { min: 22, max: 36 }, intervalloSec: { min: 26, max: 40 }, arrivaSec: 1, puntaSec: 4, colpoSec: 1, rinunciaSec: 2, vaViaSec: 1.4 },
+  corvi: { dove: 'postazione', bersagli: null, esito: 'ruba', gesto: 'tocco', serveBersaglio: false, primoSec: { min: 30, max: 45 }, intervalloSec: { min: 26, max: 40 }, arrivaSec: 1, puntaSec: 2.5, colpoSec: 0.7, rinunciaSec: 6, vaViaSec: 1.6 },
 };
 
 // Le Ondate (GAME_SPEC.md, "La Serata"; ticket 34): la Serata ha un andamento invece di un solo intervallo di

@@ -4,7 +4,8 @@ import { Serata, piattoBase } from '../src/serata/Serata.js';
 // `reazioneMs`, leggendo solo lo stato (mai la logica): serve chi ha l'Ordine intero sul Bancone, prima chi ha meno
 // cuoricini; poi prende prima il Piatto che sta per bruciarsi, butta quello bruciato, porta avanti un Piatto già
 // cominciato e comincia solo ciò che serve. Con `distratto` non prende mai niente da una Postazione che brucia
-// (prepara e dimentica). La bravura è il tempo tra un tocco e l'altro: BRAVURA.
+// (prepara e dimentica). Con `scacciaDisturbatori` manda via Croccola, le formiche e i corvi appena li vede (prima di ogni
+// altra cosa: sono una minaccia per un Piatto). La bravura è il tempo tra un tocco e l'altro: BRAVURA.
 //
 // Conosce le varianti (kakigori-melone): un Piatto in preparazione di cui non si sa ancora la variante copre "un
 // kakigori qualunque", e arrivato allo sciroppo il bot sceglie quello che manca agli Ordini.
@@ -37,7 +38,7 @@ export function scortaDaToccare(stato, postazione) {
 }
 
 // Con `registro` (un array) il bot ci mette tutti gli eventi della Serata, per chi vuole contare cosa è successo.
-export function giocaServata(opzioniSerata, reazioneMs, seed, { distratto = false, registro = null } = {}) {
+export function giocaServata(opzioniSerata, reazioneMs, seed, { distratto = false, registro = null, scacciaDisturbatori = false } = {}) {
   const grezza = new Serata({ seed, ...opzioniSerata });
   const raccogli = (azione) => (...argomenti) => {
     const eventi = azione(...argomenti);
@@ -51,11 +52,17 @@ export function giocaServata(opzioniSerata, reazioneMs, seed, { distratto = fals
     update: raccogli((ms) => grezza.update(ms)),
     tocca: raccogli((id) => grezza.tocca(id)),
     servi: raccogli((posto) => grezza.servi(posto)),
+    scaccia: raccogli((chi) => grezza.scaccia(chi)),
   };
   for (let t = 10; !serata.finita; t += 10) {
     serata.update(10);
     if (t % reazioneMs !== 0) continue;
     const stato = serata.stato();
+    const minaccia = scacciaDisturbatori && stato.disturbatori.find(({ fase }) => fase !== 'vaVia');
+    if (minaccia) {
+      serata.scaccia(minaccia.chi);
+      continue;
+    }
     const resto = [...stato.bancone];
     const servibili = stato.posti
       .filter(({ cliente }) => cliente && cliente.ordine.every((piatto) => {

@@ -17,6 +17,7 @@ import {
 } from '../config.js';
 import { createRng } from '../kit/rng.js';
 import { scegliDelCast } from './cast.js';
+import { Disturbatori } from './disturbatori.js';
 
 // La logica di una Serata: Posti, Clienti, Ordini, Pazienza, Bancone, Scorte, Postazioni, Mancia,
 // Spesa, Incasso e stelle. Niente Phaser e niente tempo reale: la scena chiama update(dtMs) a ogni
@@ -63,6 +64,8 @@ import { scegliDelCast } from './cast.js';
 //   clienteVaVia      { posto, clienteId, motivo: 'pazienza' }   imbronciato, senza pagare
 //   ondataInArrivo    { fase, traMs }         ONDATE.avvisoSec prima di ogni ondata (anche la finale), una volta per ondata: da qui
 //                                              parte il segnale visivo (Maurizio alza la testa, la campanella oscilla); il suono è del ticket 23
+//   disturbatoreArrivato, disturbatorePunta, disturbatoreAttacca, disturbatoreScacciato, piattoRubato, piattoRovinato,
+//   disturbatoreVaVia   i Disturbatori (ticket 11): Croccola, le formiche, i corvi. Sono descritti in src/serata/disturbatori.js
 //   serataFinita      { incasso, vendite, spesa, spreco, obiettivo, stelle, serviti, persi, serieMax, manciaDaSerie }
 
 const SEC = 1000;
@@ -190,6 +193,8 @@ export class Serata {
   //                     per ora nessuno: si moltiplicano tra loro e con la Serie, senza un tetto unico
   //   posti             quanti Posti (3, 4 con il Potenziamento)
   //   pazienzaMoltiplicatore  quanto allunga la Pazienza di chi arriva, in calma e in ondata (il ventaglio, ticket 35)
+  //   disturbatori      quali Disturbatori ci sono in questa Serata (chiavi di DISTURBATORI: croccola, formiche, corvi); di
+  //                     norma nessuno. Hanno un generatore a parte: arrivi, cast e Ordini non cambiano (ticket 11)
   //   cuori             quanti cuoricini ha la Pazienza di ogni Cliente (5, 6 con il Posto in più): ognuno dura sempre un
   //                     quinto della Pazienza di base, quindi con 6 la Pazienza totale è 6/5 (ticket 35)
   constructor({
@@ -202,6 +207,7 @@ export class Serata {
     posti = POSTI.quanti,
     pazienzaMoltiplicatore = 1,
     cuori = PAZIENZA.hearts,
+    disturbatori = [],
   } = {}) {
     this.rng = createRng(seed);
     this.fasi = fasiDellaSerata(seed);
@@ -214,6 +220,7 @@ export class Serata {
     this.moltiplicatoreAltri = moltiplicatoriMancia.reduce((prodotto, m) => prodotto * m, 1);
     this.pazienzaMoltiplicatore = pazienzaMoltiplicatore;
     this.cuoriMax = cuori;
+    this.disturbatori = disturbatori.length ? new Disturbatori(disturbatori, seed) : null;
 
     this.durataMs = SERATA.durationSec * SEC;
     this.tempoMs = 0;
@@ -279,6 +286,7 @@ export class Serata {
     this.tempoMs += passoMs;
     this.avvisaOndate(eventi);
     for (const postazione of this.postazioni) this.cuoci(postazione, passoMs, eventi);
+    this.disturbatori?.passo(this, passoMs, eventi);
     this.ritmo = this.ritmoPazienza();
     this.posti.forEach((posto, indice) => this.aspetta(posto, indice, passoMs, eventi));
     this.faiArrivare(eventi);
@@ -642,6 +650,13 @@ export class Serata {
     return eventi;
   }
 
+  // Il tocco su un Disturbatore (`chi`: croccola, formiche o corvi): lo manda via, e Croccola la si coccola. Se non c'è, o
+  // se ne sta già andando, non succede niente.
+  scaccia(chi) {
+    if (this.finita) return [];
+    return this.disturbatori?.scaccia(chi) ?? [];
+  }
+
   // Lo stato in forma di dati semplici (solo numeri, stringhe, liste): basta per
   // window.render_game_to_text() e per i test. Per giocare senza guardare lo schermo.
   stato() {
@@ -659,6 +674,8 @@ export class Serata {
       serviti: this.serviti,
       persi: this.persi,
       bruciati: this.bruciati,
+      // I Disturbatori in scena adesso (vuota se la Serata non ne ha): vedi src/serata/disturbatori.js.
+      disturbatori: this.disturbatori?.stato() ?? [],
       // La Serie: Ordini di fila adesso, la più lunga di stasera, di quanto moltiplicherà la Mancia del prossimo
       // Ordine servito e quanti Yen di Mancia in più ha dato finora.
       // cuoriMax: quanti cuoricini ha la Pazienza di ogni Cliente in questa Serata (5, 6 con il Posto in più).
