@@ -45,6 +45,23 @@ export const PALETTE = {
   ghiaccio: { colore: '#e4f4fb', ombra: '#a9d3e6', luce: '#ffffff' },
   celeste: { colore: '#a9d6f0', ombra: '#6fa9cc', luce: '#d8eefa' },
   brodo: { colore: '#f3cf86', ombra: '#d6a64c', luce: '#fbe6b4' },
+  // Gli sciroppi del kakigōri (ticket 07). In bianco e nero devono restare diversi: la fragola è media (luminosità
+  // ~150), il melone molto chiaro (~215), il matcha scuro (~100). La foglia verde è la buccia del melone e il ciuffo.
+  fragola: { colore: '#ef6f86', ombra: '#c24560', luce: '#f9a9b6' },
+  melone: { colore: '#cfeda0', ombra: '#9cc468', luce: '#ecf8cf' },
+  matcha: { colore: '#55793a', ombra: '#3a5628', luce: '#86a867' },
+  foglia: { colore: '#7bbf72', ombra: '#4f8f4c', luce: '#a9dda0' },
+  // Il taiyaki e i suoi ripieni (ticket 08). In bianco e nero i fagioli rossi (luminosità ~70, quasi scuri come l'inchiostro)
+  // e la crema (~225, chiara) restano lontani, e il taiyaki dorato (~175) sta in mezzo.
+  taiyaki: { colore: '#e2a65e', ombra: '#b2742f', luce: '#f6d6a0' },
+  fagioli: { colore: '#7b3040', ombra: '#521c2a', luce: '#b0626f' },
+  crema: { colore: '#fbe48a', ombra: '#dcbc50', luce: '#fff4c4' },
+  // Il ramen: i noodles gialli, l'uovo marinato (l'albume è un po' ambrato, il tuorlo arancio) e il naruto (bianco con
+  // la spirale rosa, che è C.rosa). L'uovo e il naruto si distinguono anche per la forma (ovale con il tuorlo, disco
+  // dal bordo ondulato con la spirale).
+  noodles: { colore: '#f4d98a', ombra: '#d4b04e', luce: '#fbeab8' },
+  albume: { colore: '#f6e6cc', ombra: '#d2b48c', luce: '#fffaf0' },
+  tuorlo: { colore: '#f09a2e', ombra: '#c6701a', luce: '#f8c36a' },
 };
 
 export const VIEW = {
@@ -150,15 +167,20 @@ export const BRUCIATURA = { avvisoSec: 1.5 };
 
 // I Piatti stanno nell'ordine in cui si sbloccano (GAME_SPEC.md): le Postazioni sullo schermo li seguono.
 // burnAfterSec: secondi in più, da quando il Piatto è pronto (finito e da prendere), prima che si bruci
-// (null o assente = mai). cookSec: la cottura dei Piatti che non hanno ancora una ricetta (vedi sotto).
+// (null o assente = mai).
 // ricetta: la cucina a tocchi (ticket 33 e 37). Una lista di passi, nell'ordine in cui accadono. Un passo è
 //   { ingrediente, costo }   un tocco sulla Scorta di quell'Ingrediente, che si paga subito
 //   { cotturaSec }           la Postazione cuoce da sola per tanti secondi; intanto le Scorte non fanno niente
+//   { unoDi: [ ... ] }       un tocco su una di più Scorte (ticket 07): ogni voce è { ingrediente, costo, variante }
+//                            e la variante scelta resta nel Piatto, che sul Bancone e negli Ordini si chiama
+//                            `piatto-variante` (kakigori-fragola). Le voci di uno stesso passo costano uguale.
 // Dopo l'ultimo passo il Piatto è pronto e si prende (un tocco in più, mai nella lista). La cottura sta dove serve
-// alla Ricetta: nel takoyaki dopo il polpo, nel kakigōri (ticket 07) dopo il ghiaccio, e la logica è la stessa.
+// alla Ricetta: nel takoyaki dopo il polpo, nel kakigōri dopo il ghiaccio, e la logica è la stessa.
+// varianti: gli id delle varianti, nell'ordine in cui compaiono; uguali a quelli del passo unoDi (lo controlla un test).
 // Il costo del Piatto è la somma dei costi, circa un terzo del prezzo (GAME_SPEC.md, "Ingredienti e Spreco").
 // La sequenza è anche la Ricetta mostrata in icone e quella del Ricettario.
-// Kakigōri, taiyaki e ramen non hanno ancora una ricetta né una Postazione: le avranno nei ticket 07 e 08.
+// L'id di una Scorta è il nome dell'Ingrediente e deve essere unico in tutte le ricette (un test lo controlla): la
+// pastella del takoyaki e l'impasto dolce del taiyaki sono due Ingredienti, e due Scorte, con nomi diversi.
 export const PIATTI = {
   onigiri: {
     ricetta: [{ ingrediente: 'riso', costo: 20 }, { ingrediente: 'alga', costo: 10 }],
@@ -177,9 +199,57 @@ export const PIATTI = {
     price: 300,
     varianti: [],
   },
-  kakigori: { cookSec: 2, burnAfterSec: null, price: 250, varianti: ['fragola', 'melone', 'matcha'] },
-  taiyaki: { cookSec: 8, burnAfterSec: 4, price: 200, varianti: ['fagioli', 'crema'] },
-  ramen: { cookSec: 6, burnAfterSec: 5, price: 600, varianti: ['uovo', 'naruto'] },
+  // 3 tocchi: ghiaccio, sciroppo (uno dei tre), prendi. I 2 s sono la macinatura. Non si brucia mai.
+  // 80 Yen di Ingredienti su 250 (circa un terzo, GAME_SPEC.md).
+  kakigori: {
+    ricetta: [
+      { ingrediente: 'ghiaccio', costo: 20 },
+      { cotturaSec: 2 },
+      {
+        unoDi: [
+          { ingrediente: 'fragola', costo: 60, variante: 'fragola' },
+          { ingrediente: 'melone', costo: 60, variante: 'melone' },
+          { ingrediente: 'matcha', costo: 60, variante: 'matcha' },
+        ],
+      },
+    ],
+    price: 250,
+    varianti: ['fragola', 'melone', 'matcha'],
+  },
+  // 3 tocchi: impasto, ripieno (uno dei due), [8 s], prendi. 70 Yen di Ingredienti su 200. Si brucia 4 s dopo essere pronto.
+  taiyaki: {
+    ricetta: [
+      { ingrediente: 'impasto', costo: 30 },
+      {
+        unoDi: [
+          { ingrediente: 'fagioli', costo: 40, variante: 'fagioli' },
+          { ingrediente: 'crema', costo: 40, variante: 'crema' },
+        ],
+      },
+      { cotturaSec: 8 },
+    ],
+    burnAfterSec: 4,
+    price: 200,
+    varianti: ['fagioli', 'crema'],
+  },
+  // 4 tocchi: noodles, brodo, [6 s], uovo o naruto (dopo la cottura, come la salsa del takoyaki), prendi. 200 Yen di
+  // Ingredienti su 600. Si brucia 5 s dopo essere pronto.
+  ramen: {
+    ricetta: [
+      { ingrediente: 'noodles', costo: 70 },
+      { ingrediente: 'brodo', costo: 80 },
+      { cotturaSec: 6 },
+      {
+        unoDi: [
+          { ingrediente: 'uovo', costo: 50, variante: 'uovo' },
+          { ingrediente: 'naruto', costo: 50, variante: 'naruto' },
+        ],
+      },
+    ],
+    burnAfterSec: 5,
+    price: 600,
+    varianti: ['uovo', 'naruto'],
+  },
 };
 
 // Lo Yatai in verticale (src/layout/yatai.js). Le misure sono in pixel di gioco (VIEW): i valori
@@ -199,6 +269,28 @@ export const YATAI = {
   ],
   // I Posti: 3 all'inizio, 4 con il Potenziamento. Lo spazio c'è già per tutti e 4.
   posti: { iniziali: 3, massimo: 4, larghezzaMax: 190 },
+  // Le Scorte quando la fila (Scorte e Postazioni insieme) ha più di `postazioni.massimo` voci, cioè dall'Hanabi
+  // (9 Scorte e 3 Postazioni): in una fila sola ogni voce sarebbe larga 25 px a 360×640, e le dita ne vogliono 44.
+  // Allora le Scorte escono dalla fila e stanno sugli scaffali ai lati di Maurizio, nello spazio vuoto della fascia
+  // della cucina, mentre le Postazioni restano da sole vicino al pollice. (Provato anche in file sopra le
+  // Postazioni, ticket 07 passo 3: toglieva altezza ai Clienti e a Maurizio e accalcava le icone della Ricetta.)
+  // Su ogni lato ci sono `colonne` colonne e tante righe quante servono, dall'alto; `centro` è la larghezza lasciata
+  // a Maurizio; la cella è alta quanto larga per `proporzione` ma non più di `cellaMax` di larghezza; il lato destro
+  // lascia `riservaCestino` in basso al cestino, quindi lì stanno meno righe. `rigaMin` è l'altezza sotto cui una
+  // riga non scende quando si contano quante ne entrano (44 px CSS da 375 px di larghezza in su, 42 a 360: a 360×640 le
+  // righe sono comunque da 91), `cellaMin` è la larghezza di una cella quando le colonne sono 3 (44 px CSS a 360). Con 2 colonne e il cestino stanno 12 Scorte a 360×640 (8 a sinistra e 4 a
+  // destra; con 9, come nell'Hanabi, 5 e 4). Con 13 Scorte o più (ticket 08: con il taiyaki sono 12 + il ramen che ne
+  // aggiunge 4 = 16) a sinistra si aggiunge una terza colonna, le celle larghe `cellaMin` e Maurizio ha il resto: a 360×640
+  // 3 colonne a sinistra (4 righe) e 2 a destra (2 righe) fanno 16 Scorte, e a Maurizio restano 232 px invece di 280.
+  scorte: {
+    colonne: 2,
+    centro: 280,
+    proporzione: 1.1,
+    cellaMax: 120,
+    riservaCestino: 130,
+    rigaMin: 84,
+    cellaMin: 88,
+  },
   // Le Postazioni: una per Piatto, in fila vicino al pollice. `altezzaEtichetta` è lo spazio per il nome;
   // `barraDallaCima` e `piattoDallaCima` dicono a che altezza dalla cima del disegno stanno la barra della
   // cottura e il Piatto pronto (la base dell'icona), in pixel del disegno. La barra della cottura sta sopra le
@@ -305,11 +397,68 @@ export const SERATA_TANABATA = {
   piattiPerOrdine: { min: 1, max: 2 },
 };
 
+// La Serata dell'Hanabi (ticket 07): arriva il kakigōri, il Piatto con le varianti (fragola, melone, matcha) che non
+// si brucia mai. Il menù è quello del Tanabata più il Piatto nuovo; con le formiche e il resto dell'Hanabi
+// (ticket 11 e 14) arriveranno dopo.
+//
+// Obiettivo provvisorio fino al ticket 29, sul netto (Vendite meno Spesa), misurato col bot senza browser
+// (test/bot.js: non sbaglia una mossa, la bravura è il tempo tra un tocco e l'altro). Media di 6 semi, con le ondate:
+//   un tocco ogni 1,4 s (lento)    3111 Yen (da 2720 a 3695)   serviti 12,8
+//   un tocco ogni 1,0 s (attento)  4888 Yen (da 3840 a 5825)   serviti 17,7
+//   un tocco ogni 0,6 s (rapido)   7004 Yen (da 6235 a 8690)   serviti 22,7
+// Nessun Piatto bruciato (il bot li prende in tempo). Con obiettivo 2900 le soglie sono ★ 2900, ★★ 3770, ★★★ 4640:
+// il lento ha ★ con il 7% di margine e il rapido ★★★. L'attento, che non sbaglia mai, prende ★★★ (come nell'Hanami,
+// ticket 34): un attento umano che sbaglia qualche mossa sta più in basso.
+export const SERATA_HANABI = {
+  obiettivo: 2900,
+  piatti: ['onigiri', 'takoyaki', 'kakigori'],
+  piattiPerOrdine: { min: 1, max: 2 },
+};
+
+// La Serata dell'Aki Matsuri (ticket 08): arriva il taiyaki, con i due ripieni (fagioli rossi, crema), che si brucia.
+// Il menù è quello dell'Hanabi più il Piatto nuovo; i corvi e il corteo del mikoshi arriveranno dopo (ticket 11 e 15).
+// Obiettivo provvisorio fino al ticket 29, sul netto, misurato col bot senza browser (test/bot.js, media di 24 semi, con le
+// ondate; il bot non sbaglia mai una mossa, la bravura è il tempo tra un tocco e l'altro):
+//   un tocco ogni 1,4 s (lento)    3235 Yen (da 2510 a 3800)   serviti 12,8
+//   un tocco ogni 1,0 s (attento)  4525 Yen (da 2375 a 5535)   serviti 16,3
+//   un tocco ogni 0,6 s (rapido)   6958 Yen (da 4685 a 8140)   serviti 23,0
+// Con obiettivo 3000 le soglie sono ★ 3000, ★★ 3900, ★★★ 4800: il lento ha ★ con l'8% di margine, l'attento ★★ (la
+// media sta sotto ★★★) e il rapido ★★★. Il taiyaki cuoce 8 s, il più lungo: chi lo dimentica lo brucia (70 Yen di Spreco).
+export const SERATA_AKI = {
+  obiettivo: 3000,
+  piatti: ['onigiri', 'takoyaki', 'kakigori', 'taiyaki'],
+  piattiPerOrdine: { min: 1, max: 2 },
+};
+
+// La Serata dello Yuki Matsuri (ticket 08): arriva il ramen, il Piatto da 4 tocchi, e con lui gli Ordini da 3 Piatti
+// (GAME_SPEC.md, tabella dei Matsuri). Ha tutti e 5 i Piatti, quindi tutte le Postazioni e tutte le Scorte (16).
+//
+// ATTENZIONE: gli Ordini sono da 1 o 2 Piatti, non da 3 come dice la tabella dei Matsuri. Con 3 Piatti per Ordine (uno su
+// tre) la Serata non regge: il ramen da 4 tocchi e 6 s di cottura, con la Pazienza di 15 s nelle ondate, non si fa in tempo
+// per un Ordine da 12 tocchi, e il bot rapido incassa meno che nell'Aki (media di 12 semi: rapido 4617, attento 2675, lento
+// 2617, da −365 a 9610, 5 Piatti bruciati a Serata e 1250 Yen di Spreco). La logica gli Ordini da 3 li fa (basta max: 3, c'è
+// un test); gli Ordini da 3 Piatti nello Yuki vanno ripensati nel ticket 29 (per esempio più rari, o con più Pazienza).
+// Misurato col bot con 1 o 2 Piatti per Ordine (media di 24 semi, con le ondate), obiettivo provvisorio fino al ticket 29:
+//   un tocco ogni 1,4 s (lento)    3210 Yen (da 435 a 4910)    serviti 11,4
+//   un tocco ogni 1,0 s (attento)  5488 Yen (da 1320 a 7180)   serviti 16,6
+//   un tocco ogni 0,6 s (rapido)   8458 Yen (da 5195 a 10905)  serviti 21,2
+// Con obiettivo 3000 le soglie sono ★ 3000, ★★ 3900, ★★★ 4800: il lento ha ★ con il 7% di margine (ma con un'oscillazione
+// grande: il ramen costa 200 Yen, e lo Spreco pesa), l'attento che non sbaglia mai ★★★ (come nell'Hanami e nell'Hanabi) e il
+// rapido ★★★.
+export const SERATA_YUKI = {
+  obiettivo: 3000,
+  piatti: ['onigiri', 'takoyaki', 'kakigori', 'taiyaki', 'ramen'],
+  piattiPerOrdine: { min: 1, max: 2 },
+};
+
 // Come è fatta la Serata di ogni Matsuri. Dal passo 8 ogni Serata avrà la sua; per ora ne ha una il
 // Matsuri, e chi manca gioca quella dell'Hanami.
 export const SERATE = {
   hanami: SERATA_PRIMA,
   tanabata: SERATA_TANABATA,
+  hanabi: SERATA_HANABI,
+  aki: SERATA_AKI,
+  yuki: SERATA_YUKI,
 };
 
 // --- La scena della Serata (src/scenes/SerataScene.js): comandi e riscontri ---
@@ -504,6 +653,9 @@ export const BANCONE = {
 export const POSTAZIONI = {
   tagliere: { piatto: 'onigiri' },
   piastra: { piatto: 'takoyaki' },
+  macchina: { piatto: 'kakigori' },
+  stampo: { piatto: 'taiyaki' },
+  pentola: { piatto: 'ramen' },
 };
 
 // Le Scorte (GLOSSARY.md) non hanno numeri propri: sono una per Ingrediente di ogni ricetta (PIATTI),

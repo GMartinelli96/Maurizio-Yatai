@@ -1,5 +1,6 @@
 import { PAZIENZA, RISCONTRI } from '../config.js';
 import { ONIGIRI_ICONA } from '../disegni/catalogo.js';
+import { CAST_SEGNI_POS } from '../disegni/cast.js';
 import { CLIENTE_FEET, CLIENTE_SIZE, SEGNI_POS, clienteKey } from '../disegni/clienti.js';
 import { onigiriSize } from '../disegni/onigiri.js';
 import { CUORE_SIZE, NUVOLETTA } from '../disegni/serata.js';
@@ -253,7 +254,7 @@ export default class ClienteView {
   segui() {
     if (!this.segno || !this.segnoImg.visible || !this.cliente) return;
     const { sprite: s, segnoMoto: m } = this;
-    const punto = SEGNI_POS[this.cliente.tipo][this.segno];
+    const punto = (SEGNI_POS[this.cliente.tipo] ?? CAST_SEGNI_POS[this.cliente.tipo])[this.segno];
     const dx = (punto.x + m.dx - CLIENTE_SIZE.w / 2) * s.scaleX;
     const dy = (punto.y + m.dy - CLIENTE_SIZE.h) * s.scaleY;
     const cos = Math.cos(s.rotation);

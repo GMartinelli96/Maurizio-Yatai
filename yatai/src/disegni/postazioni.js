@@ -8,6 +8,9 @@
 
 import { PALETTE as C } from '../config.js';
 import { clipTo, ellipse, pastelFill, pencilLine, restingShadow, roundedPolygon, roundedRect, smoothCurve } from '../kit/matita.js';
+import { SCORTE_KAKIGORI } from './kakigori.js';
+import { SCORTE_RAMEN } from './ramen.js';
+import { SCORTE_TAIYAKI } from './taiyaki.js';
 
 export const POSTAZIONE_SIZE = { w: 132, h: 152 };
 
@@ -220,8 +223,18 @@ export const SCORTE = {
   pastella: drawScortaPastella,
   polpo: drawScortaPolpo,
   salsa: drawScortaSalsa,
+  // Il ghiaccio e i tre sciroppi del kakigōri (ticket 07), disegnati in kakigori.js insieme ai Piatti.
+  ...SCORTE_KAKIGORI,
+  // L'impasto e i due ripieni del taiyaki (ticket 08), disegnati in taiyaki.js; i noodles, il brodo, l'uovo e il naruto
+  // del ramen, in ramen.js.
+  ...SCORTE_TAIYAKI,
+  ...SCORTE_RAMEN,
 };
 export const scortaKey = (ingrediente) => `scorta-${ingrediente}`;
+
+// L'icona del passo a scelta nella Ricetta in icone (lo sciroppo, il ripieno, la guarnizione), finché non si è scelto: una per
+// Piatto con varianti. Poi al suo posto c'è la Scorta della variante scelta.
+export const PASSO_SCELTA = { kakigori: 'passo-sciroppo', taiyaki: 'passo-ripieno', ramen: 'passo-guarnizione' };
 
 // In ordine di sblocco, con la chiave del Piatto di config.js (PIATTI).
 export const POSTAZIONI = {

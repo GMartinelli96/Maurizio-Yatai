@@ -7,6 +7,9 @@ import { grain, panel, paper, restingShadow } from '../kit/matita.js';
 import { createRng } from '../kit/rng.js';
 import { MAURIZIO_SIZE, POSE, drawMaurizio, maurizioKey } from './maurizio.js';
 import { DISEGNI_CLIENTI } from './clienti.js';
+import { DISEGNI_KAKIGORI } from './kakigori.js';
+import { DISEGNI_RAMEN } from './ramen.js';
+import { DISEGNI_TAIYAKI } from './taiyaki.js';
 import { drawOnigiri, onigiriSize } from './onigiri.js';
 import { POSTAZIONE_SIZE, POSTAZIONI, SCORTE, postazioneKey, scortaKey } from './postazioni.js';
 import { ICONA_SIZE, drawIconaPosto, drawIconaVentaglio } from './bottega.js';
@@ -31,6 +34,11 @@ export const DISEGNI = {
   takoyaki: { ...takoyakiSize(ONIGIRI_BANCONE), draw: (ctx, rng) => drawTakoyaki(ctx, rng, ONIGIRI_BANCONE) },
   'takoyaki-icona': { ...takoyakiSize(ONIGIRI_ICONA), draw: (ctx, rng) => drawTakoyaki(ctx, rng, ONIGIRI_ICONA) },
   'takoyaki-bruciato-icona': { ...takoyakiSize(ONIGIRI_ICONA), draw: (ctx, rng) => drawTakoyaki(ctx, rng, ONIGIRI_ICONA, true) },
+  // Il kakigōri in tre varianti (kakigori-fragola, -melone, -matcha), ognuna alla misura del Bancone e dell'icona.
+  ...DISEGNI_KAKIGORI,
+  // Il taiyaki (fagioli, crema) e il ramen (uovo, naruto), ognuno con Bancone, icona, bruciato e il passo a scelta (ticket 08).
+  ...DISEGNI_TAIYAKI,
+  ...DISEGNI_RAMEN,
   fumo: { ...FUMO_SIZE, draw: drawFumo },
   cestino: { ...CESTINO_SIZE, draw: drawCestino },
   // Lo Yatai: una Postazione per Piatto. Il pavimento, il Bancone, il Posto e lo sfondo cambiano con

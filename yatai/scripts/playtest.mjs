@@ -172,17 +172,41 @@ function scegliMossa({ serata, bancone: piano }) {
   // cuoce ('cuoce') le Scorte non fanno niente, quindi il bot lo lascia stare e passa oltre: la cottura a metà
   // della Ricetta (il takoyaki dopo il polpo) non ha bisogno di una mossa a parte. Finita la cottura la
   // Postazione torna 'inPreparazione' e aspetta la salsa.
+  // Se il passo è una scelta (lo sciroppo del kakigōri: `prossimi` ne ha più d'una) il bot sceglie la variante che
+  // manca agli Ordini, dato che `prossimo` è null.
   const cominciata = serata.postazioni.find((p) => p.stato === 'inPreparazione');
-  if (cominciata) return { tipo: 'tocca', id: cominciata.prossimo };
-  // Si comincia solo quel che manca: i Piatti ordinati meno quelli sul Bancone e quelli già in preparazione,
-  // in cottura o pronti (un Piatto bruciato o nel Fumo non arriverà mai).
-  const mancanti = clienti.flatMap(({ cliente }) => cliente.ordine);
-  const togli = (piatto) => { const i = mancanti.indexOf(piatto); if (i !== -1) mancanti.splice(i, 1); };
-  for (const piatto of bancone) togli(piatto);
-  for (const p of serata.postazioni) if (!['libera', 'bruciato', 'fumo'].includes(p.stato)) togli(p.piatto);
-  const libera = serata.postazioni.find((p) => p.stato === 'libera' && mancanti.includes(p.piatto));
+  if (cominciata) return { tipo: 'tocca', id: scortaDaToccare(serata, cominciata) };
+  // Si comincia solo quel che manca (vedi mancantiDi).
+  const libera = serata.postazioni.find((p) => p.stato === 'libera' && mancantiDi(serata).some((chiesto) => baseDi(chiesto) === p.piatto));
   // Ogni Piatto comincia dalla sua prima Scorta (`prossimo` di una Postazione libera).
   return libera ? { tipo: 'tocca', id: libera.prossimo } : null;
+}
+
+// Un Piatto con variante si chiama `piatto-variante` (kakigori-melone): gli id non hanno altri trattini.
+const baseDi = (id) => id.split('-')[0];
+
+// I Piatti ordinati meno quelli sul Bancone e quelli già in preparazione, in cottura o pronti (un Piatto bruciato o
+// nel Fumo non arriverà mai). Un Piatto di cui non si è ancora scelta la variante copre il primo Ordine della sua
+// famiglia. `escludi` è una Postazione da non contare (quella di cui si sceglie la variante).
+function mancantiDi(serata, escludi = null) {
+  const mancanti = serata.posti.filter((p) => p.cliente).flatMap(({ cliente }) => cliente.ordine);
+  const togli = (piatto) => {
+    let i = mancanti.indexOf(piatto);
+    if (i === -1 && !piatto.includes('-')) i = mancanti.findIndex((chiesto) => baseDi(chiesto) === piatto);
+    if (i !== -1) mancanti.splice(i, 1);
+  };
+  serata.bancone.forEach(togli);
+  for (const p of serata.postazioni) {
+    if (p !== escludi && !['libera', 'bruciato', 'fumo'].includes(p.stato)) togli(p.variante ? `${p.piatto}-${p.variante}` : p.piatto);
+  }
+  return mancanti;
+}
+
+// La Scorta da toccare per un Piatto che aspetta un Ingrediente: l'unica, o la variante che manca agli Ordini.
+function scortaDaToccare(serata, postazione) {
+  if (postazione.prossimi.length <= 1) return postazione.prossimo;
+  const chiesti = mancantiDi(serata, postazione);
+  return postazione.prossimi.find((scorta) => chiesti.includes(`${postazione.piatto}-${scorta}`)) ?? postazione.prossimi[0];
 }
 
 // Aspetta che gli hook rispondano e che l'avvio (texture e font) sia finito.

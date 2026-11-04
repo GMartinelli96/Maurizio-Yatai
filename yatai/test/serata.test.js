@@ -66,7 +66,6 @@ test('la ricetta dell’onigiri è riso, alga e si prende: 3 tocchi, 30 Yen di I
   assert.deepEqual(PIATTI.onigiri.ricetta.map((r) => r.ingrediente), ['riso', 'alga']);
   assert.equal(costoPiatto('onigiri'), 30, 'riso 20 e alga 10 (GAME_SPEC.md)');
   assert.ok(costoPiatto('onigiri') <= PIATTI.onigiri.price / 3, 'il costo è circa un terzo del prezzo, non di più');
-  assert.equal(costoPiatto('kakigori'), 0, 'i Piatti senza ricetta (ancora da fare, ticket 07) non hanno Ingredienti');
 });
 
 test('lo Yatai ha una Scorta per Ingrediente e poi la Postazione, nell’ordine della ricetta', () => {

@@ -26,6 +26,27 @@ export default {
   ingrediente_pastella: 'Pastella',
   ingrediente_polpo: 'Polpo',
   ingrediente_salsa: 'Salsa',
+  // Il kakigōri (ticket 07): il ghiaccio e una Scorta per variante, con i nomi corti (stanno sotto una Scorta piccola).
+  // Le varianti hanno anche il nome del Piatto: piatto_ più l'id con la variante (kakigori-fragola).
+  ingrediente_ghiaccio: 'Ghiaccio',
+  ingrediente_fragola: 'Fragola',
+  ingrediente_melone: 'Melone',
+  ingrediente_matcha: 'Matcha',
+  'piatto_kakigori-fragola': 'Kakigōri alla fragola',
+  'piatto_kakigori-melone': 'Kakigōri al melone',
+  'piatto_kakigori-matcha': 'Kakigōri al matcha',
+  // Taiyaki e ramen (ticket 08): l'impasto dolce del taiyaki non è la pastella del takoyaki, sono due Scorte.
+  ingrediente_impasto: 'Impasto dolce',
+  ingrediente_fagioli: 'Fagioli rossi',
+  ingrediente_crema: 'Crema',
+  ingrediente_noodles: 'Noodles',
+  ingrediente_brodo: 'Brodo',
+  ingrediente_uovo: 'Uovo',
+  ingrediente_naruto: 'Naruto',
+  'piatto_taiyaki-fagioli': 'Taiyaki ai fagioli rossi',
+  'piatto_taiyaki-crema': 'Taiyaki alla crema',
+  'piatto_ramen-uovo': 'Ramen con uovo',
+  'piatto_ramen-naruto': 'Ramen con naruto',
 
 
   // Fine Serata

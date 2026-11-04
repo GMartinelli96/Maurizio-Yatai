@@ -30,12 +30,13 @@ import { createRng } from '../kit/rng.js';
 //
 // Gli eventi sono oggetti semplici con un campo `tipo`:
 //   clienteArrivato   { posto, cliente: { id, tipo, ordine } }
-//   ingrediente       { postazione, scorta, costo, fatti, di }   un Ingrediente è finito nel Piatto (e si è pagato)
+//   ingrediente       { postazione, scorta, costo, fatti, di, variante? }   un Ingrediente è finito nel Piatto (e si è
+//                                              pagato); `variante` c'è se era la scelta tra le varianti (lo sciroppo)
 //   cotturaIniziata   { postazione, piatto, durataMs }   finito un Ingrediente, il passo dopo è una cottura
 //   cotturaFinita     { postazione, piatto }   la cottura è finita ma il Piatto non è pronto: manca ancora un Ingrediente
 //   ingredienteRifiutato { scorta, motivo }   fuori ordine ('ordine'), con la Postazione che cuoce ('cuoce') o con tutte
 //                                              le Postazioni piene ('occupato'): non costa niente
-//   piattoPronto      { postazione, piatto }
+//   piattoPronto      { postazione, piatto }   `piatto` porta la variante se c'è (kakigori-melone), come sulBancone
 //   staPerBruciarsi   { postazione, piatto, traMs }   il Piatto pronto è negli ultimi secondi, una volta sola
 //   piattoBruciato    { postazione, piatto }   dimenticato troppo: resta sulla Postazione finché non si tocca
 //   nelCestino        { postazione, piatto }   toccato il Piatto bruciato: da qui la Postazione è nel Fumo
@@ -130,10 +131,36 @@ export function calcolaStelle(incasso, obiettivo) {
   return sogliePerStelle(obiettivo).filter((soglia) => incasso >= soglia).length;
 }
 
-// I passi della ricetta di un Piatto che sono Ingredienti (le cotture no): quelli che hanno una Scorta e
-// un'icona nella Ricetta mostrata sulla Postazione. Un Piatto senza ricetta non ne ha.
+// Un Piatto con una variante (il kakigōri alla fragola) si chiama `piatto-variante` negli Ordini e sul Bancone,
+// così "la variante sbagliata" è solo un Piatto diverso. Gli id dei Piatti e delle varianti non hanno trattini.
+export const idPiatto = (piatto, variante) => (variante ? `${piatto}-${variante}` : piatto);
+export const piattoBase = (id) => id.split('-')[0];
+export const varianteDi = (id) => id.split('-')[1] ?? null;
+
+// Le voci che un passo accetta: un Ingrediente solo, oppure una di più Scorte (`unoDi`, le varianti).
+const vociDi = (passo) => passo.unoDi ?? [passo];
+
+// I passi della ricetta che sono tocchi su una Scorta (le cotture no): quelli che hanno un'icona nella Ricetta
+// mostrata sulla Postazione, e che contano come tocchi. Un Piatto senza ricetta non ne ha. Accetta anche l'id
+// di una variante (kakigori-fragola).
+export function passiDi(piatto) {
+  return (PIATTI[piattoBase(piatto)].ricetta ?? []).filter((passo) => passo.cotturaSec === undefined);
+}
+
+// Gli Ingredienti di un Piatto, uno per passo. Per un Piatto con varianti dipende dall'id: kakigori-fragola ha lo
+// sciroppo di fragola. Con l'id senza variante vale la prima (le voci di un passo costano uguale, lo controlla
+// un test).
 export function ingredientiDi(piatto) {
-  return (PIATTI[piatto].ricetta ?? []).filter((passo) => passo.ingrediente !== undefined);
+  const variante = varianteDi(piatto);
+  return passiDi(piatto).map((passo) => {
+    const voci = vociDi(passo);
+    return (variante && voci.find((voce) => voce.variante === variante)) || voci[0];
+  });
+}
+
+// Tutte le Scorte che servono a un Piatto, nell'ordine della ricetta: per un passo `unoDi` sono tutte le varianti.
+export function scorteDi(piatto) {
+  return passiDi(piatto).flatMap(vociDi);
 }
 
 // Gli Yen di Ingredienti di un Piatto: la somma della sua ricetta (zero se non ne ha una).
@@ -141,10 +168,10 @@ export function costoPiatto(piatto) {
   return ingredientiDi(piatto).reduce((somma, { costo }) => somma + costo, 0);
 }
 
-// Quanti tocchi servono per fare un Piatto: uno per Ingrediente più uno per prenderlo. La cottura non è
-// un tocco. Il tetto è 4 (GAME_SPEC.md, "La cucina a tocchi").
+// Quanti tocchi servono per fare un Piatto: uno per passo con una Scorta più uno per prenderlo. La cottura non
+// è un tocco, e scegliere tra le varianti è lo stesso tocco. Il tetto è 4 (GAME_SPEC.md, "La cucina a tocchi").
 export function tocchiPerPiatto(piatto) {
-  return ingredientiDi(piatto).length + 1;
+  return passiDi(piatto).length + 1;
 }
 
 export class Serata {
@@ -213,9 +240,10 @@ export class Serata {
     // libera | inPreparazione (aspetta un Ingrediente) | cuoce (è a un passo di cottura) | pronto | bruciato | fumo.
     this.postazioni = Object.entries(POSTAZIONI)
       .filter(([, { piatto }]) => piatti.includes(piatto))
-      .map(([id, { piatto }]) => ({ id, piatto, stato: 'libera', passo: 0, fatti: 0, cottoMs: 0, prontoMs: 0, avvisato: false, fumoMs: 0 }));
-    // Una Scorta per Ingrediente di ogni ricetta, nell'ordine della ricetta.
-    this.scorte = piatti.flatMap((piatto) => ingredientiDi(piatto).map(({ ingrediente }) => ({ id: ingrediente, piatto })));
+      .map(([id, { piatto }]) => ({ id, piatto, stato: 'libera', passo: 0, fatti: 0, variante: null, cottoMs: 0, prontoMs: 0, avvisato: false, fumoMs: 0 }));
+    // Una Scorta per Ingrediente di ogni ricetta, nell'ordine della ricetta; una per variante dove il passo ne ha.
+    this.scorte = piatti.flatMap((piatto) =>
+      scorteDi(piatto).map(({ ingrediente, costo, variante }) => ({ id: ingrediente, piatto, costo, variante: variante ?? null })));
     this.prossimoArrivoMs = Math.round(CLIENTI.primoArrivoSec * SEC);
   }
 
@@ -305,7 +333,7 @@ export class Serata {
       postazione.stato = 'pronto';
       postazione.prontoMs = 0;
       postazione.avvisato = false;
-      eventi.push({ tipo: 'piattoPronto', postazione: postazione.id, piatto: postazione.piatto });
+      eventi.push({ tipo: 'piattoPronto', postazione: postazione.id, piatto: idPiatto(postazione.piatto, postazione.variante) });
     } else if (prossimo.cotturaSec !== undefined) {
       postazione.stato = 'cuoce';
       eventi.push({ tipo: 'cotturaIniziata', postazione: postazione.id, piatto: postazione.piatto, durataMs: prossimo.cotturaSec * SEC });
@@ -318,16 +346,18 @@ export class Serata {
   azzera(postazione) {
     postazione.passo = 0;
     postazione.fatti = 0;
+    postazione.variante = null;
     postazione.cottoMs = 0;
     postazione.prontoMs = 0;
     postazione.avvisato = false;
   }
 
-  // L'Ingrediente che la Postazione aspetta (o aspetterà, finita la cottura), o null se non ne mancano. Solo
-  // mentre il Piatto si sta facendo.
-  prossimoIngrediente(postazione) {
-    if (!['libera', 'inPreparazione', 'cuoce'].includes(postazione.stato)) return null;
-    return PIATTI[postazione.piatto].ricetta.slice(postazione.passo).find((passo) => passo.ingrediente !== undefined)?.ingrediente ?? null;
+  // Le Scorte che la Postazione aspetta (o aspetterà, finita la cottura): una, o tutte le varianti se il prossimo
+  // passo è una scelta. Vuota se non ne mancano. Solo mentre il Piatto si sta facendo.
+  prossimiIngredienti(postazione) {
+    if (!['libera', 'inPreparazione', 'cuoce'].includes(postazione.stato)) return [];
+    const passo = PIATTI[postazione.piatto].ricetta.slice(postazione.passo).find((p) => p.cotturaSec === undefined);
+    return passo ? vociDi(passo).map(({ ingrediente }) => ingrediente) : [];
   }
 
   // Quanto manca prima che il Piatto pronto si bruci, o null se non si brucia mai (l'onigiri).
@@ -379,10 +409,11 @@ export class Serata {
 
   alBancone(postazione) {
     if (this.bancone.length >= this.banconeCapienza) return [{ tipo: 'banconePieno', postazione: postazione.id }];
-    this.bancone.push(postazione.piatto);
+    const piatto = idPiatto(postazione.piatto, postazione.variante);
+    this.bancone.push(piatto);
     postazione.stato = 'libera';
     this.azzera(postazione);
-    return [{ tipo: 'sulBancone', postazione: postazione.id, piatto: postazione.piatto }];
+    return [{ tipo: 'sulBancone', postazione: postazione.id, piatto }];
   }
 
   // Un Ingrediente va nella Postazione che lo aspetta: prima in quella già cominciata, poi in una
@@ -393,7 +424,9 @@ export class Serata {
     const { ricetta } = PIATTI[scorta.piatto];
     const delPiatto = this.postazioni.filter((p) => p.piatto === scorta.piatto);
     const puoRicevere = (p) => p.stato === 'libera' || p.stato === 'inPreparazione';
-    const aspetta = (p) => puoRicevere(p) && ricetta[p.passo].ingrediente === scorta.id;
+    // La voce del passo a cui è la Postazione che corrisponde a questa Scorta (se il passo è una scelta, una delle tre).
+    const voce = (p) => vociDi(ricetta[p.passo]).find(({ ingrediente }) => ingrediente === scorta.id);
+    const aspetta = (p) => puoRicevere(p) && voce(p) !== undefined;
     const scelta = delPiatto.filter(aspetta).sort((a, b) => b.fatti - a.fatti)[0];
     if (!scelta) {
       let motivo = 'occupato';
@@ -401,11 +434,13 @@ export class Serata {
       else if (delPiatto.some((p) => p.stato === 'cuoce')) motivo = 'cuoce';
       return [{ tipo: 'ingredienteRifiutato', scorta: scorta.id, motivo }];
     }
-    const { costo } = ricetta[scelta.passo];
+    const { costo, variante } = voce(scelta);
     this.spesa += costo;
     this.incasso -= costo;
     scelta.fatti += 1;
-    const eventi = [{ tipo: 'ingrediente', postazione: scelta.id, scorta: scorta.id, costo, fatti: scelta.fatti, di: ingredientiDi(scelta.piatto).length }];
+    // La variante scelta resta nel Piatto: serve a dargli il nome giusto quando è pronto.
+    if (variante) scelta.variante = variante;
+    const eventi = [{ tipo: 'ingrediente', postazione: scelta.id, scorta: scorta.id, costo, fatti: scelta.fatti, di: passiDi(scelta.piatto).length, ...(variante ? { variante } : {}) }];
     this.passoFatto(scelta, eventi);
     return eventi;
   }
@@ -502,11 +537,17 @@ export class Serata {
     eventi.push({ tipo: 'clienteArrivato', posto: indice, cliente: { id: posto.cliente.id, tipo, ordine: [...ordine] } });
   }
 
-  // Un Ordine è una lista di Piatti, da uno a tre.
+  // Un Ordine è una lista di Piatti, da uno a tre. Un Piatto con varianti si ordina con la sua variante
+  // (kakigori-melone). Il generatore si usa per la variante solo se il Piatto ne ha, così le Serate senza
+  // varianti restano identiche a prima, a parità di seme.
   creaOrdine() {
     const { min, max } = this.piattiPerOrdine;
     const quanti = min + Math.floor(this.rng() * (max - min + 1));
-    return Array.from({ length: quanti }, () => this.piatti[Math.floor(this.rng() * this.piatti.length)]);
+    return Array.from({ length: quanti }, () => {
+      const piatto = this.piatti[Math.floor(this.rng() * this.piatti.length)];
+      const { varianti } = PIATTI[piatto];
+      return varianti.length ? idPiatto(piatto, varianti[Math.floor(this.rng() * varianti.length)]) : piatto;
+    });
   }
 
   // Il tocco (o il trascinamento) su un Cliente: è servito se sul Bancone c'è tutto il suo Ordine.
@@ -531,7 +572,7 @@ export class Serata {
     }
 
     this.bancone = rimasti;
-    const prezzo = cliente.ordine.reduce((somma, piatto) => somma + PIATTI[piatto].price, 0);
+    const prezzo = cliente.ordine.reduce((somma, piatto) => somma + PIATTI[piattoBase(piatto)].price, 0);
     const cuori = cliente.cuori;
     // La Serie conta questo Ordine prima di pagare la Mancia: il primo di fila vale ×1, il secondo ×1,1 e così via.
     this.serie += 1;
@@ -606,26 +647,31 @@ export class Serata {
       })),
       andamento: this.andamento(),
       bancone: [...this.bancone],
-      // fatti: gli Ingredienti già nel Piatto. prossimo: l'id della Scorta che il Piatto aspetta, anche mentre
-      // cuoce (è quella da toccare appena finisce la cottura); null se non ne mancano. Mentre cuoce ('cuoce') le
+      // fatti: gli Ingredienti già nel Piatto. variante: quella scelta (null finché non si è toccato lo sciroppo).
+      // prossimi: gli id delle Scorte che il Piatto aspetta, anche mentre cuoce (sono quelle da toccare appena finisce
+      // la cottura): una, o tutte le varianti se il passo è una scelta; vuota se non ne mancano. prossimo: quella sola,
+      // oppure null se sono più di una o nessuna. Mentre cuoce ('cuoce') le
       // Scorte non fanno niente: restaMs dice quanto manca e cotturaMs quanto dura quella cottura.
       // bruciaTraMs: quanto manca a bruciarsi (solo un Piatto pronto che si brucia, altrimenti null).
       // fumoRestaMs: quanto manca alla fine del Fumo.
       postazioni: this.postazioni.map((postazione) => {
-        const { id, piatto, stato, cottoMs, fatti, prontoMs, fumoMs } = postazione;
+        const { id, piatto, stato, cottoMs, fatti, variante, prontoMs, fumoMs } = postazione;
+        const prossimi = this.prossimiIngredienti(postazione);
         return {
           id,
           piatto,
           stato,
           fatti,
-          prossimo: this.prossimoIngrediente(postazione),
+          variante,
+          prossimo: prossimi.length === 1 ? prossimi[0] : null,
+          prossimi,
           cotturaMs: stato === 'cuoce' ? this.cotturaMs(postazione) : 0,
           restaMs: stato === 'cuoce' ? this.cotturaMs(postazione) - cottoMs : 0,
           bruciaTraMs: stato === 'pronto' ? this.bruciaTraMs({ piatto, prontoMs }) : null,
           fumoRestaMs: stato === 'fumo' ? FUMO_SEC * SEC - fumoMs : 0,
         };
       }),
-      scorte: this.scorte.map(({ id, piatto }) => ({ id, piatto, costo: PIATTI[piatto].ricetta.find((r) => r.ingrediente === id).costo })),
+      scorte: this.scorte.map(({ id, piatto, costo, variante }) => ({ id, piatto, costo, variante })),
       // La fila vicino al pollice, da sinistra a destra: prima le Scorte, poi le Postazioni.
       fila: this.fila(),
     };

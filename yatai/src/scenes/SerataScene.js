@@ -1,6 +1,6 @@
 import { BRUCIATURA, FUMO_SEC, MATSURI_PREDEFINITO, PALETTE, PIATTI, RISCONTRI, SERATE, SERATA_PRIMA, TEMI, YATAI } from '../config.js';
 import { DISEGNI, PANEL_MARGIN } from '../disegni/catalogo.js';
-import { POSTAZIONE_SIZE, postazioneKey, scortaKey } from '../disegni/postazioni.js';
+import { PASSO_SCELTA, POSTAZIONE_SIZE, postazioneKey, scortaKey } from '../disegni/postazioni.js';
 import { CESTINO_SIZE } from '../disegni/takoyaki.js';
 import { t } from '../i18n.js';
 import { textStyle } from '../kit/font.js';
@@ -11,7 +11,7 @@ import { opzioniSerata } from '../bottega.js';
 import { salvataggio } from '../salvataggio.js';
 import { azioneDaTasto } from '../serata/comandi.js';
 import { corpoSerie, moneteDelPagamento, scalaSomma, serieAlTetto, serieVisibile, testoSerie } from '../serata/riscontriSerie.js';
-import { Serata, ingredientiDi } from '../serata/Serata.js';
+import { Serata, idPiatto, passiDi } from '../serata/Serata.js';
 import ClienteView from '../yatai/ClienteView.js';
 import FumoView from '../yatai/FumoView.js';
 import YataiScene from './YataiScene.js';
@@ -65,6 +65,7 @@ export default class SerataScene extends YataiScene {
       matsuri: data?.matsuri,
       posti: this.serata.posti.length,
       postazioni: this.serata.fila().length,
+      scorte: this.serata.scorte.length,
       demo: false,
     });
     this.pronta = false;
@@ -111,10 +112,13 @@ export default class SerataScene extends YataiScene {
       view.pronto = this.add.image(0, 0, `${piatto}-icona`).setOrigin(0.5, 1).setVisible(false).setDepth(PROFONDITA.hud);
       view.statoVisto = 'libera';
       view.ondeggia = null;
-      // La Ricetta sopra la Postazione: un'icona per Ingrediente, spenta finché non è nel Piatto.
-      view.passi = ingredientiDi(piatto).map(({ ingrediente }) => {
-        const icona = this.add.image(0, 0, scortaKey(ingrediente)).setOrigin(0.5, 1).setAlpha(RISCONTRI.passoSpento).setDepth(PROFONDITA.hud);
+      // La Ricetta sopra la Postazione: un'icona per passo, spenta finché non è nel Piatto. Un passo a scelta (lo
+      // sciroppo) mostra le tre gocce finché non si sceglie, poi la Scorta scelta (vedi aggiornaPassi).
+      view.passi = passiDi(piatto).map((passo) => {
+        const scelta = passo.unoDi !== undefined;
+        const icona = this.add.image(0, 0, scelta ? PASSO_SCELTA[piatto] : scortaKey(passo.ingrediente)).setOrigin(0.5, 1).setAlpha(RISCONTRI.passoSpento).setDepth(PROFONDITA.hud);
         icona.acceso = false;
+        icona.scelta = scelta;
         return icona;
       });
       view.fumo = new FumoView(this, PROFONDITA.hud + 3);
@@ -277,9 +281,10 @@ export default class SerataScene extends YataiScene {
 
   // La cima di ogni Postazione: sopra ci stanno la barra della cottura e il Piatto pronto.
   disponiPostazioni() {
-    const etichetta = YATAI.postazioni.altezzaEtichetta;
     this.layout.postazioni.forEach((rect, i) => {
       const view = this.stationViews[i];
+      // Una Scorta fuori fila (sugli scaffali) non ha il nome: il disegno riempie la cella.
+      const etichetta = rect.scaffale ? 0 : YATAI.postazioni.altezzaEtichetta;
       const disegno = fitIn({ ...rect, h: rect.h - etichetta }, POSTAZIONE_SIZE.w, POSTAZIONE_SIZE.h);
       view.cima = { x: disegno.x, y: disegno.y - POSTAZIONE_SIZE.h * disegno.scale };
       view.larghezza = POSTAZIONE_SIZE.w * disegno.scale;
@@ -446,8 +451,8 @@ export default class SerataScene extends YataiScene {
         view.image.setTexture(piatto);
       }
     });
-    // Le Scorte che qualche Postazione aspetta (il prossimo Ingrediente) hanno l'alone.
-    const attese = new Set(stato.postazioni.map((p) => p.prossimo).filter(Boolean));
+    // Le Scorte che qualche Postazione aspetta (il prossimo Ingrediente, o tutte le varianti se è una scelta) hanno l'alone.
+    const attese = new Set(stato.postazioni.flatMap((p) => p.prossimi));
     this.stationViews.forEach((view) => {
       if (view.voce === 'postazione') this.aggiornaPostazione(view, stato.postazioni.find((p) => p.id === view.id));
       else view.glow.setVisible(attese.has(view.id));
@@ -461,6 +466,11 @@ export default class SerataScene extends YataiScene {
     const conPiatto = postazione.stato === 'pronto' || postazione.stato === 'bruciato';
     view.passi.forEach((icona, k) => {
       icona.setVisible(!conPiatto);
+      // Il passo a scelta mostra lo sciroppo scelto (e le tre gocce finché non c'è).
+      if (icona.scelta) {
+        const chiave = postazione.variante ? scortaKey(postazione.variante) : PASSO_SCELTA[postazione.piatto];
+        if (icona.texture.key !== chiave) icona.setTexture(chiave);
+      }
       const acceso = k < postazione.fatti;
       if (acceso === icona.acceso) return;
       icona.acceso = acceso;
@@ -481,7 +491,7 @@ export default class SerataScene extends YataiScene {
     if (modo !== view.statoVisto) {
       const prima = view.statoVisto;
       view.statoVisto = modo;
-      this.entraNelModo(view, modo, prima);
+      this.entraNelModo(view, modo, prima, postazione);
     }
     this.disegnaBarraPostazione(view, postazione, modo);
     if (modo === 'pronto' || modo === 'allarme') this.scurisci(view, postazione);
@@ -494,7 +504,7 @@ export default class SerataScene extends YataiScene {
   }
 
   // Quello che cambia una volta sola quando la Postazione passa a un altro modo.
-  entraNelModo(view, modo) {
+  entraNelModo(view, modo, prima, postazione) {
     const { pronto } = view;
     view.ondeggia?.remove();
     view.ondeggia = null;
@@ -506,7 +516,8 @@ export default class SerataScene extends YataiScene {
     if (modo !== 'allarme' && modo !== 'bruciato') view.fumo.spegniFili();
     const conPiatto = modo === 'pronto' || modo === 'allarme' || modo === 'bruciato';
     pronto.setVisible(conPiatto).setPosition(view.cima.x, view.iconaY);
-    pronto.setTexture(modo === 'bruciato' ? `${view.piatto}-bruciato-icona` : `${view.piatto}-icona`);
+    // Il Piatto pronto ha la sua variante (kakigori-melone-icona); il bruciato non ne ha (non si brucia il kakigōri).
+    pronto.setTexture(modo === 'bruciato' ? `${view.piatto}-bruciato-icona` : `${idPiatto(view.piatto, postazione.variante)}-icona`);
 
     if (modo === 'pronto') {
       // Il Piatto pronto salta fuori e poi ondeggia, perché lo si tocchi.
@@ -1130,6 +1141,9 @@ export default class SerataScene extends YataiScene {
           stato: logica?.stato ?? null,
           fatti: logica?.fatti ?? null,
           prossimo: logica?.prossimo ?? null,
+          // Tutte le Scorte che aspetta (più di una se il passo è una scelta) e la variante scelta, se c'è.
+          prossimi: logica?.prossimi ?? null,
+          variante: logica?.variante ?? null,
           // Mentre cuoce: quanto manca alla fine di questa cottura e quanto dura (zero altrimenti).
           restaMs: logica?.restaMs ?? null,
           cotturaMs: logica?.cotturaMs ?? null,
@@ -1142,7 +1156,7 @@ export default class SerataScene extends YataiScene {
           // Per una Scorta: ha l'alone, cioè è il prossimo Ingrediente che un Piatto aspetta.
           evidenziata: view.glow ? view.glow.visible : null,
           pronto: view.pronto ? { visibile: view.pronto.visible, scala: Math.round(view.pronto.scaleX * 1000) / 1000 } : null,
-          passi: view.passi ? view.passi.map((icona) => ({ visibile: icona.visible, acceso: icona.acceso })) : null,
+          passi: view.passi ? view.passi.map((icona) => ({ visibile: icona.visible, acceso: icona.acceso, texture: icona.texture.key })) : null,
         };
       }),
       bancone: {
