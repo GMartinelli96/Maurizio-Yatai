@@ -51,31 +51,31 @@ const K = {
   rosa: { colore: '#f6b3bf', ombra: '#dc7f93', luce: '#fde0e6' },
 };
 
-const dark = { colore: C.inchiostro, ombra: C.inchiostro, luce: '#6b5a52' };
-const white = { colore: C.bianco, ombra: C.bianco, luce: C.bianco };
+export const dark = { colore: C.inchiostro, ombra: C.inchiostro, luce: '#6b5a52' };
+export const white = { colore: C.bianco, ombra: C.bianco, luce: C.bianco };
 
 // ---------------------------------------------------------------------------------------------
 // Pezzi comuni
 
-function plush(ctx, shape, rng, swatch, keep) {
+export function plush(ctx, shape, rng, swatch, keep) {
   pastelFill(ctx, shape, rng, swatch);
   fur(ctx, shape, rng, swatch, { keep });
   pencilLine(ctx, shape, rng, FUR_LINE);
 }
 
 // Una macchia di colore che resta dentro `host`, senza contorno: pastello e basta.
-function patch(ctx, host, shape, rng, swatch) {
+export function patch(ctx, host, shape, rng, swatch) {
   ctx.save();
   clipTo(ctx, host);
   pastelFill(ctx, shape, rng, swatch, { volume: false, hatching: 0.7 });
   ctx.restore();
 }
 
-function mirror(points, axis = CLIENTE_SIZE.w / 2) {
+export function mirror(points, axis = CLIENTE_SIZE.w / 2) {
   return points.map((p) => ({ x: 2 * axis - p.x, y: p.y }));
 }
 
-function rotate(points, cx, cy, angle) {
+export function rotate(points, cx, cy, angle) {
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   return points.map((p) => ({
@@ -86,7 +86,7 @@ function rotate(points, cx, cy, angle) {
 
 // Gli occhi, le guance e la bocca. `muso` dice dove stanno: x del centro, y degli occhi, mezza
 // distanza tra gli occhi, y della bocca sotto il naso. Il naso lo disegna ogni animale.
-function faccia(ctx, rng, espressione, { x = 130, occhiY, occhiDx, boccaY, tilt = 0, guanceY = occhiY + 28, guanceDx = occhiDx + 24 }) {
+export function faccia(ctx, rng, espressione, { x = 130, occhiY, occhiDx, boccaY, tilt = 0, guanceY = occhiY + 28, guanceDx = occhiDx + 24 }) {
   const ink = { color: C.inchiostro };
   const perplessa = espressione === 'perplessa';
   for (const side of [-1, 1]) {
@@ -153,7 +153,7 @@ function faccia(ctx, rng, espressione, { x = 130, occhiY, occhiDx, boccaY, tilt 
 }
 
 // Il segno di rabbia dei fumetti: quattro angolini rossi intorno a un centro. Solo imbronciata.
-function venetta(ctx, rng, x, y) {
+export function venetta(ctx, rng, x, y) {
   for (const sx of [-1, 1]) {
     for (const sy of [-1, 1]) {
       const corner = smoothCurve([

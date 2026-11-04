@@ -15,6 +15,7 @@ const VOCI = [
   { label: 'Yatai: Yuki Matsuri', scene: 'yatai', data: { matsuri: 'yuki' }, swatch: 'nuvola' },
   { label: 'Lo Yatai, 4 Posti', scene: 'yatai', data: { posti: 4 }, swatch: 'giallo' },
   { label: 'Clienti di passaggio', scene: 'clienti', swatch: 'giallo' },
+  { label: 'Il cast', scene: 'cast', swatch: 'rosa' },
   { label: 'Il gioco', scene: 'title', swatch: 'menta' },
 ];
 
