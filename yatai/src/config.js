@@ -561,7 +561,13 @@ export const RISCONTRI = {
   //   Carlotta le monete del suo pagamento escono dalla borsetta (CAST_PUNTI in disegni/cast.js) e sono il doppio perché
   //            il suo Ordine rende il doppio (una ogni `monete.scaglione` Yen): non servono numeri in più.
   vizi: {
-    yenDOro: { scala: 1, entra: 140, cade: 720, giri: 1, sosta: 480, vola: 640, scintille: 5, scintilla: 520 },
+    yenDOro: {
+      scala: 1, entra: 140, entraScala: 0.3, cade: 720, giri: 1, sosta: 480, vola: 640, volaScala: 0.45,
+      // Parte `sopra` pixel sopra la fila dei cuoricini e cade fino a `sotto` pixel sopra la base del Posto.
+      sopra: 20, sotto: 8,
+      // Le stelline all'impatto: `scintille`, aperte in `scintilla` ms fino a `raggio` pixel (x e y) dal punto d'impatto, da `scintillaScala.da` a `.a`.
+      scintille: 5, scintilla: 520, raggio: { x: 54, y: 40 }, scintillaScala: { da: 0.1, a: 0.34 },
+    },
     calma: { respiro: 1900, alpha: { da: 0.55, a: 0.95 }, margine: { x: 26, y: 16 } },
   },
   // Il "−20" piccolo che scende sotto l'Incasso a ogni Ingrediente (la Spesa).

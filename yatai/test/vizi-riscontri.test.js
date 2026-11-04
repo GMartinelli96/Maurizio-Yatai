@@ -58,6 +58,9 @@ test('i numeri dei riscontri dei Vizi: lo Yen d’oro cade, sosta e vola; la cal
   assert.ok(yenDOro.cade > yenDOro.entra, 'cade mentre entra');
   assert.ok(Number.isInteger(yenDOro.giri), 'un giro intero, così la moneta atterra dritta');
   assert.ok(yenDOro.scintille >= 3);
+  assert.ok(yenDOro.sopra > 0 && yenDOro.sotto >= 0, 'parte sopra i cuoricini e cade sul cuscino');
+  assert.ok(yenDOro.raggio.x > 0 && yenDOro.raggio.y > 0 && yenDOro.scintillaScala.a > yenDOro.scintillaScala.da, 'le stelline si aprono');
+  assert.ok(yenDOro.entraScala > 0 && yenDOro.entraScala < 1 && yenDOro.volaScala > 0 && yenDOro.volaScala < 1, 'entra e vola più piccola');
   assert.ok(calma.alpha.da > 0 && calma.alpha.da < calma.alpha.a && calma.alpha.a <= 1, 'la calma respira tra due trasparenze');
   assert.ok(calma.respiro >= 1000, 'un respiro piano');
 });
