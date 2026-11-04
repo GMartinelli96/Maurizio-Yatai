@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BRUCIATURA, CLIENTI, FRAME_MS, FUMO_SEC, PIATTI, POSTAZIONI, SERATA_AKI, SERATA_HANABI, SERATA_YUKI, SERATE } from '../src/config.js';
-import { BRAVURA, giocaServata } from './bot.js';
+import { BRAVURA, SEMI, giocaServata, mediaSemi } from './bot.js';
 import { Serata, costoPiatto, idPiatto, ingredientiDi, scorteDi, tocchiPerPiatto } from '../src/serata/Serata.js';
 
 // Taiyaki e ramen (ticket 08): gli ultimi due Piatti, con varianti e bruciatura. Tutto senza browser.
@@ -369,11 +369,11 @@ test('un Ordine con due Piatti uguali ma di variante diversa chiede tutte e due 
   assert.deepEqual(serata.stato().bancone, ['taiyaki-fagioli'], 'il taiyaki in più resta sul Bancone');
 });
 
-test('negli Ordini c’è ogni variante, il Piatto con variante è sempre con la sua variante e gli Ordini arrivano fino a tre Piatti', () => {
+test('negli Ordini c’è ogni variante, il Piatto con variante è sempre con la sua variante e la logica fa Ordini fino a tre Piatti', () => {
   const visti = new Set();
   let massimo = 0;
   for (const seme of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) {
-    const serata = new Serata({ seed: seme, ...SERATA_YUKI });
+    const serata = new Serata({ seed: seme, ...SERATA_YUKI, piattiPerOrdine: { min: 1, max: 3 } });
     for (let t = 0; t < 120 * SEC; t += 100) {
       for (const evento of serata.update(100)) {
         if (evento.tipo !== 'clienteArrivato') continue;
@@ -387,7 +387,7 @@ test('negli Ordini c’è ogni variante, il Piatto con variante è sempre con la
     assert.ok(visti.has(piatto), `nessun Ordine ha chiesto ${piatto}`);
   }
   for (const nudo of ['taiyaki', 'ramen', 'kakigori']) assert.ok(!visti.has(nudo), `${nudo} senza variante in un Ordine`);
-  assert.equal(massimo, 3, 'nello Yuki Matsuri gli Ordini arrivano a 3 Piatti');
+  assert.equal(massimo, 3, 'con max: 3 gli Ordini arrivano a 3 Piatti');
 });
 
 test('le Serate di prima non chiedono mai taiyaki o ramen, e restano uguali a parità di seme', () => {
@@ -404,7 +404,9 @@ test('le Serate di prima non chiedono mai taiyaki o ramen, e restano uguali a pa
 
 test('il bot gioca lo Yuki Matsuri con tutti e 5 i Piatti e li serve tutti, ogni variante come chiesta', () => {
   const registro = [];
-  const stato = giocaServata(SERATA_YUKI, BRAVURA.rapido, 'a', { registro });
+  // Una Serata sola non chiede tutte le varianti: sulle sei del bot sì.
+  let stato;
+  for (const seme of SEMI) stato = giocaServata(SERATA_YUKI, BRAVURA.rapido, seme, { registro });
   const serviti = registro.filter((e) => e.tipo === 'servito').flatMap((e) => e.piatti);
   for (const piatto of ['onigiri', 'takoyaki', 'kakigori-fragola', 'taiyaki-fagioli', 'taiyaki-crema', 'ramen-uovo', 'ramen-naruto']) {
     assert.ok(serviti.includes(piatto), `il bot non ha servito ${piatto}`);
@@ -420,5 +422,27 @@ test('l’Aki Matsuri e lo Yuki Matsuri hanno la loro Serata, con il taiyaki e c
   assert.equal(SERATE.yuki, SERATA_YUKI);
   assert.deepEqual(SERATA_AKI.piatti, ['onigiri', 'takoyaki', 'kakigori', 'taiyaki']);
   assert.deepEqual(SERATA_YUKI.piatti, Object.keys(PIATTI));
-  assert.equal(SERATA_YUKI.piattiPerOrdine.max, 3, 'Ordini da 3 Piatti nello Yuki (GAME_SPEC.md, tabella dei Matsuri)');
+  assert.equal(SERATA_YUKI.piattiPerOrdine.max, 2, 'con 3 Piatti per Ordine la Serata dello Yuki non regge (vedi config.js): da ripensare nel ticket 29');
+});
+
+// --- Le Serate dell'Aki e dello Yuki (passo 4): il bot, valori provvisori fino al ticket 29 ---
+
+test('nell’Aki e nello Yuki la bravura conta: chi è più rapido incassa di più, e il lento prende ★ e il rapido ★★★', () => {
+  for (const [nome, config] of [['Aki', SERATA_AKI], ['Yuki', SERATA_YUKI]]) {
+    const incasso = Object.fromEntries(Object.entries(BRAVURA).map(([chi, ms]) => [chi, mediaSemi(config, 'incasso', ms)]));
+    assert.ok(incasso.rapido > incasso.attento && incasso.attento > incasso.lento, `${nome}: ${JSON.stringify(incasso)}`);
+    assert.ok(incasso.lento >= config.obiettivo, `${nome}: il lento incassa ${Math.round(incasso.lento)}, sotto ★ (${config.obiettivo})`);
+    assert.ok(incasso.rapido >= config.obiettivo * 1.6, `${nome}: il rapido incassa ${Math.round(incasso.rapido)}, sotto ★★★`);
+  }
+});
+
+test('nell’Aki e nello Yuki la Spesa torna: Incasso = Vendite − Spesa, e chi prende i Piatti in tempo non ne brucia quasi nessuno', () => {
+  for (const config of [SERATA_AKI, SERATA_YUKI]) {
+    for (const seme of ['a', 'b', 'c']) {
+      const stato = giocaServata(config, BRAVURA.attento, seme);
+      assert.equal(stato.incasso, stato.vendite - stato.spesa);
+      assert.ok(stato.spreco >= 0 && stato.spreco <= stato.spesa);
+      assert.ok(stato.bruciati <= 2, `${stato.bruciati} bruciati`);
+    }
+  }
 });

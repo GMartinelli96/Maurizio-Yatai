@@ -407,20 +407,38 @@ export const SERATA_HANABI = {
 
 // La Serata dell'Aki Matsuri (ticket 08): arriva il taiyaki, con i due ripieni (fagioli rossi, crema), che si brucia.
 // Il menù è quello dell'Hanabi più il Piatto nuovo; i corvi e il corteo del mikoshi arriveranno dopo (ticket 11 e 15).
-// Obiettivo provvisorio fino alla misura col bot (passo 4 del ticket 08) e al ticket 29.
+// Obiettivo provvisorio fino al ticket 29, sul netto, misurato col bot senza browser (test/bot.js, media di 24 semi, con le
+// ondate; il bot non sbaglia mai una mossa, la bravura è il tempo tra un tocco e l'altro):
+//   un tocco ogni 1,4 s (lento)    3235 Yen (da 2510 a 3800)   serviti 12,8
+//   un tocco ogni 1,0 s (attento)  4525 Yen (da 2375 a 5535)   serviti 16,3
+//   un tocco ogni 0,6 s (rapido)   6958 Yen (da 4685 a 8140)   serviti 23,0
+// Con obiettivo 3000 le soglie sono ★ 3000, ★★ 3900, ★★★ 4800: il lento ha ★ con l'8% di margine, l'attento ★★ (la
+// media sta sotto ★★★) e il rapido ★★★. Il taiyaki cuoce 8 s, il più lungo: chi lo dimentica lo brucia (70 Yen di Spreco).
 export const SERATA_AKI = {
-  obiettivo: 3300,
+  obiettivo: 3000,
   piatti: ['onigiri', 'takoyaki', 'kakigori', 'taiyaki'],
   piattiPerOrdine: { min: 1, max: 2 },
 };
 
 // La Serata dello Yuki Matsuri (ticket 08): arriva il ramen, il Piatto da 4 tocchi, e con lui gli Ordini da 3 Piatti
 // (GAME_SPEC.md, tabella dei Matsuri). Ha tutti e 5 i Piatti, quindi tutte le Postazioni e tutte le Scorte (16).
-// Obiettivo provvisorio come SERATA_AKI.
+//
+// ATTENZIONE: gli Ordini sono da 1 o 2 Piatti, non da 3 come dice la tabella dei Matsuri. Con 3 Piatti per Ordine (uno su
+// tre) la Serata non regge: il ramen da 4 tocchi e 6 s di cottura, con la Pazienza di 15 s nelle ondate, non si fa in tempo
+// per un Ordine da 12 tocchi, e il bot rapido incassa meno che nell'Aki (media di 12 semi: rapido 4617, attento 2675, lento
+// 2617, da −365 a 9610, 5 Piatti bruciati a Serata e 1250 Yen di Spreco). La logica gli Ordini da 3 li fa (basta max: 3, c'è
+// un test); gli Ordini da 3 Piatti nello Yuki vanno ripensati nel ticket 29 (per esempio più rari, o con più Pazienza).
+// Misurato col bot con 1 o 2 Piatti per Ordine (media di 24 semi, con le ondate), obiettivo provvisorio fino al ticket 29:
+//   un tocco ogni 1,4 s (lento)    3210 Yen (da 435 a 4910)    serviti 11,4
+//   un tocco ogni 1,0 s (attento)  5488 Yen (da 1320 a 7180)   serviti 16,6
+//   un tocco ogni 0,6 s (rapido)   8458 Yen (da 5195 a 10905)  serviti 21,2
+// Con obiettivo 3000 le soglie sono ★ 3000, ★★ 3900, ★★★ 4800: il lento ha ★ con il 7% di margine (ma con un'oscillazione
+// grande: il ramen costa 200 Yen, e lo Spreco pesa), l'attento che non sbaglia mai ★★★ (come nell'Hanami e nell'Hanabi) e il
+// rapido ★★★.
 export const SERATA_YUKI = {
-  obiettivo: 4200,
+  obiettivo: 3000,
   piatti: ['onigiri', 'takoyaki', 'kakigori', 'taiyaki', 'ramen'],
-  piattiPerOrdine: { min: 1, max: 3 },
+  piattiPerOrdine: { min: 1, max: 2 },
 };
 
 // Come è fatta la Serata di ogni Matsuri. Dal passo 8 ogni Serata avrà la sua; per ora ne ha una il
