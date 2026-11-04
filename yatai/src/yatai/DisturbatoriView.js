@@ -61,9 +61,9 @@ export default class DisturbatoriView {
     }
   }
 
-  // Finita la Serata nessuno si può più toccare.
+  // Finita la Serata chi è in scena sparisce (e nessuno si può più toccare): sotto la schermata di fine Serata non resta niente.
   chiudi() {
-    for (const chi of this.tipi) this.spegniZona(chi);
+    for (const chi of this.tipi) this.ripulisci(chi);
   }
 
   // --- Cose comuni ---

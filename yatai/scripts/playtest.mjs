@@ -13,7 +13,8 @@
 //   { "gioca": { "finoA": 30000, "servi": "tocco" } }  gioca la Serata (vedi gioca() più sotto): sceglie le
 //                          mosse leggendo solo lo stato di render_game_to_text. finoA: fino a questo
 //                          tempo della Serata in ms (di norma fino alla fine). servi: come si serve,
-//                          "tocco", "trascinamento" o "tasti". sbadato: true non fa niente.
+//                          "tocco", "trascinamento" o "tasti". sbadato: true non fa niente. scaccia: true
+//                          manda via i Disturbatori appena li vede (tocca la loro zona, da `disturbatori`), prima di ogni altra mossa.
 //   { "key": "Digit1" }    un tasto (nomi di Playwright: Digit1, KeyQ, KeyM...)
 //   { "advance": 500 }     window.advanceTime(500): il gioco avanza di 500 ms, a passi da 1/60 s
 //   { "shot": "nome" }     salva nome.png e nome.json (lo stato di window.render_game_to_text)
@@ -118,14 +119,18 @@ async function dragGame(from, to) {
 // (mai lo schermo): serve chi ha l'Ordine intero sul Bancone, prima chi ha meno cuoricini, e
 // cucina solo i Piatti che servono davvero. Ogni mossa è un vero input del browser (tocco, tasto o
 // trascinamento) e il gioco avanza di `passoMs` tra una mossa e l'altra.
-async function gioca({ finoA = Infinity, servi = 'tocco', passoMs = 120, sbadato = false } = {}) {
+async function gioca({ finoA = Infinity, servi = 'tocco', passoMs = 120, sbadato = false, scaccia = false } = {}) {
   let mosse = 0;
   let state;
   for (let giri = 0; giri < 5000; giri++) {
     state = await readState();
     const { serata } = state;
     if (serata.fase === 'finita' || serata.tempoMs >= finoA) break;
-    if (!sbadato) {
+    if (!sbadato && scaccia && state.disturbatori?.length) {
+      // Un Disturbatore in scena: un tocco sulla sua zona, che lo stato dà in coordinate di gioco.
+      mosse++;
+      await tapGame(state.disturbatori[0].x, state.disturbatori[0].y);
+    } else if (!sbadato) {
       const mossa = scegliMossa(state);
       if (mossa) {
         mosse++;

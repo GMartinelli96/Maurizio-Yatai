@@ -1,0 +1,24 @@
+[
+  { "resize": "360x640" },
+  { "goto": "?sviluppo=serata&seme=dd1&disturbatori=croccola,formiche,corvi&matsuri=aki" },
+  { "advance": 100 },
+  { "expect": "scene", "equals": "serata" },
+  { "expect": "serata.disturbatori", "equals": [] },
+  { "gioca": { "scaccia": true } },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "expect": "eventi.contati.disturbatoreArrivato", "atLeast": 5 },
+  { "expect": "eventi.contati.disturbatoreScacciato", "atLeast": 8 },
+  { "expect": "disturbatori", "equals": [] },
+  { "advance": 3500 },
+  { "shot": "disturbatori-1-scacciati" },
+
+  { "goto": "?sviluppo=serata&seme=dd1&disturbatori=croccola,formiche,corvi&matsuri=aki" },
+  { "advance": 100 },
+  { "gioca": {} },
+  { "expect": "serata.fase", "equals": "finita" },
+  { "expect": "eventi.contati.disturbatoreArrivato", "atLeast": 5 },
+  { "expect": "eventi.contati.piattoRubato", "atLeast": 1 },
+  { "expect": "eventi.contati.piattoRovinato", "atLeast": 1 },
+  { "advance": 3500 },
+  { "shot": "disturbatori-2-lasciati-fare" }
+]
