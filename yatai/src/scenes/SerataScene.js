@@ -8,6 +8,7 @@ import { panelTexture } from '../kit/texture.js';
 import { addButton } from '../kit/ui.js';
 import { center, fitIn, layoutHud } from '../layout/yatai.js';
 import { azioneDaTasto } from '../serata/comandi.js';
+import { corpoSerie, moneteDelPagamento, scalaSomma, serieAlTetto, serieVisibile, testoSerie } from '../serata/riscontriSerie.js';
 import { Serata, ingredientiDi } from '../serata/Serata.js';
 import ClienteView from '../yatai/ClienteView.js';
 import FumoView from '../yatai/FumoView.js';
@@ -75,6 +76,10 @@ export default class SerataScene extends YataiScene {
     this.risultato = null;
     this.registro = [];
     this.contatori = {};
+    // La Serie com'è mostrata (si azzera a ogni Serata, non si salva) e l'ultimo pagamento: quante monete sono volate.
+    this.serieMostrata = 0;
+    this.serieColoreTetto = false;
+    this.ultimoPagamento = null;
   }
 
   create() {
@@ -122,6 +127,7 @@ export default class SerataScene extends YataiScene {
     // è il cordino, in cima al disegno.
     this.campanella = this.add.image(0, 0, 'campanella').setOrigin(0.5, 0).setDepth(1);
     this.oscillazione = null;
+    this.creaSerie();
     this.creaHud();
 
     this.input.keyboard.on('keydown', this.suTasto, this);
@@ -148,6 +154,7 @@ export default class SerataScene extends YataiScene {
     this.disponiPostazioni();
     this.disponiHud();
     this.disponiCampanella();
+    this.disponiSerie();
     if (this.fineUI) this.costruisciFine(true);
   }
 
@@ -183,6 +190,86 @@ export default class SerataScene extends YataiScene {
         this.oscillazione = null;
       },
     });
+  }
+
+  // --- I riscontri della Serie (ticket 34, passo 4): il numero "×N" vicino a Maurizio e il "pof" ---
+
+  creaSerie() {
+    const { colore, contorno, corpo } = RISCONTRI.serie;
+    // Il numero resta nascosto finché la Serie è sotto `daSerie`. Giallo come la scritta "+150", col contorno d'inchiostro.
+    this.serieNumero = this.add.text(0, 0, '', textStyle(corpo.base, { bold: true, color: colore, outline: contorno, outlineColor: PALETTE.inchiostro })).setOrigin(0.5).setDepth(PROFONDITA.hud).setVisible(false);
+    // Il "pof": una nuvoletta morbida che si apre dove c'era il numero.
+    this.pof = this.add.image(0, 0, 'pof').setDepth(PROFONDITA.volo).setVisible(false);
+  }
+
+  // Il numero sta a destra di Maurizio, a mezza altezza della fascia della cucina: il lato libero, speculare alla campanella.
+  disponiSerie() {
+    const { x, y } = RISCONTRI.serie.posizione;
+    const { cucina } = this.layout.zone;
+    this.serieNumero.setPosition(cucina.x + cucina.w * x, cucina.y + cucina.h * y);
+  }
+
+  // Tutti i movimenti della Serie (entrata, pop, "pof") passano di qui: è l'unico punto da spegnere con "riduci movimento"
+  // (ticket 26): basterà far saltare qui l'oggetto subito a `a` e chiamare `fine`, così il numero compare e sparisce senza
+  // pop né nuvoletta. `da` e `a` sono proprietà dell'oggetto (scale, alpha); `fine` parte alla fine.
+  animaSerie(oggetto, { da = {}, a, durata, ease = 'Quad.easeOut', fine }) {
+    this.tweens.killTweensOf(oggetto);
+    Object.assign(oggetto, da);
+    this.tweens.add({ targets: oggetto, ...a, duration: durata, ease, onComplete: () => fine?.() });
+  }
+
+  // La Serie sale: il numero compare (dalla Serie `daSerie`), cresce e a ogni Ordine fa un pop. Al tetto della Mancia
+  // diventa arcobaleno, con un pop più grande la prima volta. Il tintinnio che sale di un gradino a ogni Serie è del ticket
+  // 23: si aggancia qui, `evento.serie` è il gradino.
+  perSerieSale(evento) {
+    this.serieMostrata = evento.serie;
+    if (!serieVisibile(evento.serie)) return;
+    const { entra, pop } = RISCONTRI.serie;
+    const numero = this.serieNumero;
+    const nuovo = !numero.visible;
+    const alTetto = serieAlTetto(evento.serie);
+    const appenaAlTetto = alTetto && !this.serieColoreTetto;
+    numero.setText(testoSerie(evento.serie)).setFontSize(corpoSerie(evento.serie)).setVisible(true);
+    this.coloraSerie(alTetto);
+    if (nuovo) {
+      this.animaSerie(numero, { da: { scale: entra.da, alpha: 0 }, a: { scale: 1, alpha: 1 }, durata: entra.durata, ease: 'Back.easeOut' });
+    } else {
+      this.animaSerie(numero, { da: { scale: appenaAlTetto ? pop.scalaTetto : pop.scala, alpha: 1 }, a: { scale: 1, alpha: 1 }, durata: pop.durata, ease: 'Back.easeOut' });
+    }
+  }
+
+  // Giallo moneta, o l'arcobaleno della palette quando la Mancia della Serie è al massimo: cinque bande dall'alto in basso
+  // dentro le lettere (stop doppi, niente sfumatura: è il disegno a bande della salopette). Va chiamata dopo aver messo il
+  // testo e il corpo, perché le bande si misurano sull'altezza del testo; il contorno d'inchiostro non cambia.
+  coloraSerie(alTetto) {
+    if (alTetto === this.serieColoreTetto) return;
+    this.serieColoreTetto = alTetto;
+    const numero = this.serieNumero;
+    if (!alTetto) {
+      numero.setColor(RISCONTRI.serie.colore);
+      return;
+    }
+    const { da, a } = RISCONTRI.serie.arcobaleno;
+    const bande = PALETTE.arcobaleno;
+    const gradiente = numero.context.createLinearGradient(0, numero.height * da, 0, numero.height * a);
+    bande.forEach((banda, i) => {
+      gradiente.addColorStop(i / bande.length, banda);
+      gradiente.addColorStop((i + 1) / bande.length, banda);
+    });
+    numero.setColor(gradiente);
+  }
+
+  // La Serie si spezza: il numero si gonfia e svanisce, e una nuvoletta morbida (il "pof") si apre al suo posto. Nessuna
+  // punizione: niente rosso e niente scossa. Se il numero non si vedeva (Serie sotto `daSerie`) non c'è niente da togliere.
+  perSerieSpezzata() {
+    this.serieMostrata = 0;
+    const numero = this.serieNumero;
+    if (!numero.visible) return;
+    const { pof } = RISCONTRI.serie;
+    const base = pof.dimensione / DISEGNI.pof.w;
+    this.animaSerie(numero, { a: { scale: pof.numero.scala, alpha: 0 }, durata: pof.numero.durata, fine: () => numero.setVisible(false) });
+    this.pof.setPosition(numero.x, numero.y).setVisible(true);
+    this.animaSerie(this.pof, { da: { scale: base * pof.scalaDa, alpha: 1 }, a: { scale: base * pof.scalaA, alpha: 0 }, durata: pof.durata, fine: () => this.pof.setVisible(false) });
   }
 
   // La cima di ogni Postazione: sopra ci stanno la barra della cottura e il Piatto pronto.
@@ -629,8 +716,8 @@ export default class SerataScene extends YataiScene {
         this.segnalaOndata(evento);
         break;
       case 'serieSpezzata':
-        // Il "pof" morbido e il numero della Serie che sparisce sono del passo dei riscontri (ticket 34, passo 4);
-        // il suono si aggancia qui (ticket 23).
+        // Il "pof" morbido e il numero che sparisce; il suono (un "pof" senza punizione) si aggancia qui (ticket 23).
+        this.perSerieSpezzata();
         break;
       case 'scuoteTesta':
         this.clienti[evento.posto].scuoti();
@@ -849,6 +936,8 @@ export default class SerataScene extends YataiScene {
         alphaA: 0.2,
       });
     });
+    // La Serie viene prima del pagamento: le monete che seguono (perMoneta) la usano.
+    this.perSerieSale(evento);
   }
 
   // La Mancia: tanti cuoricini quanti ne restavano di Pazienza, che salgono a ventaglio.
@@ -869,13 +958,16 @@ export default class SerataScene extends YataiScene {
     // La scritta sta dove c'era la nuvoletta (a questo punto è sparita), non sulla faccia.
     const { nuvoletta } = this.clienti[evento.posto].geom;
     const sommaY = nuvoletta.y + nuvoletta.h * 0.45;
-    const somma = this.add.text(x, sommaY, `+${evento.yen}`, textStyle(54, { bold: true, color: '#f7d26a', outline: 10, outlineColor: PALETTE.inchiostro })).setOrigin(0.5).setDepth(PROFONDITA.volo).setScale(0.4);
+    // Con la Serie alta la scritta è più grande (il corpo, non la scala, così resta nitida).
+    const somma = this.add.text(x, sommaY, `+${evento.yen}`, textStyle(Math.round(54 * scalaSomma(this.serieMostrata)), { bold: true, color: '#f7d26a', outline: 10, outlineColor: PALETTE.inchiostro })).setOrigin(0.5).setDepth(PROFONDITA.volo).setScale(0.4);
     const { durata, salita } = RISCONTRI.somma;
     this.tweens.add({ targets: somma, scale: 1, duration: durata * 0.25, ease: 'Back.easeOut' });
     this.tweens.add({ targets: somma, y: sommaY - salita, alpha: 0, duration: durata * 0.55, delay: durata * 0.45, ease: 'Quad.easeIn', onComplete: () => somma.destroy() });
 
-    const { scaglione, max, durata: volo, ritardo } = RISCONTRI.monete;
-    const quante = Math.max(1, Math.min(max, Math.round(evento.yen / scaglione)));
+    const { durata: volo, ritardo } = RISCONTRI.monete;
+    // Monete più generose quando la Serie è alta: qualcuna in più per ogni pagamento (riscontriSerie.js).
+    const quante = moneteDelPagamento(evento.yen, this.serieMostrata);
+    this.ultimoPagamento = { yen: evento.yen, monete: quante, serie: this.serieMostrata };
     const quota = Math.floor(evento.yen / quante);
     const { moneta } = this.hudLayout;
     for (let i = 0; i < quante; i++) {
@@ -898,6 +990,10 @@ export default class SerataScene extends YataiScene {
 
   perFine(evento) {
     this.risultato = evento;
+    // La Serie finisce con la Serata (la più lunga la mostra il recap, ticket 22): il numero se ne va senza "pof".
+    this.tweens.killTweensOf([this.serieNumero, this.pof]);
+    this.serieNumero.setVisible(false);
+    this.pof.setVisible(false);
     this.fineTrascinamento(null, true);
     this.time.delayedCall(RISCONTRI.fine.ritardo, () => this.costruisciFine(false));
   }
@@ -1025,6 +1121,22 @@ export default class SerataScene extends YataiScene {
       // Il segnale prima di un'ondata: la campanella (dov'è e di quanti gradi è inclinata adesso, se sta oscillando).
       // Maurizio con la testa alzata è in `maurizio` (posa 'guarda', allerta true).
       campanella: { x: round(this.campanella.x), y: round(this.campanella.y), angolo: round(this.campanella.angle), oscilla: this.oscillazione !== null },
+      // La Serie com'è mostrata (ticket 34, passo 4): il numero "×N" vicino a Maurizio (dov'è, che scala e che corpo ha,
+      // se è giallo o arcobaleno), il "pof" mentre si apre, e l'ultimo pagamento (quante monete sono volate).
+      // La Serie nella logica è in `serata.serie`.
+      serie: {
+        valore: this.serieMostrata,
+        visibile: this.serieNumero.visible,
+        testo: this.serieNumero.visible ? this.serieNumero.text : null,
+        x: round(this.serieNumero.x),
+        y: round(this.serieNumero.y),
+        scala: Math.round(this.serieNumero.scale * 1000) / 1000,
+        alpha: Math.round(this.serieNumero.alpha * 1000) / 1000,
+        corpo: Math.round(Number.parseFloat(this.serieNumero.style.fontSize)),
+        colore: this.serieColoreTetto ? 'arcobaleno' : 'oro',
+        pof: this.pof.visible ? { x: round(this.pof.x), y: round(this.pof.y), scala: Math.round(this.pof.scale * 1000) / 1000, alpha: Math.round(this.pof.alpha * 1000) / 1000 } : null,
+        ultimoPagamento: this.ultimoPagamento,
+      },
       cestino: this.cestino.visible ? rectState({ x: this.cestino.x - this.cestino.displayWidth / 2, y: this.cestino.y - this.cestino.displayHeight, w: this.cestino.displayWidth, h: this.cestino.displayHeight }) : null,
       hud: {
         ...base.hud,
