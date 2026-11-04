@@ -549,6 +549,22 @@ export const RISCONTRI = {
     moneteExtra: 3,
     sommaAlTetto: 1.3,
   },
+  // I riscontri dei Vizi del cast (ticket 09, passo 4), senza testo: un Vizio si capisce guardando. Tutti i movimenti si
+  // spengono con "riduci movimento" (ticket 26) in due punti soli, SerataScene.animaYenDOro e ClienteView.animaCalma; il
+  // suono dello Yen d'oro è del ticket 23. Le misure sono pixel di gioco.
+  //   yenDOro  la moneta d'oro di Nella appare sopra il suo Posto (`entra` ms), cade fino al cuscino con i rimbalzi di
+  //            una moneta vera (`cade` ms, `giri` giri su sé stessa), luccica (`scintille` stelline che si aprono in
+  //            `scintilla` ms) e resta lì `sosta` ms, poi vola all'Incasso in `vola` ms. È grande `scala` volte il disegno
+  //            (84 px) e solo un riscontro: gli Yen li accreditano le monete di sempre.
+  //   calma    finché Balosso è a un Posto, i cuoricini di tutti hanno dietro un'ovale azzurra con le bollicine che
+  //            respira piano (la trasparenza va da `alpha.da` a `alpha.a` in `respiro` ms): `margine` pixel in più della
+  //            fila di cuoricini, a destra e sinistra (x) e sopra e sotto (y). Si adatta a quanti cuoricini ci sono.
+  //   Carlotta le monete del suo pagamento escono dalla borsetta (CAST_PUNTI in disegni/cast.js) e sono il doppio perché
+  //            il suo Ordine rende il doppio (una ogni `monete.scaglione` Yen): non servono numeri in più.
+  vizi: {
+    yenDOro: { scala: 1, entra: 140, cade: 720, giri: 1, sosta: 480, vola: 640, scintille: 5, scintilla: 520 },
+    calma: { respiro: 1900, alpha: { da: 0.55, a: 0.95 }, margine: { x: 26, y: 16 } },
+  },
   // Il "−20" piccolo che scende sotto l'Incasso a ogni Ingrediente (la Spesa).
   spesa: { durata: 750, discesa: 34 },
   // La ricetta sulla Postazione: un'icona per Ingrediente (la cottura non ha icona: ha la sua barra), piccola

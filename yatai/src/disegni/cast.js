@@ -436,6 +436,12 @@ export const CAST_SEGNI_POS = {
   'ebi-furai': { goccia: { x: 232, y: 96 }, sbuffo: { x: 26, y: 100 } },
 };
 
+// Punti del disegno che servono ai riscontri dei Vizi (pixel del riquadro CLIENTE_SIZE, come CAST_SEGNI_POS): la borsetta
+// d'oro di Carlotta, da cui escono le monete quando paga (ClienteView.puntoDelDisegno).
+export const CAST_PUNTI = {
+  carlotta: { borsa: { x: 200, y: 268 } },
+};
+
 function drawCast(ctx, rng, id, espressione) {
   // Come per i Clienti di passaggio: il corpo e la grana hanno il seme del personaggio, la faccia quello della
   // texture, così in tutte e quattro le espressioni il peluche è lo stesso tranne la faccia.

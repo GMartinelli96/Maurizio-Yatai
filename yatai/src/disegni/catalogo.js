@@ -10,6 +10,7 @@ import { DISEGNI_CLIENTI } from './clienti.js';
 import { DISEGNI_KAKIGORI } from './kakigori.js';
 import { DISEGNI_RAMEN } from './ramen.js';
 import { DISEGNI_TAIYAKI } from './taiyaki.js';
+import { DISEGNI_VIZI } from './vizi.js';
 import { drawOnigiri, onigiriSize } from './onigiri.js';
 import { POSTAZIONE_SIZE, POSTAZIONI, SCORTE, postazioneKey, scortaKey } from './postazioni.js';
 import { ICONA_SIZE, drawIconaPosto, drawIconaVentaglio } from './bottega.js';
@@ -65,6 +66,8 @@ export const DISEGNI = {
   campanella: { ...CAMPANELLA_SIZE, draw: drawCampanella },
   // Il "pof" della Serie che si spezza (ticket 34): una nuvoletta morbida, senza punizione.
   pof: { ...POF_SIZE, draw: drawPof },
+  // I riscontri dei Vizi del cast (ticket 09): la moneta d'oro di Nella e l'ovale di calma di Balosso.
+  ...DISEGNI_VIZI,
 };
 
 // I pannelli e i pulsanti cambiano misura da una schermata all'altra: si disegnano su richiesta.
