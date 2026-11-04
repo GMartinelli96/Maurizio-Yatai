@@ -62,12 +62,13 @@ import { createRng } from '../kit/rng.js';
 
 const SEC = 1000;
 
-// I cuoricini accesi per una Pazienza che ne ha ancora rimastaMs su totaleMs: cinque finché non è passato
-// il primo quinto del tempo, zero solo a Pazienza finita. Ogni Cliente ha il suo totale (25 s, 15 s se è
-// arrivato in un'ondata): i cuoricini sono sempre 5 e ognuno dura un quinto di quella Pazienza.
-export function cuoriDa(rimastaMs, totaleMs = PAZIENZA.durationSec * SEC) {
-  const quintoMs = totaleMs / PAZIENZA.hearts;
-  return Math.max(0, Math.min(PAZIENZA.hearts, Math.ceil(rimastaMs / quintoMs)));
+// I cuoricini accesi per una Pazienza che ne ha ancora rimastaMs su totaleMs: tutti finché non è passato il primo
+// cuoricino di tempo, zero solo a Pazienza finita. Ogni Cliente ha il suo totale (25 s, 15 s se è arrivato in un'ondata)
+// e di solito 5 cuoricini, ognuno un quinto di quella Pazienza. Con il Posto in più i cuoricini sono `cuoriMax` (6): il
+// totale cresce di 6/5, quindi ogni cuoricino dura lo stesso (5 s in calma, 3 s in ondata) e il sesto si aggiunge in coda.
+export function cuoriDa(rimastaMs, totaleMs = PAZIENZA.durationSec * SEC, cuoriMax = PAZIENZA.hearts) {
+  const cuoricinoMs = totaleMs / cuoriMax;
+  return Math.max(0, Math.min(cuoriMax, Math.ceil(rimastaMs / cuoricinoMs)));
 }
 
 // Le fasi di una Serata (ONDATE.fasi) con gli inizi in ms. Il seme sposta l'inizio di ogni fase tranne la
@@ -107,9 +108,10 @@ function scaliniSuperati(prima, dopo) {
 }
 
 // La Mancia va da zero (Pazienza finita) fino a maxManciaRatio del prezzo (cuoricini pieni), per il moltiplicatore
-// (la Serie, Che stile!, Yen d'oro, desideri: tutti insieme, senza un tetto in più). Gli Yen sono interi.
-export function calcolaMancia(prezzo, cuori, moltiplicatore = 1) {
-  return Math.round((prezzo * PAZIENZA.maxManciaRatio * cuori * moltiplicatore) / PAZIENZA.hearts);
+// (la Serie, Che stile!, Yen d'oro, desideri: tutti insieme, senza un tetto in più). Gli Yen sono interi. Con 6 cuoricini
+// la Mancia piena è la stessa: ogni cuoricino ne vale un sesto, non di più.
+export function calcolaMancia(prezzo, cuori, moltiplicatore = 1, cuoriMax = PAZIENZA.hearts) {
+  return Math.round((prezzo * PAZIENZA.maxManciaRatio * cuori * moltiplicatore) / cuoriMax);
 }
 
 // Di quanto la Serie moltiplica la Mancia: niente per il primo Cliente, +10% per ognuno di fila oltre il primo, fino
@@ -156,6 +158,8 @@ export class Serata {
   //                     per ora nessuno: si moltiplicano tra loro e con la Serie, senza un tetto unico
   //   posti             quanti Posti (3, 4 con il Potenziamento)
   //   pazienzaMoltiplicatore  quanto allunga la Pazienza di chi arriva, in calma e in ondata (il ventaglio, ticket 35)
+  //   cuori             quanti cuoricini ha la Pazienza di ogni Cliente (5, 6 con il Posto in più): ognuno dura sempre un
+  //                     quinto della Pazienza di base, quindi con 6 la Pazienza totale è 6/5 (ticket 35)
   constructor({
     seed = 'serata',
     obiettivo = SERATA_PRIMA.obiettivo,
@@ -165,6 +169,7 @@ export class Serata {
     moltiplicatoriMancia = [],
     posti = POSTI.quanti,
     pazienzaMoltiplicatore = 1,
+    cuori = PAZIENZA.hearts,
   } = {}) {
     this.rng = createRng(seed);
     this.fasi = fasiDellaSerata(seed);
@@ -176,6 +181,7 @@ export class Serata {
     this.banconeCapienza = banconeCapienza;
     this.moltiplicatoreAltri = moltiplicatoriMancia.reduce((prodotto, m) => prodotto * m, 1);
     this.pazienzaMoltiplicatore = pazienzaMoltiplicatore;
+    this.cuoriMax = cuori;
 
     this.durataMs = SERATA.durationSec * SEC;
     this.tempoMs = 0;
@@ -410,7 +416,7 @@ export class Serata {
     const cliente = posto.cliente;
     if (!cliente) return;
     cliente.pazienzaMs = Math.max(0, cliente.pazienzaMs - passoMs);
-    const cuori = cuoriDa(cliente.pazienzaMs, cliente.pazienzaTotaleMs);
+    const cuori = cuoriDa(cliente.pazienzaMs, cliente.pazienzaTotaleMs, this.cuoriMax);
     if (cuori !== cliente.cuori) {
       const prima = cliente.cuori;
       cliente.cuori = cuori;
@@ -482,14 +488,15 @@ export class Serata {
     // La Pazienza si decide all'arrivo e non cambia più: chi arriva in ondata tiene i suoi 15 s anche se
     // l'ondata finisce mentre aspetta.
     const pazienzaSec = this.faseA(this.tempoMs).ondata ? ONDATE.pazienzaSec : PAZIENZA.durationSec;
-    const pazienzaTotaleMs = Math.round(pazienzaSec * this.pazienzaMoltiplicatore * SEC);
+    // Ogni cuoricino dura un quinto della Pazienza di base, comunque siano i cuoricini (this.cuoriMax / PAZIENZA.hearts).
+    const pazienzaTotaleMs = Math.round(pazienzaSec * (this.cuoriMax / PAZIENZA.hearts) * this.pazienzaMoltiplicatore * SEC);
     posto.cliente = {
       id: this.prossimoId++,
       tipo,
       ordine,
       pazienzaMs: pazienzaTotaleMs,
       pazienzaTotaleMs,
-      cuori: PAZIENZA.hearts,
+      cuori: this.cuoriMax,
     };
     this.prossimoArrivoMs = this.tempoMs + this.attesaArrivoMs();
     eventi.push({ tipo: 'clienteArrivato', posto: indice, cliente: { id: posto.cliente.id, tipo, ordine: [...ordine] } });
@@ -530,8 +537,8 @@ export class Serata {
     this.serie += 1;
     this.serieMax = Math.max(this.serieMax, this.serie);
     const moltiplicatoreDellaSerie = moltiplicatoreSerie(this.serie);
-    const mancia = calcolaMancia(prezzo, cuori, moltiplicatoreDellaSerie * this.moltiplicatoreAltri);
-    this.manciaDaSerie += mancia - calcolaMancia(prezzo, cuori, this.moltiplicatoreAltri);
+    const mancia = calcolaMancia(prezzo, cuori, moltiplicatoreDellaSerie * this.moltiplicatoreAltri, this.cuoriMax);
+    this.manciaDaSerie += mancia - calcolaMancia(prezzo, cuori, this.moltiplicatoreAltri, this.cuoriMax);
     const totale = prezzo + mancia;
     this.incasso += totale;
     this.vendite += totale;
@@ -578,6 +585,8 @@ export class Serata {
       bruciati: this.bruciati,
       // La Serie: Ordini di fila adesso, la più lunga di stasera, di quanto moltiplicherà la Mancia del prossimo
       // Ordine servito e quanti Yen di Mancia in più ha dato finora.
+      // cuoriMax: quanti cuoricini ha la Pazienza di ogni Cliente in questa Serata (5, 6 con il Posto in più).
+      cuoriMax: this.cuoriMax,
       serie: this.serie,
       serieMax: this.serieMax,
       moltiplicatoreProssimo: moltiplicatoreSerie(this.serie + 1),

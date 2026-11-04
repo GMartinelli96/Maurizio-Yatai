@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { compra, livelloDi, opzioniSerata, vociDellaBottega, voceDi } from '../src/bottega.js';
-import { PAZIENZA, POSTI, POTENZIAMENTI } from '../src/config.js';
+import { LAMENTO, ONDATE, PAZIENZA, POSTI, POTENZIAMENTI } from '../src/config.js';
 import { DISEGNI } from '../src/disegni/catalogo.js';
 import { TESTI } from '../src/i18n.js';
 import { CHIAVE_SALVATAGGIO, Salvataggio } from '../src/salvataggio.js';
-import { Serata } from '../src/serata/Serata.js';
+import { Serata, calcolaMancia, cuoriDa } from '../src/serata/Serata.js';
 import { BRAVURA, media } from './bot-bottega.js';
 
 function storageFinto(iniziale = {}) {
@@ -136,15 +136,103 @@ test('ogni Potenziamento ha la sua icona disegnata, nella misura che la Bottega 
 // --- Cambiare la Serata ---
 
 test('senza Potenziamenti la Serata è quella di sempre: 3 Posti e Pazienza normale', () => {
-  assert.deepEqual(opzioniSerata(conYen(0)), { posti: POSTI.quanti, pazienzaMoltiplicatore: 1 });
+  assert.deepEqual(opzioniSerata(conYen(0)), { posti: POSTI.quanti, cuori: PAZIENZA.hearts, pazienzaMoltiplicatore: 1 });
 });
 
-test('il Posto in più dà il quarto Posto', () => {
+test('il Posto in più dà il quarto Posto e il sesto cuoricino', () => {
   const s = conYen(5000);
   compra(s, 'postoInPiu');
   const opzioni = opzioniSerata(s);
   assert.equal(opzioni.posti, 4);
-  assert.equal(new Serata({ seed: 'a', ...opzioni }).stato().posti.length, 4);
+  assert.equal(opzioni.cuori, 6);
+  const stato = new Serata({ seed: 'a', ...opzioni }).stato();
+  assert.equal(stato.posti.length, 4);
+  assert.equal(stato.cuoriMax, 6);
+});
+
+// --- Il sesto cuoricino ---
+
+const SEC = 1000;
+const CUORICINO_CALMA_MS = (PAZIENZA.durationSec * SEC) / PAZIENZA.hearts;
+const CUORICINO_ONDATA_MS = (ONDATE.pazienzaSec * SEC) / PAZIENZA.hearts;
+
+// Il primo Cliente che si siede in calma (o in ondata) in una Serata con `opzioni`, appena seduto: uno già seduto
+// da prima non conta, ha la Pazienza di quando è arrivato.
+function primoCliente(opzioni, ondata) {
+  const serata = new Serata({ seed: 'a', ...opzioni });
+  for (let t = 0; t < 120 * SEC; t += 10) {
+    serata.update(10);
+    const { andamento, posti } = serata.stato();
+    const cliente = posti.find((p) => p.cliente)?.cliente;
+    if (cliente && andamento.inOndata === ondata && cliente.pazienzaMs > cliente.pazienzaTotaleMs - 100) return cliente;
+  }
+  return null;
+}
+
+// Aspetta, senza servire nessuno, che il primo Cliente perda la Pazienza: quando si è spento ogni cuoricino e che
+// Lamento è partito.
+function pazienzaDelPrimo(opzioni) {
+  const serata = new Serata({ seed: 'a', ...opzioni });
+  let id = null;
+  let posto = null;
+  const spenti = [];
+  const lamenti = [];
+  for (let t = 10; t < 120 * SEC; t += 10) {
+    for (const e of serata.update(10)) {
+      if (e.tipo === 'clienteArrivato' && id === null) ({ id } = e.cliente), (posto = e.posto);
+      if (e.tipo === 'cuoreSpento' && e.posto === posto && id !== null) spenti.push({ cuori: e.cuori, t });
+      if (e.tipo === 'lamento' && e.clienteId === id) lamenti.push({ cuori: e.cuori, espressione: e.espressione, segno: e.segno });
+    }
+    if (spenti.at(-1)?.cuori === 0) break;
+  }
+  return { spenti, lamenti };
+}
+
+test('con 6 cuoricini ogni cuoricino dura come prima: il sesto si aggiunge in coda', () => {
+  const totale = PAZIENZA.durationSec * 1.2 * SEC;
+  assert.equal(cuoriDa(totale, totale, 6), 6);
+  assert.equal(cuoriDa(5 * CUORICINO_CALMA_MS + 1, totale, 6), 6);
+  assert.equal(cuoriDa(5 * CUORICINO_CALMA_MS, totale, 6), 5);
+  assert.equal(cuoriDa(CUORICINO_CALMA_MS + 1, totale, 6), 2);
+  assert.equal(cuoriDa(1, totale, 6), 1);
+  assert.equal(cuoriDa(0, totale, 6), 0);
+  // Senza il quarto argomento i cuoricini sono 5, come prima.
+  assert.equal(cuoriDa(PAZIENZA.durationSec * SEC), 5);
+});
+
+test('il Cliente del Posto in più arriva con 6 cuoricini e 30 s di Pazienza in calma, 18 in ondata', () => {
+  const sei = { posti: 4, cuori: 6 };
+  const calma = primoCliente(sei, false);
+  const ondata = primoCliente(sei, true);
+  assert.deepEqual([calma.cuori, calma.pazienzaTotaleMs], [6, 30 * SEC]);
+  assert.deepEqual([ondata.cuori, ondata.pazienzaTotaleMs], [6, 18 * SEC]);
+  // Senza il Potenziamento restano 5 cuoricini, 25 s e 15 s.
+  assert.deepEqual([primoCliente({}, false).cuori, primoCliente({}, false).pazienzaTotaleMs], [5, 25 * SEC]);
+  assert.deepEqual([primoCliente({}, true).cuori, primoCliente({}, true).pazienzaTotaleMs], [5, ONDATE.pazienzaSec * SEC]);
+});
+
+test('i cuoricini del Posto in più si spengono uno ogni 5 s, e il sesto si spegne per primo', () => {
+  const { spenti } = pazienzaDelPrimo({ posti: 4, cuori: 6 });
+  assert.deepEqual(spenti.map((s) => s.cuori), [5, 4, 3, 2, 1, 0]);
+  // Dal primo cuoricino spento all'ultimo passano 5 cuoricini di tempo.
+  assert.equal(spenti[5].t - spenti[0].t, 5 * CUORICINO_CALMA_MS);
+  assert.equal(spenti[1].t - spenti[0].t, CUORICINO_CALMA_MS);
+});
+
+test('il Lamento resta a 2 e a 1 cuoricino rimasti anche con 6 cuoricini', () => {
+  for (const opzioni of [{}, { posti: 4, cuori: 6 }]) {
+    const { lamenti } = pazienzaDelPrimo(opzioni);
+    assert.deepEqual(lamenti.map((l) => [l.cuori, l.espressione, l.segno]), [
+      [LAMENTO.perplessaA, 'perplessa', 'goccia'],
+      [LAMENTO.imbronciataA, 'imbronciata', 'sbuffo'],
+    ]);
+  }
+});
+
+test('la Mancia piena è la stessa con 6 cuoricini: ognuno ne vale un sesto', () => {
+  assert.equal(calcolaMancia(500, 6, 1, 6), calcolaMancia(500, 5));
+  assert.equal(calcolaMancia(500, 3, 1, 6), calcolaMancia(500, 2.5));
+  assert.equal(calcolaMancia(500, 0, 1, 6), 0);
 });
 
 test('ogni livello del ventaglio allunga la Pazienza di chi arriva, in calma e in ondata', () => {
@@ -178,15 +266,17 @@ const STELLA_1 = 1920;
 const STELLA_2 = 2496;
 const STELLA_3 = 3072;
 const ventaglio = (livello) => ({ pazienzaMoltiplicatore: POTENZIAMENTI.ventaglio.livelli[livello - 1].pazienza });
+// Il Posto in più com'è nella Serata: il quarto Posto e il sesto cuoricino.
+const postoInPiu = { posti: 4, cuori: 6 };
 
 test('con ogni Potenziamento (e con tutti insieme) il lento prende ★ e il rapido ★★★', () => {
   const casi = {
-    'Posto in più': { posti: 4 },
+    'Posto in più': postoInPiu,
     'ventaglio 1': ventaglio(1),
     'ventaglio 2': ventaglio(2),
     'ventaglio 3': ventaglio(3),
-    '4 Posti e ventaglio 1': { posti: 4, ...ventaglio(1) },
-    '4 Posti e ventaglio 3': { posti: 4, ...ventaglio(3) },
+    'Posto in più e ventaglio 1': { ...postoInPiu, ...ventaglio(1) },
+    'Posto in più e ventaglio 3': { ...postoInPiu, ...ventaglio(3) },
   };
   for (const [nome, opzioni] of Object.entries(casi)) {
     const lento = media('incasso', BRAVURA.lento, opzioni);
@@ -206,12 +296,18 @@ test('il ventaglio aiuta davvero: il lento perde meno Clienti e a ogni livello i
   }
 });
 
-test('il quarto Posto non toglie ★ al lento né ★★ all’attento, e da solo non regala ★★ al lento', () => {
+test('il Posto in più non toglie ★ al lento né ★★ all’attento, e da solo non regala ★★ al lento', () => {
   const lento3 = media('incasso', BRAVURA.lento);
-  const lento4 = media('incasso', BRAVURA.lento, { posti: 4 });
-  const attento4 = media('incasso', BRAVURA.attento, { posti: 4 });
-  assert.ok(lento4 >= STELLA_1, `il lento con 4 Posti fa ${lento4}, sotto ★`);
-  assert.ok(lento4 > lento3 * 0.9, `il lento con 4 Posti fa ${lento4}, con 3 ${lento3}: perde più del 10%`);
-  assert.ok(attento4 >= STELLA_2, `l'attento con 4 Posti fa ${attento4}, sotto ★★`);
-  assert.ok(lento4 < STELLA_2, `il lento con 4 Posti fa ${lento4}: non deve prendere ★★ da solo`);
+  const lento4 = media('incasso', BRAVURA.lento, postoInPiu);
+  const attento4 = media('incasso', BRAVURA.attento, postoInPiu);
+  assert.ok(lento4 >= STELLA_1, `il lento con il Posto in più fa ${lento4}, sotto ★`);
+  assert.ok(lento4 > lento3 * 0.9, `il lento con il Posto in più fa ${lento4}, senza ${lento3}: perde più del 10%`);
+  assert.ok(attento4 >= STELLA_2, `l'attento con il Posto in più fa ${attento4}, sotto ★★`);
+  assert.ok(lento4 < STELLA_2, `il lento con il Posto in più fa ${lento4}: non deve prendere ★★ da solo`);
+});
+
+test('il sesto cuoricino aiuta chi è lento a non perdere Clienti', () => {
+  const senzaCuore = media('persi', BRAVURA.lento, { posti: 4 });
+  const conCuore = media('persi', BRAVURA.lento, postoInPiu);
+  assert.ok(conCuore < senzaCuore, `il lento perde ${conCuore} Clienti con il sesto cuoricino, ${senzaCuore} senza`);
 });

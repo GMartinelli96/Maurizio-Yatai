@@ -3,7 +3,7 @@
 //
 // I Potenziamenti e i loro prezzi sono in POTENZIAMENTI (config.js); gli Yen e i livelli comprati stanno nel Salvataggio.
 
-import { POSTI, POTENZIAMENTI } from './config.js';
+import { PAZIENZA, POSTI, POTENZIAMENTI } from './config.js';
 
 // Nell'ordine in cui la Bottega li mostra.
 export const ORDINE_POTENZIAMENTI = ['postoInPiu', 'ventaglio'];
@@ -43,8 +43,10 @@ export function compra(salvataggio, id) {
 export function opzioniSerata(salvataggio) {
   const posto = livelloDi(salvataggio, 'postoInPiu');
   const ventaglio = livelloDi(salvataggio, 'ventaglio');
+  const postoInPiu = posto > 0 ? POTENZIAMENTI.postoInPiu.livelli[posto - 1] : null;
   return {
-    posti: posto > 0 ? POTENZIAMENTI.postoInPiu.livelli[posto - 1].posti : POSTI.quanti,
+    posti: postoInPiu?.posti ?? POSTI.quanti,
+    cuori: postoInPiu?.cuori ?? PAZIENZA.hearts,
     pazienzaMoltiplicatore: ventaglio > 0 ? POTENZIAMENTI.ventaglio.livelli[ventaglio - 1].pazienza : 1,
   };
 }

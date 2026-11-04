@@ -435,7 +435,8 @@ export const RISCONTRI = {
 
 // I Potenziamenti della Bottega (GAME_SPEC.md, "Progressione"; ticket 35). Ognuno ha dei livelli, dal primo in poi; un livello costa
 // Yen e si compra una volta, in ordine. Prezzi ed effetti sono di partenza, fino al ticket 29.
-//   postoInPiu  un livello solo: i Posti diventano `posti` (il quarto)
+//   postoInPiu  un livello solo: i Posti diventano `posti` (il quarto) e la Pazienza ha `cuori` cuoricini (il sesto), cioè
+//               ×1,2: ogni cuoricino dura come prima (5 s in calma, 3 s in ondata) e il nuovo si aggiunge in coda
 //   ventaglio   di Maurizio: ogni livello moltiplica la Pazienza dei Clienti che arrivano, in calma e in ondata (`pazienza`)
 // Misure con il bot (media di 6 semi, Hanami, Serie compresa; Incasso di rapido / attento / lento):
 //   senza Potenziamenti  5005 / 3325 / 2171   il lento perde 3,5 Clienti
@@ -444,9 +445,13 @@ export const RISCONTRI = {
 //   ventaglio ×1,3       5270 / 3573 / 2204
 //   ventaglio ×1,4       5283 / 3598 / 2330   la Mancia della Serie del rapido arriva al 15% dell'Incasso
 //   4 Posti e ×1,4       5187 / 3363 / 2232
+//   Posto in più e sesto cuoricino   5141 / 3139 / 2063   il lento ne perde 2,7 invece di 5,5; l'attento non ne perde più
+//   Posto in più e ventaglio ×1,4    5286 / 3493 / 2215   nessuno perde Clienti
+// Scartato "4 cuori di base e 5 con 4 Posti":
+// peggiorava la Serata di chi non compra niente (lento 2005, a un passo dal limite di ★).
 // "Postazione più veloce" non è qui: arriva con il ticket 06 (la piastra) e il 17 (le altre Postazioni con cottura).
 export const POTENZIAMENTI = {
-  postoInPiu: { livelli: [{ prezzo: 3000, posti: 4 }] },
+  postoInPiu: { livelli: [{ prezzo: 3000, posti: 4, cuori: 6 }] },
   ventaglio: { livelli: [{ prezzo: 1000, pazienza: 1.2 }, { prezzo: 2000, pazienza: 1.3 }, { prezzo: 3500, pazienza: 1.4 }] },
 };
 
