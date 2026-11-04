@@ -235,6 +235,21 @@ test('la Mancia piena è la stessa con 6 cuoricini: ognuno ne vale un sesto', ()
   assert.equal(calcolaMancia(500, 0, 1, 6), 0);
 });
 
+test('comprati e ricaricati, i Potenziamenti cambiano la Serata che parte dopo: 4 Posti, 6 cuoricini e Pazienza ×1,4', () => {
+  const storage = storageFinto();
+  const prima = conYen(100000, storage);
+  compra(prima, 'postoInPiu');
+  for (let i = 0; i < 3; i++) compra(prima, 'ventaglio');
+  // Un'altra sessione dello stesso dispositivo: legge dal salvataggio.
+  const opzioni = opzioniSerata(new Salvataggio(storage));
+  assert.deepEqual(opzioni, { posti: 4, cuori: 6, pazienzaMoltiplicatore: 1.4 });
+  const stato = new Serata({ seed: 'a', ...opzioni }).stato();
+  assert.deepEqual([stato.posti.length, stato.cuoriMax, stato.pazienzaMoltiplicatore], [4, 6, 1.4]);
+  // 25 s in calma × 6/5 × 1,4 = 42 s; 15 s in ondata × 6/5 × 1,4 = 25,2 s.
+  assert.equal(primoCliente(opzioni, false).pazienzaTotaleMs, 42 * SEC);
+  assert.equal(primoCliente(opzioni, true).pazienzaTotaleMs, 25200);
+});
+
 test('ogni livello del ventaglio allunga la Pazienza di chi arriva, in calma e in ondata', () => {
   const s = conYen(100000);
   // La Pazienza totale del primo Cliente che arriva nella fase giusta (calma oppure ondata).
@@ -304,6 +319,13 @@ test('il Posto in più non toglie ★ al lento né ★★ all’attento, e da so
   assert.ok(lento4 > lento3 * 0.9, `il lento con il Posto in più fa ${lento4}, senza ${lento3}: perde più del 10%`);
   assert.ok(attento4 >= STELLA_2, `l'attento con il Posto in più fa ${attento4}, sotto ★★`);
   assert.ok(lento4 < STELLA_2, `il lento con il Posto in più fa ${lento4}: non deve prendere ★★ da solo`);
+});
+
+test('con tutti i Potenziamenti la Mancia della Serie non decide da sola le stelle: al più il 15% dell’Incasso del rapido', () => {
+  const tutto = { ...postoInPiu, ...ventaglio(3) };
+  const extra = media('manciaDaSerie', BRAVURA.rapido, tutto);
+  const incasso = media('incasso', BRAVURA.rapido, tutto);
+  assert.ok(extra <= incasso * 0.15, `Mancia della Serie ${extra} su ${incasso}: ${((100 * extra) / incasso).toFixed(1)}%`);
 });
 
 test('il sesto cuoricino aiuta chi è lento a non perdere Clienti', () => {
