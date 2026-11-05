@@ -4,16 +4,16 @@
 
 **Blocked by:** 08 (Ramen e taiyaki)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Coccolare Croccola la fa andare via con le fusa; lasciarla fare le fa rubare un takoyaki o un taiyaki dal Bancone (con test).
-- [ ] Un tocco sulla fila di formiche le fa girare al largo; se arrivano, il Piatto dolce è rovinato, va nel cestino e non si serve (con test).
-- [ ] Un tocco manda via un corvo; se scende, ruba un Piatto pronto lasciato su una Postazione (con test).
-- [ ] Un Piatto rubato o rovinato è Spreco e non entra nelle Vendite (con test).
-- [ ] Coccole, furto, fuga e Piatto rovinato si capiscono guardando.
-- [ ] Quanto spesso arrivano i Disturbatori è nei dati.
-- [ ] I numeri nuovi sono nel file di configurazione e i testi nuovi sono in tutte e tre le lingue.
-- [ ] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero, lo stato nuovo compare in `window.render_game_to_text()` e la console non ha errori.
+- [x] Coccolare Croccola la fa andare via con le fusa; lasciarla fare le fa rubare un takoyaki o un taiyaki dal Bancone (con test).
+- [x] Un tocco sulla fila di formiche le fa girare al largo; se arrivano, il Piatto dolce è rovinato, va nel cestino e non si serve (con test).
+- [x] Un tocco manda via un corvo; se scende, ruba un Piatto pronto lasciato su una Postazione (con test).
+- [x] Un Piatto rubato o rovinato è Spreco e non entra nelle Vendite (con test).
+- [x] Coccole, furto, fuga e Piatto rovinato si capiscono guardando.
+- [x] Quanto spesso arrivano i Disturbatori è nei dati.
+- [x] I numeri nuovi sono nel file di configurazione e i testi nuovi sono in tutte e tre le lingue.
+- [x] Verificato come dice PIANO.md: si parte dalla skill `router`, Playwright manda gli input e avanza il tempo con `window.advanceTime`, gli screenshot sono guardati davvero, lo stato nuovo compare in `window.render_game_to_text()` e la console non ha errori.
 
 ## Comments
 
@@ -46,4 +46,27 @@ Il titolo e il testo dicevano "Croccola e gli scarafaggi" (scarafaggi sulla Post
 
 **Rigiocati tutti i 42 scenari di `yatai/scenari/` a 360×640, senza errori in console** (dopo il merge di main con il ticket 06, `963898b`; il primo giro con 5 browser insieme è stato fermato dal sistema per la memoria, il secondo è andato a uno alla volta; `bottega-bloccata` e `serata-yen-bloccato` vogliono `--senza-storage`). `npm test` 392 su 392.
 
-**Da fare dopo la prova di Giuseppe sul telefono**: spuntare i criteri con le prove, `Status: resolved`, sezione "### Chiuso (data)", merge in main (con il ticket 10 in arrivo: SerataScene.js e Serata.js).
+
+### Chiuso (2026-11-05)
+
+Unito in `main` con fast-forward di `ticket-11` (worktree `../maurizio-t11`), dopo `git merge main` (già dentro, ticket 06 compreso) e `npm test` verde. La prova di Giuseppe sul telefono vero è andata bene. Commit del ticket: `58c8c56` (logica), `d5bd192` (disegni), `93dd91e` (riscontri), `e9be5ad` (stato, scenari, bot), `963898b` (merge di main), `5563e30` (nota del passo 4).
+
+**Le prove, criterio per criterio**
+- **Croccola**: coccolata fa le fusa e se ne va (`motivo: coccolata`, Piatto ancora sul Bancone); lasciata fare ruba il Piatto (`piattoRubato`, Bancone vuoto). Test in `test/disturbatori.test.js`, scenario `serata-croccola`.
+- **Formiche**: un tocco sulla fila le fa girare al largo (`scacciato`); se arrivano il Piatto è `rovinato` e nessun `piattoBruciato` (non spezza la Serie, non spaventa Ebi Furai). Scenario `serata-formiche`.
+- **Corvi**: un tocco li manda via; se scendono rubano il Piatto pronto della Postazione (`fatti 0`, Postazione libera). Scenario `serata-corvi`.
+- **Spreco, non Vendite**: rubato o rovinato = Spesa − Spesa servita, Vendite a zero (con test); nel recap per Piatto è fatto, non servito, tutto sprecato.
+- **Si capisce guardando**: anello corallo che respira sul Piatto puntato, fasi arriva/punta/colpo leggibili dal movimento, cuoricini, pof, Piatto sporco che vola nel cestino, piume del corvo. Guardato a 360×640, 390×844, 1280×720 e in giapponese.
+- **Dati**: `DISTURBATORI` in `config.js` (primo arrivo, intervallo, tempi di ogni fase, rinuncia) e `RISCONTRI.disturbatori`. Nessun testo nuovo: la Serata non ha testi per i Disturbatori (nessun testo da tradurre).
+- **Verifica**: `window.render_game_to_text()` ha `disturbatori` (zone x, y, w, h, fase, anello) e `serata.disturbatori`; scenari nuovi `serata-croccola`, `serata-formiche`, `serata-corvi`, `serata-disturbatori` (Serata intera col bot che scaccia: 10 arrivi, 10 scacciati, nessun Piatto perso; lasciandoli fare: 1 rubato, 1 rovinato). Tutti i 42 scenari a 360×640 senza errori in console, `npm test` 392 su 392.
+
+**Le decisioni**
+- **Quali Disturbatori**: Croccola, formiche, corvi come GAME_SPEC.md, non gli scarafaggi del testo originale (scelta di Giuseppe).
+- **Un Disturbatore per tipo alla volta**, con un generatore a parte per tipo: gli scenari a seme fisso e gli Ordini non cambiano. Le zone da toccare sono di almeno 100 px di gioco (50 CSS).
+
+**Non fatto, da sapere**
+- **Ticket 12**: oggi i Disturbatori arrivano solo in `SERATA_PROVA_DISTURBATORI` o con `?disturbatori=`; sono i Matsuri a decidere quando (Croccola dal Tanabata, formiche dall'Hanabi, corvi dall'Aki).
+- **Ticket 23**: nessun suono; gli agganci sono i `case` di `SerataScene.perEvento` (fusa, "kaa kaa", sbuffo del furto).
+- **Ticket 26**: nessun "riduci movimento"; passa da `DisturbatoriView.muovi()` e `scene.riduciMovimento`.
+- **Ticket 29**: i tempi sono provvisori, da bilanciare. Il muso di Croccola è in parte coperto dal Piatto e le formiche sono piccole (la zona da toccare è l'area della fila).
+- **Ticket 10 (in arrivo)**: `idPiatto`/`piattoBase` passano in `ordini.js`; `disturbatori.js` li importa ora da `Serata.js` (li riesporta), da aggiornare al merge.
