@@ -23,3 +23,7 @@ La curva degli arrivi (quattro fasi: calma, ondata, respiro, ondata finale) è n
 ### Dalla mappa yatai-serata-che-cambia (2026-11-03)
 
 La curva di ogni Serata comprende anche la **Pazienza dei Clienti in ondata** (oggi 15 s contro 25), non solo le fasi e gli intervalli. Le curve più morbide delle prime Serate possono quindi avere una Pazienza in ondata più lunga (per esempio 20 s: con la Serata dell'Hanami il lento prende ★ in ogni caso, a 18 s no senza Serie). Vedi GAME_SPEC.md ("La Serata", Ondate).
+
+### Dalla mappa yatai-matsuri-e-mappa (2026-11-05)
+
+Questo ticket è troppo grosso per una sessione: è stato tracciato con `/wayfinder` in `.scratch/yatai-matsuri-e-mappa/` (otto ticket di decisione: formato dei dati, forma della curva, cast e Disturbatori a scaglioni, misura delle 30 Serate, percorso delle schermate, look della mappa, titolo e crediti, e la scrittura finale). **Non si costruisce finché la mappa non è chiusa** e il ticket 10 non è in main. L'ultimo ticket della mappa riscrive questo in 4 passi. Già deciso con Giuseppe (vedi `map.md`, "Decisions so far"): salita di difficoltà con il Piatto nuovo alla Serata 1 di ogni Matsuri; sblocchi con ★ e `?sblocca=tutto` in sviluppo; mappa a due livelli (i 5 Matsuri e le 6 Serate); recap con Rigioca e Mappa e la Bottega dalla mappa; cast a scaglioni, Disturbatori dalla Serata 2 o 3 del loro Matsuri; Gran Serata senza Evento (campo `evento` vuoto) finché non ci sono i ticket 14 e 15.
